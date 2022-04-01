@@ -56,7 +56,7 @@ namespace DustyPig.Server.HostedServices
         private async Task CleanLogsAsync()
         {
             using var db = new AppDbContext();
-            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM logs WHERE Timestamp < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'", _cancellationToken);
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM logs WHERE Timestamp < {DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}", _cancellationToken);
         }
         
     }
