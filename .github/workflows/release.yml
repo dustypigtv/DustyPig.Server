@@ -18,7 +18,7 @@ jobs:
           dotnet-version: 6.0.x
 
       - name: Build Server
-        run: dotnet publish src/DustyPig.Server/DustyPig.Server.csproj -c release -o publish
+        run: dotnet publish DustyPig.Server/DustyPig.Server.csproj -c release -o publish
 
 
       - name: Deploy to Azure Web App
