@@ -18,7 +18,9 @@ jobs:
           dotnet-version: 6.0.x
 
       - name: Build Server
-        run: dotnet publish DustyPig.Server/DustyPig.Server.csproj -c release -o publish
+        run: |
+            sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
+            dotnet publish -c release -o publish
 
 
       - name: Deploy to Azure Web App
