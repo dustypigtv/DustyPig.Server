@@ -44,9 +44,6 @@ namespace DustyPig.Server
                 Credential = GoogleCredential.FromJson(Configuration["firebase-config"])
             });
 
-            //Use this for auth
-            FirebaseAuthClient.Configure(Configuration["firebase-api-key"]);
-
             TMDBClient.Configure(Configuration["tmdb-api-key"]);
 
             JWTProvider.Configure(Configuration["jwt-key"]);

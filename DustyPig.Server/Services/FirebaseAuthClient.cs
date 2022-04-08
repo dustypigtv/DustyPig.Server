@@ -2,11 +2,9 @@
 {
     public sealed class FirebaseAuthClient : Firebase.Auth.Client
     {
-        private static string _apiKey;
+        private const string API_KEY = "AIzaSyC_m_o4f1_zU0zpUDW9FYfpZiZG_KMXi8Q";
 
-        public static void Configure(string apiKey) => _apiKey = apiKey;
-
-        public FirebaseAuthClient() : base(_apiKey) { }
-
+        public FirebaseAuthClient() : base(API_KEY) { }
+        
     }
 }
