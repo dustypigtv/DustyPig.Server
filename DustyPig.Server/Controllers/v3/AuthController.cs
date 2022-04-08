@@ -4,6 +4,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -54,24 +55,24 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        ///// <summary>
-        ///// Level 0
-        ///// </summary>
-        ///// <remarks>Logs into the account using a Firebase OAuth refresh token, and returns an account level bearer token</remarks>
-        //[HttpPost]
-        //[SwaggerResponse((int)HttpStatusCode.OK)]
-        //[SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        //public async Task<ActionResult<SimpleValue<string>>> OAuthLogin(SimpleValue<string> refresh_token)
-        //{
-        //    var response = await _firebaseClient.RefreshTokenAsync(refresh_token.Value);
-        //    if (!response.Success)
-        //        return BadRequest(response.Error.Message);
+        /// <summary>
+        /// Level 0
+        /// </summary>
+        /// <remarks>Logs into the account using an OAuth token, and returns an account level bearer token</remarks>
+        [HttpPost]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<SimpleValue<string>>> OAuthLogin(OAuthCredentials credentials)
+        {
+            var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com", true);
+            if (!response.Success)
+                return BadRequest(response.Error.Message);
 
-        //    var account = await GetOrCreateAccountAsync(response.Data.UserId, response.Data.IdToken);
-        //    var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
+            var account = await GetOrCreateAccountAsync(response.Data.LocalId, response.Data.IdToken);
+            var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
 
-        //    return new SimpleValue<string>(token);
-        //}
+            return new SimpleValue<string>(token);
+        }
 
 
 
