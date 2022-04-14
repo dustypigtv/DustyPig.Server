@@ -1,4 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -66,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com", true);
             if (!response.Success)
-                return BadRequest(response.Error.Message);
+                return BadRequest(response.FirebaseError().Message);
 
             var account = await GetOrCreateAccountAsync(response.Data.LocalId, response.Data.IdToken);
             var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
