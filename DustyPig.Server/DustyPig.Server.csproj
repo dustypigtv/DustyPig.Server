@@ -13,18 +13,18 @@
 
 
 <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="3.7.8.17" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.8.20" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
     <PackageReference Include="Azure.Identity" Version="1.6.0" />
-    <PackageReference Include="DustyPig.API" Version="3.0.1.7" />
+    <PackageReference Include="DustyPig.API" Version="3.0.1.8" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.4" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.1.2" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.57.0.2601" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.57.0.2656" />
     <PackageReference Include="Krypto.WonderDog" Version="21.11.9.1091" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
