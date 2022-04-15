@@ -68,23 +68,26 @@ namespace DustyPig.Server.Controllers.v3
                 }
 
                 //Send verification mail
+
                 var dataResponse = await _client.GetUserDataAsync(signinResponse.Data.IdToken);
                 if (!dataResponse.Success)
                     return BadRequest(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
-                if (!dataResponse.Data.Users.Where(item => item.Email.ICEquals(signinResponse.Data.Email)).Any(item => item.EmailVerified))
+                bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signinResponse.Data.Email)).Any(item => item.EmailVerified);
+
+                if (emailVerificationRequired)
                 {
                     var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signinResponse.Data.IdToken);
                     if (!sendVerificationEmailResponse.Success)
                         return BadRequest(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
                 }
+
+                return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
             }
             else
             {
                 return BadRequest(signinResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
             }
-
-            return CommonResponses.Created;
         }
 
 
