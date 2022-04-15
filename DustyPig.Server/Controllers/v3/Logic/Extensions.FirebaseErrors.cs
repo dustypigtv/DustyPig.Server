@@ -20,10 +20,10 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 case FirebaseMethods.PasswordSignup:
                     switch (error.Message)
                     {
-                        case "\"EMAIL_EXISTS\"":
-                            return "Email already exists";
+                        case "EMAIL_EXISTS":
+                            return "Account already exists";
 
-                        case "\"OPERATION_NOT_ALLOWED\"":
+                        case "OPERATION_NOT_ALLOWED":
                             return "Password sign-in is disabled for this app";
                     }
                     break;
