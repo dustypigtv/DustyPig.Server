@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3;
+using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -127,6 +128,10 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.OK)]
         public async Task<ActionResult<List<BasicMedia>>> LoadMoreHomeScreenItems(IDListRequest request)
         {
+            //Validate
+            try { request.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
             IEnumerable<BasicMedia> results = null;
 
             if (request.ListId == ID_CONTINUE_WATCHING)
@@ -184,8 +189,12 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Returns the next 100 items in a library based on start position and sort order</remarks>
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<List<BasicMedia>> ListLibraryItems(LibraryListRequest request)
+        public async Task<ActionResult<List<BasicMedia>>> ListLibraryItems(LibraryListRequest request)
         {
+            //Validate
+            try { request.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
             var q =
                 from mediaEntry in DB.MoviesAndSeriesPlayableByProfile(UserProfile)
                 where request.LibraryId == mediaEntry.LibraryId
@@ -208,8 +217,12 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Returns the next 100 items in a Genre based on start position and sort order</remarks>
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<List<BasicMedia>> ListGenreItems(GenreListRequest request)
+        public async Task<ActionResult<List<BasicMedia>>> ListGenreItems(GenreListRequest request)
         {
+            //Validate
+            try { request.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
             var q = GenresQuery(request.Genre);
 
             var sortedQ = ApplySortOrder(q, SortOrder.Popularity_Descending);

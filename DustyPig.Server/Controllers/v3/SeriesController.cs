@@ -33,8 +33,12 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Returns the next 100 series based on start position and sort order</remarks>
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<List<BasicMedia>> List(ListRequest request)
+        public async Task<ActionResult<List<BasicMedia>>> List(ListRequest request)
         {
+            //Validate
+            try { request.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
             var seriesQ =
                 from mediaEntry in DB.SeriesPlayableByProfile(UserProfile)
                 select mediaEntry;
@@ -57,7 +61,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{start}")]
         [RequireMainProfile]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<List<BasicMedia>> AdminList(int start)
+        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start)
         {
             var movies = await DB.MediaEntries
                 .AsNoTracking()

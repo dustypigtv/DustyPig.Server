@@ -22,10 +22,12 @@ namespace DustyPig.Server.Controllers.v3
     public class AccountController : _BaseController
     {
         private readonly FirebaseAuthClient _client;
+        private readonly JWTProvider _jwtProvider;
 
-        public AccountController(AppDbContext db, FirebaseAuthClient client) : base(db) 
+        public AccountController(AppDbContext db, FirebaseAuthClient client, JWTProvider jwtProvider) : base(db)
         {
             _client = client;
+            _jwtProvider = jwtProvider;
         }
 
         /// <summary>
@@ -51,6 +53,7 @@ namespace DustyPig.Server.Controllers.v3
                     .Where(item => item.FirebaseId == signinResponse.Data.LocalId)
                     .FirstOrDefaultAsync();
 
+                int profileId = 0;
                 if (account == null)
                 {
                     account = DB.Accounts.Add(new Data.Models.Account { FirebaseId = signinResponse.Data.LocalId }).Entity;
@@ -65,6 +68,7 @@ namespace DustyPig.Server.Controllers.v3
                     }).Entity;
 
                     await DB.SaveChangesAsync();
+                    profileId = profile.Id;
                 }
 
                 //Send verification mail
@@ -80,9 +84,15 @@ namespace DustyPig.Server.Controllers.v3
                     var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signinResponse.Data.IdToken);
                     if (!sendVerificationEmailResponse.Success)
                         return BadRequest(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
-                }
 
-                return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
+                    return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = true });
+                }
+                else
+                {
+                    var token = await _jwtProvider.CreateTokenAsync(account.Id, profileId, null);
+                    return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token });
+                }
+                
             }
             else
             {

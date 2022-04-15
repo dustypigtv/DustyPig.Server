@@ -11,7 +11,7 @@ namespace DustyPig.Server.Data.Models
         public Profile Profile { get; set; }
 
         [Required]
-        [MaxLength(1024)]
+        [MaxLength(API.v3.Models.Constants.MAX_MOBILE_DEVICE_ID_LENGTH)]
         public string Token { get; set; }
 
         public DateTime LastSeen { get; set; }

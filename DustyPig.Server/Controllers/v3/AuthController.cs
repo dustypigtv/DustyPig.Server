@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3;
+using DustyPig.API.v3.Models;
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -39,11 +40,9 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult<SimpleValue<string>>> PasswordLogin(PasswordCredentials credentials)
         {
-            if (string.IsNullOrWhiteSpace(credentials.Email))
-                return BadRequest(nameof(credentials.Email) + " must be specified");
-
-            if (string.IsNullOrWhiteSpace(credentials.Password))
-                return BadRequest(nameof(credentials.Password) + " must be specified");
+            //Validate
+            try { credentials.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
             var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
@@ -73,11 +72,9 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult> SendVerificationEmail(PasswordCredentials credentials)
         {
-            if (string.IsNullOrWhiteSpace(credentials.Email))
-                return BadRequest(nameof(credentials.Email) + " must be specified");
-
-            if (string.IsNullOrWhiteSpace(credentials.Password))
-                return BadRequest(nameof(credentials.Password) + " must be specified");
+            //Validate
+            try { credentials.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
             var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
@@ -120,6 +117,10 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult<SimpleValue<string>>> OAuthLogin(OAuthCredentials credentials)
         {
+            //Validate
+            try { credentials.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
             var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com");
             if (!response.Success)
                 return BadRequest(response.FirebaseError().TranslateFirebaseError(FirebaseMethods.OauthSignin));
@@ -175,7 +176,7 @@ namespace DustyPig.Server.Controllers.v3
                 return BadRequest($"value must be specified");
 
             code.Value = code.Value.Trim();
-            if (code.Value.Length != 5)
+            if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
                 return BadRequest($"value is invalid");
 
             var rec = await DB.ActivationCodes
@@ -259,6 +260,10 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         public async Task<ActionResult<SimpleValue<string>>> ProfileLogin(ProfileCredentials credentials)
         {
+            //Validate
+            try { credentials.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
             var (account, _) = await User.VerifyAsync();
 
             if (account == null)

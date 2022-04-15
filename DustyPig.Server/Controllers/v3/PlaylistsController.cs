@@ -302,8 +302,10 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult> SetCurrentIndex(SetPlaylistIndex info)
         {
-            if (info.CurrentIndex <= 0)
-                return BadRequest("Index must be > 0");
+            //Validate
+            try { info.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
 
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
@@ -335,6 +337,11 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult<SimpleValue<int>>> AddItem(AddPlaylistItem info)
         {
+            //Validate
+            try { info.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.Id == info.PlaylistId)
@@ -380,6 +387,11 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult> AddSeries(AddPlaylistItem info)
         {
+            //Validate
+            try { info.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.Id == info.PlaylistId)
@@ -468,6 +480,11 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult> MoveItemToNewIndex(ManagePlaylistItem info)
         {
+            //Validate
+            try { info.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
             var data = await DB.PlaylistItems
                 .Include(item => item.Playlist)
                 .ThenInclude(item => item.PlaylistItems)
