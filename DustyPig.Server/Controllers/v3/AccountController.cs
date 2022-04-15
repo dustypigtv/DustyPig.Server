@@ -5,7 +5,6 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Services;
-using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +21,12 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(AccountController))]
     public class AccountController : _BaseController
     {
-        public AccountController(AppDbContext db) : base(db) { }
+        private readonly FirebaseAuthClient _client;
+
+        public AccountController(AppDbContext db, FirebaseAuthClient client) : base(db) 
+        {
+            _client = client;
+        }
 
         /// <summary>
         /// Level 0
@@ -38,11 +42,7 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-
-            var fbAuth = new FirebaseAuthClient();
-
-            //Check if user exists
-            var signinResponse = await fbAuth.SignInWithEmailPasswordAsync(info.Email, info.Password);
+            var signinResponse = await _client.SignUpWithEmailPasswordAsync(info.Email, info.Password);
             if (signinResponse.Success)
             {
                 var account = await DB.Accounts
@@ -53,60 +53,35 @@ namespace DustyPig.Server.Controllers.v3
 
                 if (account == null)
                 {
-                    //Account exists in Firebase but not here. Create it
                     account = DB.Accounts.Add(new Data.Models.Account { FirebaseId = signinResponse.Data.LocalId }).Entity;
-
                     var profile = DB.Profiles.Add(new Data.Models.Profile
                     {
                         Account = account,
                         AllowedRatings = API.v3.MPAA.Ratings.All,
                         AvatarUrl = info.AvatarUrl,
                         IsMain = true,
-                        Name = info.DisplayName,
+                        Name = Utils.Coalesce(info.DisplayName, signinResponse.Data.Email[..signinResponse.Data.Email.IndexOf("@")]),
                         TitleRequestPermission = TitleRequestPermissions.Enabled
                     }).Entity;
 
                     await DB.SaveChangesAsync();
                 }
-                else
+
+                //Send verification mail
+                var dataResponse = await _client.GetUserDataAsync(signinResponse.Data.IdToken);
+                if (!dataResponse.Success)
+                    return BadRequest(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+
+                if (!dataResponse.Data.Users.Where(item => item.Email.ICEquals(signinResponse.Data.Email)).Any(item => item.EmailVerified))
                 {
-                    return BadRequest("Account already exists");
+                    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signinResponse.Data.IdToken);
+                    if (!sendVerificationEmailResponse.Success)
+                        return BadRequest(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
                 }
             }
             else
             {
-                var errorData = signinResponse.FirebaseError();
-                if (errorData.Message == "INVALID_EMAIL")
-                {
-                    //Create
-                    var userRec = new UserRecordArgs
-                    {
-                        DisplayName = info.DisplayName,
-                        Email = info.Email,
-                        Password = info.Password,
-                        PhotoUrl = info.AvatarUrl,
-                    };
-                    try
-                    {
-                        var user = await FirebaseAuth.DefaultInstance.CreateUserAsync(userRec);
-                    }
-                    catch (Exception ex)
-                    {
-                        return BadRequest(ex.Message);
-                    }
-
-                    signinResponse = await fbAuth.SignInWithEmailPasswordAsync(info.Email, info.Password);
-                    if (!signinResponse.Success)
-                        return BadRequest(signinResponse.FirebaseError().Message);
-
-                    var sendEmailResponse = await fbAuth.SendEmailVerificationAsync(signinResponse.Data.IdToken);
-                    if (!sendEmailResponse.Success)
-                        return BadRequest(sendEmailResponse.FirebaseError().Message);
-                }
-                else
-                {
-                    return BadRequest(errorData.Message);
-                }
+                return BadRequest(signinResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
             }
 
             return CommonResponses.Created;

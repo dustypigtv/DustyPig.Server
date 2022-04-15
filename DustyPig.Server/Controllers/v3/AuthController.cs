@@ -47,12 +47,67 @@ namespace DustyPig.Server.Controllers.v3
 
             var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
-                return BadRequest(signInResponse.FirebaseError().Message);
+                return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
 
-            var account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, signInResponse.Data.IdToken);
+            var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
+            if(!dataResponse.Success)
+                return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+
+            var users = dataResponse.Data.Users.Where(item => item.Email.ICEquals(signInResponse.Data.Email));
+            if (!users.Any(item => item.EmailVerified))
+                return BadRequest("You must verify your email address before you can sign in");
+
+            var account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
             var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
 
             return new SimpleValue<string>(token);
+        }
+
+
+        /// <summary>
+        /// Level 0
+        /// </summary>
+        /// <remarks>Sends a new account verification email</remarks>
+        [HttpPost]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult> SendVerificationEmail(PasswordCredentials credentials)
+        {
+            if (string.IsNullOrWhiteSpace(credentials.Email))
+                return BadRequest(nameof(credentials.Email) + " must be specified");
+
+            if (string.IsNullOrWhiteSpace(credentials.Password))
+                return BadRequest(nameof(credentials.Password) + " must be specified");
+
+            var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
+            if (!signInResponse.Success)
+                return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
+
+            var sendVerificationEmailResponse = await _firebaseClient.SendEmailVerificationAsync(signInResponse.Data.IdToken);
+            if (!sendVerificationEmailResponse.Success)
+                return BadRequest(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
+
+            return Ok();
+        }
+
+
+        /// <summary>
+        /// Level 0
+        /// </summary>
+        /// <remarks>Sends a password reset email</remarks>
+        [HttpPost]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult> SendPasswordResetEmail(SimpleValue<string> email)
+        {
+            if (string.IsNullOrWhiteSpace(email.Value))
+                return BadRequest(nameof(email) + " must be specified");
+
+            var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
+            if (!ret.Success)
+                return BadRequest(ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset));
+            
+            return Ok();
         }
 
 
@@ -65,11 +120,11 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         public async Task<ActionResult<SimpleValue<string>>> OAuthLogin(OAuthCredentials credentials)
         {
-            var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com", true);
+            var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com");
             if (!response.Success)
-                return BadRequest(response.FirebaseError().Message);
+                return BadRequest(response.FirebaseError().TranslateFirebaseError(FirebaseMethods.OauthSignin));
 
-            var account = await GetOrCreateAccountAsync(response.Data.LocalId, response.Data.IdToken);
+            var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
             var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
 
             return new SimpleValue<string>(token);
@@ -313,7 +368,7 @@ namespace DustyPig.Server.Controllers.v3
             if (profile.Id == TestCredentials.ProfileId)
                 return CommonResponses.ProhibitTestUser;
 
-            await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(account.FirebaseId);
+            await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(account.FirebaseId);
 
 
             DB.AccountTokens.RemoveRange(account.AccountTokens);
@@ -328,7 +383,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-        private async Task<Account> GetOrCreateAccountAsync(string localId, string idToken)
+        private async Task<Account> GetOrCreateAccountAsync(string localId, string name, string email, string photoUrl)
         {
             var account = await DB.Accounts
                 .AsNoTracking()
@@ -337,20 +392,16 @@ namespace DustyPig.Server.Controllers.v3
 
             if (account == null)
             {
-                //Exists in firebase but not here... shouldn't happen except in development, but go ahead and fix it
-                var userResponse = await _firebaseClient.GetUserDataAsync(idToken);
-                userResponse.ThrowIfError();
-
-                account = new Account { FirebaseId = userResponse.Data.Users[0].LocalId };
+                account = new Account { FirebaseId = localId };
                 DB.Accounts.Add(account);
 
                 DB.Profiles.Add(new Profile
                 {
                     Account = account,
                     AllowedRatings = API.v3.MPAA.Ratings.All,
-                    AvatarUrl = userResponse.Data.Users[0].PhotoUrl,
+                    AvatarUrl = photoUrl,
                     IsMain = true,
-                    Name = Utils.Coalesce(userResponse.Data.Users[0].DisplayName, userResponse.Data.Users[0].Email, "New User!"),
+                    Name = Utils.Coalesce(name, email[..email.IndexOf("@")]),
                     TitleRequestPermission = TitleRequestPermissions.Enabled
                 });
 
