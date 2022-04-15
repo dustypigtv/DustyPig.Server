@@ -47,7 +47,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
-                return BadRequest(signInResponse.Error.Message);
+                return BadRequest(signInResponse.FirebaseError().Message);
 
             var account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, signInResponse.Data.IdToken);
             var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
