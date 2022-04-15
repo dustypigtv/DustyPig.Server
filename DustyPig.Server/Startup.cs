@@ -162,7 +162,7 @@ namespace DustyPig.Server
                             },
                             In = ParameterLocation.Header,
                         },
-                        new string[]{ }
+                        Array.Empty<string>()
                     }
                 });
 
@@ -247,6 +247,8 @@ namespace DustyPig.Server
                 });
             });
             services.AddSwaggerGenNewtonsoftSupport();
+
+            services.AddControllersWithViews();
 
             services.AddScoped<TMDBClient>();
             services.AddScoped<FirebaseAuthClient>();
