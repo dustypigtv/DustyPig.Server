@@ -15,7 +15,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
         public bool ShowPasswordReset { get; set; }
 
         [Required]
-        [StringLength(1000, ErrorMessage = "Password must be at least {2} characters long", MinimumLength = 1)]
+        [StringLength(1000, ErrorMessage = "Password must be at least {2} characters long", MinimumLength = 6)]
         [DataType(DataType.Password)]
         [Display(Name = "New Password")]
         public string NewPassword { get; set; }
