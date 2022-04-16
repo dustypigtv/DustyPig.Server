@@ -1,0 +1,48 @@
+﻿@page
+@model DustyPig.Server.Pages.FirebaseActions.IndexModel
+@{
+}
+
+<div class="text-center">
+    <h1 class="display-8">@Model.FAM.Title</h1>
+    <p class="text-center">@Model.FAM.Message</p>
+    <p class="text-center text-danger">@Model.FAM.ErrorMessage</p>
+</div>
+
+@if(Model.FAM.ShowPasswordReset)
+{
+    <br />
+
+    <div class="container justify-content-center col-md-4">
+
+        <form method="post">
+
+            <input type="hidden" asp-for="FAM.Code" />
+                   
+            <div class="form-group">
+                <label asp-for="FAM.NewPassword" class="control-label"></label>
+                <input asp-for="FAM.NewPassword" class="form-control" />
+                <span asp-validation-for="FAM.NewPassword" class="text-danger"></span>
+            </div>
+                    
+            <br />
+                    
+            <div class="form-group">
+                <label asp-for="FAM.ConfirmPassword" class="control-label"></label>
+                <input asp-for="FAM.ConfirmPassword" class="form-control" />
+                <span asp-validation-for="FAM.ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <br />
+
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+
+    </div>
+}
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

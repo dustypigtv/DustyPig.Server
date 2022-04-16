@@ -249,6 +249,7 @@ namespace DustyPig.Server
             services.AddSwaggerGenNewtonsoftSupport();
 
             services.AddControllersWithViews();
+            services.AddRazorPages();
 
             services.AddScoped<TMDBClient>();
             services.AddScoped<FirebaseAuthClient>();
@@ -299,6 +300,7 @@ namespace DustyPig.Server
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapRazorPages();
             });
         }
     }

@@ -3,17 +3,13 @@
  <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
 	
-	 <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	<NoWarn>$(NoWarn);1591,CS1573,IDE0090</NoWarn>
 
 	 <!-- Leave the revision as zero, it will be set by github actions -->
 	 <Version>3.0.0.0</Version>
 
 </PropertyGroup>
-
- <ItemGroup>
-   <None Include="wwwroot\firebase.html" />
- </ItemGroup>
 
 
 <ItemGroup>

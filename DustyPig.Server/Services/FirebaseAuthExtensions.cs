@@ -8,6 +8,7 @@ namespace DustyPig.Server.Services
         OauthSignin,
         GetUserData,
         SendVerificationEmail,
+        ConfirmPasswordResetCode,
         PasswordReset,
         ConfirmEmailVerification
     }
@@ -16,7 +17,7 @@ namespace DustyPig.Server.Services
     {
         public static string TranslateFirebaseError(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method)
         {
-            switch(method)
+            switch (method)
             {
                 case FirebaseMethods.PasswordSignup:
                     switch (error.Message)
@@ -25,24 +26,32 @@ namespace DustyPig.Server.Services
                             return "Account already exists";
 
                         case "OPERATION_NOT_ALLOWED":
-                            return "Password sign-in is disabled for this app";
+                            return "Password sign-in is disabled";
                     }
                     break;
 
                 case FirebaseMethods.ConfirmEmailVerification:
+                case FirebaseMethods.ConfirmPasswordResetCode:
+                case FirebaseMethods.PasswordReset:
                     switch(error.Message)
                     {
-                        case "EXPIRED_OOB_CODE":
-                            return "The token is expired";
+                        case "EMAIL_NOT_FOUND":
+                            return "There is no user record corresponding to this identifier. The user may have been deleted";
 
-                        case "INVALID_OOB_CODE":
-                            return "The token is invalid. This can happen if the token is malformed, expired, or has already been used.";
-
+                        case "OPERATION_NOT_ALLOWED":
+                            return "Password sign-in is disabled";
                     }
                     break;
             }
 
-            return TranslateFirebaseErrorMessage(error.Message);
+            return error.Message switch
+            {
+                "EXPIRED_OOB_CODE" => "The action code is expired",
+                "INVALID_OOB_CODE" => "The action code is invalid. This can happen if the token is malformed, expired, or has already been used.",
+                "USER_DISABLED" => "The user account has been disabled by an administrator",
+                "WEAK_PASSWORD : Password should be at least 6 characters" => "Password should be at least 6 characters",
+                _ => TranslateFirebaseErrorMessage(error.Message),
+            };
         }
 
         private static string TranslateFirebaseErrorMessage(string message)
