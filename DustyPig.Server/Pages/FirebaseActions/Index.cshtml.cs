@@ -16,7 +16,8 @@ namespace DustyPig.Server.Pages.FirebaseActions
         public FirebaseActionModel FAM { get; set; }
 
 
-        public async Task OnGetAsync(string mode, string oobCode, string apiKey, string continueUrl, string lang)
+        //public async Task OnGetAsync(string mode, string oobCode, string apiKey, string continueUrl, string lang)
+        public async Task OnGetAsync(string mode, string oobCode)
         {
             FAM = new FirebaseActionModel();
 
