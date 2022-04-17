@@ -357,7 +357,7 @@ namespace DustyPig.Server.Controllers.v3
                 var deviceToken = User.GetDeviceTokenId();
                 if (deviceToken != null)
                 {
-                    var dbDeviceToken = profile.DeviceTokens.FirstOrDefault(item => item.Token == deviceToken);
+                    var dbDeviceToken = profile.DeviceTokens.FirstOrDefault(item => item.Id == deviceToken);
                     if (dbDeviceToken != null)
                         DB.DeviceTokens.Remove(dbDeviceToken);
                 }
