@@ -16,7 +16,7 @@
     <PackageReference Include="AWSSDK.S3" Version="3.7.8.20" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
     <PackageReference Include="Azure.Identity" Version="1.6.0" />
-    <PackageReference Include="DustyPig.API" Version="3.0.1.15" />
+    <PackageReference Include="DustyPig.API" Version="3.0.1.17" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.4" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.1.2" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />

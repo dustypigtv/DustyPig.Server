@@ -38,7 +38,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<SimpleValue<string>>> PasswordLogin(PasswordCredentials credentials)
+        public async Task<ActionResult<LoginResponse>> PasswordLogin(PasswordCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
@@ -49,7 +49,7 @@ namespace DustyPig.Server.Controllers.v3
                 return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
 
             var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
-            if(!dataResponse.Success)
+            if (!dataResponse.Success)
                 return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
             var users = dataResponse.Data.Users.Where(item => item.Email.ICEquals(signInResponse.Data.Email));
@@ -57,9 +57,40 @@ namespace DustyPig.Server.Controllers.v3
                 return BadRequest("You must verify your email address before you can sign in");
 
             var account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
-            var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
 
-            return new SimpleValue<string>(token);
+            if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
+            {
+                var profile = account.Profiles.First();
+                if (!string.IsNullOrWhiteSpace(credentials.DeviceToken))
+                {
+                    var deviceToken = await DB.DeviceTokens
+                        .Where(item => item.Token == credentials.DeviceToken)
+                        .FirstOrDefaultAsync();
+
+                    if (deviceToken == null)
+                        deviceToken = DB.DeviceTokens.Add(new DeviceToken { Token = credentials.DeviceToken }).Entity;
+
+                    //Change the device token to the last profile to login to that device
+                    deviceToken.ProfileId = profile.Id;
+                    deviceToken.LastSeen = DateTime.UtcNow;
+
+                    await DB.SaveChangesAsync();
+                }
+
+                return new LoginResponse
+                {
+                    LoginType = LoginResponseType.Profile,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
+                };
+            }
+            else
+            {
+                return new LoginResponse
+                {
+                    LoginType = LoginResponseType.Account,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                };
+            }
         }
 
 
@@ -115,7 +146,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<SimpleValue<string>>> OAuthLogin(OAuthCredentials credentials)
+        public async Task<ActionResult<LoginResponse>> OAuthLogin(OAuthCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
@@ -126,9 +157,40 @@ namespace DustyPig.Server.Controllers.v3
                 return BadRequest(response.FirebaseError().TranslateFirebaseError(FirebaseMethods.OauthSignin));
 
             var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
-            var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
 
-            return new SimpleValue<string>(token);
+            if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
+            {
+                var profile = account.Profiles.First();
+                if (!string.IsNullOrWhiteSpace(credentials.DeviceToken))
+                {
+                    var deviceToken = await DB.DeviceTokens
+                        .Where(item => item.Token == credentials.DeviceToken)
+                        .FirstOrDefaultAsync();
+
+                    if (deviceToken == null)
+                        deviceToken = DB.DeviceTokens.Add(new DeviceToken { Token = credentials.DeviceToken }).Entity;
+
+                    //Change the device token to the last profile to login to that device
+                    deviceToken.ProfileId = profile.Id;
+                    deviceToken.LastSeen = DateTime.UtcNow;
+
+                    await DB.SaveChangesAsync();
+                }
+
+                return new LoginResponse
+                {
+                    LoginType = LoginResponseType.Profile,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
+                };
+            }
+            else
+            {
+                return new LoginResponse
+                {
+                    LoginType = LoginResponseType.Account,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                };
+            }
         }
 
 
@@ -190,7 +252,23 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DeviceCodeStatus { Activated = rec.AccountId != null };
             if (ret.Activated)
             {
-                ret.AccountToken = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null);
+                var account = await DB.Accounts
+                    .AsNoTracking()
+                    .Include(item => item.Profiles)
+                    .Where(item => item.Id == rec.AccountId)
+                    .FirstAsync();
+
+                if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber != null)
+                {
+                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, account.Profiles[0].Id, null);
+                    ret.LoginType = LoginResponseType.Profile;
+                }
+                else
+                {
+                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null);
+                    ret.LoginType = LoginResponseType.Account;
+                }
+
                 DB.ActivationCodes.Remove(rec);
                 await DB.SaveChangesAsync();
             }
@@ -258,7 +336,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult<SimpleValue<string>>> ProfileLogin(ProfileCredentials credentials)
+        public async Task<ActionResult<LoginResponse>> ProfileLogin(ProfileCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
@@ -304,9 +382,11 @@ namespace DustyPig.Server.Controllers.v3
                 await db.SaveChangesAsync();
             }
 
-            var token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken);
-
-            return new SimpleValue<string>(token);
+            return new LoginResponse
+            {
+                LoginType = LoginResponseType.Profile,
+                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
+            };
         }
 
         /// <summary>
@@ -392,6 +472,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             var account = await DB.Accounts
                 .AsNoTracking()
+                .Include(item => item.Profiles)
                 .Where(item => item.FirebaseId == localId)
                 .FirstOrDefaultAsync();
 
