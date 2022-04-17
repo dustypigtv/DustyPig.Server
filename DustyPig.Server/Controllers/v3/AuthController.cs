@@ -59,38 +59,17 @@ namespace DustyPig.Server.Controllers.v3
             var account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
 
             if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
-            {
-                var profile = account.Profiles.First();
-                if (!string.IsNullOrWhiteSpace(credentials.DeviceToken))
-                {
-                    var deviceToken = await DB.DeviceTokens
-                        .Where(item => item.Token == credentials.DeviceToken)
-                        .FirstOrDefaultAsync();
-
-                    if (deviceToken == null)
-                        deviceToken = DB.DeviceTokens.Add(new DeviceToken { Token = credentials.DeviceToken }).Entity;
-
-                    //Change the device token to the last profile to login to that device
-                    deviceToken.ProfileId = profile.Id;
-                    deviceToken.LastSeen = DateTime.UtcNow;
-
-                    await DB.SaveChangesAsync();
-                }
-
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.Profile,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.DeviceToken)
                 };
-            }
             else
-            {
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.Account,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
                 };
-            }
         }
 
 
@@ -159,38 +138,17 @@ namespace DustyPig.Server.Controllers.v3
             var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
 
             if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
-            {
-                var profile = account.Profiles.First();
-                if (!string.IsNullOrWhiteSpace(credentials.DeviceToken))
-                {
-                    var deviceToken = await DB.DeviceTokens
-                        .Where(item => item.Token == credentials.DeviceToken)
-                        .FirstOrDefaultAsync();
-
-                    if (deviceToken == null)
-                        deviceToken = DB.DeviceTokens.Add(new DeviceToken { Token = credentials.DeviceToken }).Entity;
-
-                    //Change the device token to the last profile to login to that device
-                    deviceToken.ProfileId = profile.Id;
-                    deviceToken.LastSeen = DateTime.UtcNow;
-
-                    await DB.SaveChangesAsync();
-                }
-
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.Profile,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.DeviceToken)
                 };
-            }
             else
-            {
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.Account,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
                 };
-            }
         }
 
 
@@ -365,22 +323,6 @@ namespace DustyPig.Server.Controllers.v3
 
             if (profile.Locked)
                 return CommonResponses.ProfileIsLocked;
-
-            if (!string.IsNullOrWhiteSpace(credentials.DeviceToken))
-            {
-                var deviceToken = await db.DeviceTokens
-                    .Where(item => item.Token == credentials.DeviceToken)
-                    .FirstOrDefaultAsync();
-
-                if (deviceToken == null)
-                    deviceToken = db.DeviceTokens.Add(new DeviceToken { Token = credentials.DeviceToken }).Entity;
-
-                //Change the device token to the last profile to login to that device
-                deviceToken.ProfileId = profile.Id;
-                deviceToken.LastSeen = DateTime.UtcNow;
-
-                await db.SaveChangesAsync();
-            }
 
             return new LoginResponse
             {

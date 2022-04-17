@@ -64,28 +64,27 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
 
             Profile profile = profId == null ? null : account.Profiles.FirstOrDefault(item => item.Id == profId.Value);
-
-            if (profile != null && deviceToken != null)
+            
+            
+            if (profile != null && !string.IsNullOrWhiteSpace(deviceToken))
             {
-                //Device tokens are for Firebase Notifications, so
-                //make sure the device is associated with the current profile.
-                var dbDeviceToken = profile.DeviceTokens.FirstOrDefault(item => item.Token == deviceToken);
+                var dbToken = profile.DeviceTokens.FirstOrDefault(item => item.Token == deviceToken);
 
-                if (dbDeviceToken == null)
+                if (dbToken == null)
                 {
-                    dbDeviceToken = db.DeviceTokens.Add(new DeviceToken
+                    dbToken = db.DeviceTokens.Add(new DeviceToken
                     {
                         ProfileId = profile.Id,
-                        LastSeen = DateTime.UtcNow,
                         Token = deviceToken
                     }).Entity;
+                    profile.DeviceTokens.Add(dbToken);
                 }
                 else
                 {
-                    dbDeviceToken.ProfileId = profile.Id;
-                    dbDeviceToken.LastSeen = DateTime.UtcNow;
-                    db.Entry(dbDeviceToken).State = EntityState.Modified;
+                    db.Entry(dbToken).State = EntityState.Modified;
                 }
+
+                dbToken.LastSeen = DateTime.UtcNow;
 
                 await db.SaveChangesAsync();
             }

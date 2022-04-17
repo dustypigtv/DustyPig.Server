@@ -97,22 +97,6 @@ namespace DustyPig.Server.Controllers.v3
                         if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
                         {
                             var profile = account.Profiles.First();
-                            if(!string.IsNullOrWhiteSpace(info.DeviceToken))
-                            {
-                                var deviceToken = await DB.DeviceTokens
-                                    .Where(item => item.Token == info.DeviceToken)
-                                    .FirstOrDefaultAsync();
-
-                                if (deviceToken == null)
-                                    deviceToken = DB.DeviceTokens.Add(new DeviceToken { Token = info.DeviceToken }).Entity;
-
-                                //Change the device token to the last profile to login to that device
-                                deviceToken.ProfileId = profile.Id;
-                                deviceToken.LastSeen = DateTime.UtcNow;
-
-                                await DB.SaveChangesAsync();
-                            }
-
                             var token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, info.DeviceToken);
                             return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.Profile });
                         }
