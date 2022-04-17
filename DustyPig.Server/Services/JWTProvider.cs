@@ -1,8 +1,10 @@
 ﻿using DustyPig.Server.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,8 +35,29 @@ namespace DustyPig.Server.Services
 
         public async Task<string> CreateTokenAsync(int accountId, int? profileId, string deviceToken)
         {
-            var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken { AccountId = accountId }).Entity;
+            int? deviceTokenId = null;
 
+            if(profileId != null && !string.IsNullOrWhiteSpace(deviceToken))
+            {
+                var dbDeviceToken = await _db.DeviceTokens
+                    .Where(item => item.ProfileId == profileId.Value)
+                    .Where(item => item.Token == deviceToken)
+                    .FirstOrDefaultAsync();
+
+                if(dbDeviceToken == null)
+                    dbDeviceToken = _db.DeviceTokens.Add(new Data.Models.DeviceToken
+                    {
+                        ProfileId = profileId.Value,
+                        Token = deviceToken
+                    }).Entity;
+                
+                dbDeviceToken.LastSeen = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                deviceTokenId = dbDeviceToken.Id;
+            }
+
+
+            var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken { AccountId = accountId }).Entity;
             await _db.SaveChangesAsync();
 
             var claims = new List<Claim>();
@@ -45,8 +68,8 @@ namespace DustyPig.Server.Services
             {
                 claims.Add(new Claim(CLAIM_PROFILE_ID, profileId.Value.ToString()));
 
-                if (!string.IsNullOrWhiteSpace(deviceToken))
-                    claims.Add(new Claim(CLAIM_DEVICE_TOKEN_ID, deviceToken));
+                if (deviceTokenId != null)
+                    claims.Add(new Claim(CLAIM_DEVICE_TOKEN_ID, deviceTokenId.Value.ToString()));
             }
 
             var token = new JwtSecurityToken(ISSUER, AUDIENCE, claims, null, DateTime.UtcNow.AddYears(10), _signingCredentials);

@@ -29,9 +29,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
             catch { return null; }
         }
 
-        public static string GetDeviceTokenId(this ClaimsPrincipal @this)
+        public static int? GetDeviceTokenId(this ClaimsPrincipal @this)
         {
-            try { return @this.Claims.First(item => item.Type == JWTProvider.CLAIM_DEVICE_TOKEN_ID).Value; }
+            try { return int.Parse(@this.Claims.First(item => item.Type == JWTProvider.CLAIM_DEVICE_TOKEN_ID).Value); }
             catch { return null; }
         }
 
@@ -41,7 +41,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var acctId = @this.GetAccountId();
             var tokenId = @this.GetTokenId();
             var profId = @this.GetProfileId();
-            var deviceToken = @this.GetDeviceTokenId();
+            var deviceTokenId = @this.GetDeviceTokenId();
 
             if (acctId == null || tokenId == null)
                 return (null, null);
@@ -62,31 +62,19 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if (!account.AccountTokens.Any(item => item.Id == tokenId.Value))
                 return (null, null);
 
-
             Profile profile = profId == null ? null : account.Profiles.FirstOrDefault(item => item.Id == profId.Value);
-            
-            
-            if (profile != null && !string.IsNullOrWhiteSpace(deviceToken))
-            {
-                var dbToken = profile.DeviceTokens.FirstOrDefault(item => item.Token == deviceToken);
 
-                if (dbToken == null)
-                {
-                    dbToken = db.DeviceTokens.Add(new DeviceToken
-                    {
-                        ProfileId = profile.Id,
-                        Token = deviceToken
-                    }).Entity;
-                    profile.DeviceTokens.Add(dbToken);
-                }
-                else
+            if (profile != null && deviceTokenId != null)
+            {
+                var dbToken = profile.DeviceTokens.FirstOrDefault(item => item.Id == deviceTokenId);
+    
+                //Only update once/day
+                if (dbToken == null && dbToken.LastSeen.AddDays(1) < DateTime.UtcNow)
                 {
                     db.Entry(dbToken).State = EntityState.Modified;
+                    dbToken.LastSeen = DateTime.UtcNow;
+                    await db.SaveChangesAsync();
                 }
-
-                dbToken.LastSeen = DateTime.UtcNow;
-
-                await db.SaveChangesAsync();
             }
 
             return (account, profile);
