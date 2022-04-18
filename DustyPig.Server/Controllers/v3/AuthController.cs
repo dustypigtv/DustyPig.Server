@@ -409,6 +409,24 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
+        /// <summary>
+        /// Level 1
+        /// </summary>
+        /// <returns>Verifies the current auth token and returns the type</returns>
+        [HttpGet]
+        [Authorize]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        public async Task<ActionResult<VerifyTokenResponse>> VerifyToken()
+        {
+            var (account, profile) = await User.VerifyAsync();
+
+            if (profile == null)
+                return new VerifyTokenResponse { LoginType = LoginResponseType.Account };
+            else
+                return new VerifyTokenResponse { LoginType = LoginResponseType.Profile };
+        }
+
 
         private async Task<Account> GetOrCreateAccountAsync(string localId, string name, string email, string photoUrl)
         {
