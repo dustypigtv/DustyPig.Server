@@ -58,12 +58,12 @@ namespace DustyPig.Server.Controllers.v3
                 int profileId = 0;
                 if (account == null)
                 {
-                    account = DB.Accounts.Add(new Data.Models.Account { FirebaseId = signinResponse.Data.LocalId }).Entity;
-                    var profile = DB.Profiles.Add(new Data.Models.Profile
+                    account = DB.Accounts.Add(new Account { FirebaseId = signinResponse.Data.LocalId }).Entity;
+                    var profile = DB.Profiles.Add(new Profile
                     {
                         Account = account,
                         AllowedRatings = API.v3.MPAA.Ratings.All,
-                        AvatarUrl = info.AvatarUrl,
+                        AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
                         IsMain = true,
                         Name = Utils.Coalesce(info.DisplayName, signinResponse.Data.Email[..signinResponse.Data.Email.IndexOf("@")]),
                         TitleRequestPermission = TitleRequestPermissions.Enabled

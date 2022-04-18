@@ -445,7 +445,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     Account = account,
                     AllowedRatings = API.v3.MPAA.Ratings.All,
-                    AvatarUrl = photoUrl,
+                    AvatarUrl = Utils.EnsureProfilePic(photoUrl),
                     IsMain = true,
                     Name = Utils.Coalesce(name, email[..email.IndexOf("@")]),
                     TitleRequestPermission = TitleRequestPermissions.Enabled

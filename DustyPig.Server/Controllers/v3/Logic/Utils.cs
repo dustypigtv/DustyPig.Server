@@ -96,5 +96,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
             }
 
         }
+    
+        public static string EnsureProfilePic(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                string color = new string[] { "blue", "gold", "green", "grey", "red" }[new Random().Next(0, 5)];
+                s = $"https://s3.us-central-1.wasabisys.com/dustypig/media/profile_{color}.png";
+            }
+            return s;
+        }
     }
 }
