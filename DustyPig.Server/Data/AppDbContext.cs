@@ -126,7 +126,8 @@ namespace DustyPig.Server.Data
                     Name = TestAccount.Name,
                     IsMain = true,
                     AllowedRatings = (API.v3.MPAA.Ratings)8191,
-                    TitleRequestPermission = API.v3.Models.TitleRequestPermissions.Disabled
+                    TitleRequestPermission = API.v3.Models.TitleRequestPermissions.Disabled,
+                    AvatarUrl = TestAccount.AvatarUrl
                 }
             });
 
