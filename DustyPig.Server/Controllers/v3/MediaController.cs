@@ -315,7 +315,7 @@ namespace DustyPig.Server.Controllers.v3
             /****************************************
              * Search online databases
              ****************************************/
-            if (UserAccount.Id != TestCredentials.AccountId)
+            if (UserAccount.Id != TestAccount.AccountId)
             {
                 if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled)
                 {

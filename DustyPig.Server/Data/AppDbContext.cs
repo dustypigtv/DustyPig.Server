@@ -112,8 +112,8 @@ namespace DustyPig.Server.Data
                 //Test Account
                 new Account
                 {
-                    Id = TestCredentials.AccountId,
-                    FirebaseId = TestCredentials.FirebaseId
+                    Id = TestAccount.AccountId,
+                    FirebaseId = TestAccount.FirebaseId
                 }
             });
 
@@ -121,9 +121,9 @@ namespace DustyPig.Server.Data
             {
                 new Profile
                 {
-                    Id = TestCredentials.ProfileId,
-                    AccountId = TestCredentials.AccountId,
-                    Name = TestCredentials.Name,
+                    Id = TestAccount.ProfileId,
+                    AccountId = TestAccount.AccountId,
+                    Name = TestAccount.Name,
                     IsMain = true,
                     AllowedRatings = (API.v3.MPAA.Ratings)8191,
                     TitleRequestPermission = API.v3.Models.TitleRequestPermissions.Disabled
@@ -132,14 +132,14 @@ namespace DustyPig.Server.Data
 
             modelBuilder.Entity<Library>().HasData(new Library[]
             {
-                new Library { Id = 1, AccountId = TestCredentials.AccountId, Name = "Movies" },
-                new Library { Id = 2, AccountId = TestCredentials.AccountId, Name = "TV Shows", IsTV = true }
+                new Library { Id = 1, AccountId = TestAccount.AccountId, Name = "Movies" },
+                new Library { Id = 2, AccountId = TestAccount.AccountId, Name = "TV Shows", IsTV = true }
             });
 
             modelBuilder.Entity<ProfileLibraryShare>().HasData(new ProfileLibraryShare[]
             {
-                new ProfileLibraryShare{ LibraryId = 1, ProfileId = TestCredentials.ProfileId },
-                new ProfileLibraryShare{ LibraryId = 2, ProfileId = TestCredentials.ProfileId }
+                new ProfileLibraryShare{ LibraryId = 1, ProfileId = TestAccount.ProfileId },
+                new ProfileLibraryShare{ LibraryId = 2, ProfileId = TestAccount.ProfileId }
             });
 
             modelBuilder.Entity<MediaEntry>().HasData(new MediaEntry[]

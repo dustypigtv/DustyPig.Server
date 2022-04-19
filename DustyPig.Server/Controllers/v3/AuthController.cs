@@ -44,19 +44,31 @@ namespace DustyPig.Server.Controllers.v3
             try { credentials.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
-            if (!signInResponse.Success)
-                return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
+            Account account;
 
-            var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
-            if (!dataResponse.Success)
-                return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+            if (credentials.Email.ToLower().Trim() == TestAccount.Email)
+            {
+                if (credentials.Password != TestAccount.Password)
+                    return BadRequest("Invalid password");
 
-            var users = dataResponse.Data.Users.Where(item => item.Email.ICEquals(signInResponse.Data.Email));
-            if (!users.Any(item => item.EmailVerified))
-                return BadRequest("You must verify your email address before you can sign in");
+                account = await GetOrCreateAccountAsync(TestAccount.FirebaseId, null, TestAccount.Email, null);
+            }
+            else
+            {
+                var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
+                if (!signInResponse.Success)
+                    return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
 
-            var account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
+                var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
+                if (!dataResponse.Success)
+                    return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+
+                var users = dataResponse.Data.Users.Where(item => item.Email.ICEquals(signInResponse.Data.Email));
+                if (!users.Any(item => item.EmailVerified))
+                    return BadRequest("You must verify your email address before you can sign in");
+
+                account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
+            }
 
             if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
                 return new LoginResponse
@@ -86,6 +98,9 @@ namespace DustyPig.Server.Controllers.v3
             try { credentials.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
+            if (credentials.Email == TestAccount.Email)
+                return CommonResponses.ProhibitTestUser;
+
             var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
                 return BadRequest(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
@@ -109,6 +124,10 @@ namespace DustyPig.Server.Controllers.v3
         {
             if (string.IsNullOrWhiteSpace(email.Value))
                 return BadRequest(nameof(email) + " must be specified");
+
+            if (email.Value.ToLower().Trim() == TestAccount.Email)
+                return CommonResponses.ProhibitTestUser;
+
 
             var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
             if (!ret.Success)
@@ -392,7 +411,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!profile.IsMain)
                 return CommonResponses.RequireMainProfile;
 
-            if (profile.Id == TestCredentials.ProfileId)
+            if (profile.Id == TestAccount.ProfileId)
                 return CommonResponses.ProhibitTestUser;
 
             await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(account.FirebaseId);

@@ -82,8 +82,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
                             .CreateWithUser(decryptedGD.Email),
                         ApplicationName = "Dusty Pig"
                     });
-                    string tokenVal = ((ICredential)service.HttpClientInitializer).GetAccessTokenForRequestAsync().Result;
-                    var gdToken = new API.v3.Models.GoogleDriveToken
+                    
+                    var gdToken = new GoogleDriveToken
                     {
                         Token = ((ICredential)service.HttpClientInitializer).GetAccessTokenForRequestAsync().Result,
                         ExpiresUTC = DateTime.UtcNow.AddMinutes(45)

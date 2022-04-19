@@ -9,7 +9,7 @@ namespace DustyPig.Server.Controllers.v3.Filters
     {
         public void OnActionExecuting(ActionExecutingContext context)
         {
-            if (context.HttpContext.User.GetAccountId() == TestCredentials.AccountId)
+            if (context.HttpContext.User.GetAccountId() == TestAccount.AccountId)
                 context.Result = CommonResponses.ProhibitTestUser;
         }
 

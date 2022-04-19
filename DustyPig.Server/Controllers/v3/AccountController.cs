@@ -135,7 +135,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             var (account, profile) = await User.VerifyAsync();
 
-            if (account.Id == TestCredentials.AccountId)
+            if (account.Id == TestAccount.AccountId)
                 return CommonResponses.ProhibitTestUser;
 
             if (profile == null)
