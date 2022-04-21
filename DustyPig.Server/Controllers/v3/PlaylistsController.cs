@@ -484,25 +484,22 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-
-            var data = await DB.PlaylistItems
-                .Include(item => item.Playlist)
-                .ThenInclude(item => item.PlaylistItems)
+            var playlist = await DB.Playlists
+                .Include(item => item.PlaylistItems)
+                .Where(item => item.ProfileId == UserProfile.Id)
                 .Where(item => item.Id == info.Id)
-                .Where(item => item.Playlist.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
 
-            if (data == null)
+            if (playlist == null)
                 return NotFound();
 
-            var playlist = data.Playlist;
             playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
             foreach (var item in playlist.PlaylistItems)
                 if (item.Index >= info.Index)
                     item.Index++;
 
-            playlist.PlaylistItems.First(item => item.Id == info.Id).Index = info.Index;
+            playlist.PlaylistItems.First(item => item.Id == info.MediaId).Index = info.Index;
             playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
             int idx = 0;
