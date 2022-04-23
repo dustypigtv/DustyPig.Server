@@ -491,7 +491,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (playlist == null)
-                return NotFound();
+                return NotFound("Playlist not found");
 
             playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
