@@ -451,7 +451,7 @@ namespace DustyPig.Server.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MediaPersonBridges", x => new { x.MediaEntryId, x.PersonId });
+                    table.PrimaryKey("PK_MediaPersonBridges", x => new { x.MediaEntryId, x.PersonId, x.Role });
                     table.ForeignKey(
                         name: "FK_MediaPersonBridges_MediaEntries_MediaEntryId",
                         column: x => x.MediaEntryId,
@@ -929,11 +929,6 @@ namespace DustyPig.Server.Data.Migrations
                 name: "IX_MediaEntries_VideoServiceCredentialId",
                 table: "MediaEntries",
                 column: "VideoServiceCredentialId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MediaPersonBridges_MediaEntryId_PersonId_Role",
-                table: "MediaPersonBridges",
-                columns: new[] { "MediaEntryId", "PersonId", "Role" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaPersonBridges_PersonId",

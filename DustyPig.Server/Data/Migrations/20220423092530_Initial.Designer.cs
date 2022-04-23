@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220423085557_Initial")]
+    [Migration("20220423092530_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -624,11 +624,9 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.HasKey("MediaEntryId", "PersonId");
+                    b.HasKey("MediaEntryId", "PersonId", "Role");
 
                     b.HasIndex("PersonId");
-
-                    b.HasIndex("MediaEntryId", "PersonId", "Role");
 
                     b.ToTable("MediaPersonBridges");
                 });

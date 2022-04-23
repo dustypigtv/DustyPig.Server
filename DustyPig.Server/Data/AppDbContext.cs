@@ -71,7 +71,7 @@ namespace DustyPig.Server.Data
 
             //Composite Keys
             modelBuilder.Entity<FriendLibraryShare>().HasKey(e => new { e.FriendshipId, e.LibraryId });
-            modelBuilder.Entity<MediaPersonBridge>().HasKey(e => new { e.MediaEntryId, e.PersonId });
+            modelBuilder.Entity<MediaPersonBridge>().HasKey(e => new { e.MediaEntryId, e.PersonId, e.Role });
             modelBuilder.Entity<MediaSearchBridge>().HasKey(e => new { e.MediaEntryId, e.SearchTermId });
             modelBuilder.Entity<ProfileLibraryShare>().HasKey(e => new { e.ProfileId, e.LibraryId });
             modelBuilder.Entity<ProfileMediaProgress>().HasKey(e => new { e.ProfileId, e.MediaEntryId });

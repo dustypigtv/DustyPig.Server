@@ -12,7 +12,6 @@ namespace DustyPig.Server.Data.Models
     }
 
 
-    [Index(nameof(MediaEntryId), nameof(PersonId), nameof(Role))]
     public class MediaPersonBridge
     {
         public int MediaEntryId { get; set; }

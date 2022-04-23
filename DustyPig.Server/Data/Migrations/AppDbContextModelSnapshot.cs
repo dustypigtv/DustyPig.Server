@@ -622,11 +622,9 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.HasKey("MediaEntryId", "PersonId");
+                    b.HasKey("MediaEntryId", "PersonId", "Role");
 
                     b.HasIndex("PersonId");
-
-                    b.HasIndex("MediaEntryId", "PersonId", "Role");
 
                     b.ToTable("MediaPersonBridges");
                 });
