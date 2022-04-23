@@ -15,7 +15,7 @@ namespace DustyPig.Server.Data.Models
         public string Term { get; set; }
 
         [Required]
-        [MaxLength(32)]
+        [MaxLength(128)]
         public string Hash { get; set; }
 
         public List<MediaSearchBridge> SearchTermBridges { get; set; } = new List<MediaSearchBridge>();

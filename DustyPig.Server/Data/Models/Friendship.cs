@@ -24,7 +24,7 @@ namespace DustyPig.Server.Data.Models
         /// MD5(string.Join("+", new List&lt;int&gt;{id1, id2}.OrderBy(x => x))
         /// </summary>
         [Required]
-        [MaxLength(32)]
+        [MaxLength(128)]
         public string Hash { get; set; }
 
         [MaxLength(Constants.MAX_NAME_LENGTH)]

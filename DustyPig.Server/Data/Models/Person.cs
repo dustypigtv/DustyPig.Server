@@ -14,7 +14,7 @@ namespace DustyPig.Server.Data.Models
         public string Name { get; set; }
 
         [Required]
-        [MaxLength(32)]
+        [MaxLength(128)]
         public string Hash { get; set; }
 
         public MediaPersonBridge MediaBridges { get; set; }

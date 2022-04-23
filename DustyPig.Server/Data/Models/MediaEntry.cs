@@ -26,7 +26,7 @@ namespace DustyPig.Server.Data.Models
         public string Title { get; set; }
 
         [Required]
-        [MaxLength(32)]
+        [MaxLength(128)]
         public string Hash { get; set; }
 
         [MaxLength(Constants.MAX_NAME_LENGTH)]
