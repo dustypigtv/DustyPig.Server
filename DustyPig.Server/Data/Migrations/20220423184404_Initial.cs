@@ -59,6 +59,8 @@ namespace DustyPig.Server.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Hash = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -73,7 +75,9 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Term = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    Term = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Hash = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -748,21 +752,21 @@ namespace DustyPig.Server.Data.Migrations
 
             migrationBuilder.InsertData(
                 table: "SearchTerms",
-                columns: new[] { "Id", "Term" },
+                columns: new[] { "Id", "Hash", "Term" },
                 values: new object[,]
                 {
-                    { 1, "agent" },
-                    { 2, "327" },
-                    { 3, "operation" },
-                    { 4, "barbershop" },
-                    { 5, "big" },
-                    { 6, "buck" },
-                    { 7, "bunny" },
-                    { 8, "coffee" },
-                    { 9, "run" },
-                    { 10, "hero" },
-                    { 11, "spring" },
-                    { 12, "caminandes" }
+                    { 1, "B33AED8F3134996703DC39F9A7C95783", "agent" },
+                    { 2, "B83AAC23B9528732C23CC7352950E880", "327" },
+                    { 3, "F7235A61FDC3ADC78D866FD8085D44DB", "operation" },
+                    { 4, "581BEA143ECF0E80FD4923F7D8ED9699", "barbershop" },
+                    { 5, "D861877DA56B8B4CEB35C8CBFDF65BB4", "big" },
+                    { 6, "E9927D760EF5BDC0E402B465B9485658", "buck" },
+                    { 7, "20EE80E63596799A1543BC9FD88D8878", "bunny" },
+                    { 8, "24EB05D18318AC2DB8B2B959315D10F2", "coffee" },
+                    { 9, "A53108F7543B75ADBB34AFC035D4CDF6", "run" },
+                    { 10, "F04AF61B3F332AFA0CEEC786A42CD365", "hero" },
+                    { 11, "2A2D595E6ED9A0B24F027F2B63B134D6", "spring" },
+                    { 12, "DCC9FD6C0133457A194DAAA1E54B0713", "caminandes" }
                 });
 
             migrationBuilder.InsertData(
@@ -976,9 +980,9 @@ namespace DustyPig.Server.Data.Migrations
                 column: "ProfileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_People_Name",
+                name: "IX_People_Hash",
                 table: "People",
-                column: "Name",
+                column: "Hash",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1014,9 +1018,9 @@ namespace DustyPig.Server.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SearchTerms_Term",
+                name: "IX_SearchTerms_Hash",
                 table: "SearchTerms",
-                column: "Term",
+                column: "Hash",
                 unique: true);
 
             migrationBuilder.CreateIndex(

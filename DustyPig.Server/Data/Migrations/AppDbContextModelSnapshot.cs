@@ -798,6 +798,11 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -805,7 +810,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("Hash")
                         .IsUnique();
 
                     b.ToTable("People");
@@ -1004,13 +1009,19 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<string>("Term")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Term")
+                    b.HasIndex("Hash")
                         .IsUnique();
 
                     b.ToTable("SearchTerms");
@@ -1019,61 +1030,73 @@ namespace DustyPig.Server.Data.Migrations
                         new
                         {
                             Id = 1,
+                            Hash = "B33AED8F3134996703DC39F9A7C95783",
                             Term = "agent"
                         },
                         new
                         {
                             Id = 2,
+                            Hash = "B83AAC23B9528732C23CC7352950E880",
                             Term = "327"
                         },
                         new
                         {
                             Id = 3,
+                            Hash = "F7235A61FDC3ADC78D866FD8085D44DB",
                             Term = "operation"
                         },
                         new
                         {
                             Id = 4,
+                            Hash = "581BEA143ECF0E80FD4923F7D8ED9699",
                             Term = "barbershop"
                         },
                         new
                         {
                             Id = 5,
+                            Hash = "D861877DA56B8B4CEB35C8CBFDF65BB4",
                             Term = "big"
                         },
                         new
                         {
                             Id = 6,
+                            Hash = "E9927D760EF5BDC0E402B465B9485658",
                             Term = "buck"
                         },
                         new
                         {
                             Id = 7,
+                            Hash = "20EE80E63596799A1543BC9FD88D8878",
                             Term = "bunny"
                         },
                         new
                         {
                             Id = 8,
+                            Hash = "24EB05D18318AC2DB8B2B959315D10F2",
                             Term = "coffee"
                         },
                         new
                         {
                             Id = 9,
+                            Hash = "A53108F7543B75ADBB34AFC035D4CDF6",
                             Term = "run"
                         },
                         new
                         {
                             Id = 10,
+                            Hash = "F04AF61B3F332AFA0CEEC786A42CD365",
                             Term = "hero"
                         },
                         new
                         {
                             Id = 11,
+                            Hash = "2A2D595E6ED9A0B24F027F2B63B134D6",
                             Term = "spring"
                         },
                         new
                         {
                             Id = 12,
+                            Hash = "DCC9FD6C0133457A194DAAA1E54B0713",
                             Term = "caminandes"
                         });
                 });

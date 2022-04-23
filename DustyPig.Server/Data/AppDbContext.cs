@@ -263,7 +263,7 @@ namespace DustyPig.Server.Data
                     EntryType = API.v3.Models.MediaTypes.Series,
                     TMDB_Id = 276116,
                     Title = "Caminandes",
-                    Hash = Crypto.HashTitle("Caminandes"),
+                    Hash = Crypto.NormalizedHash("Caminandes"),
                     SortTitle = "Caminandes",
                     Rated = API.v3.MPAA.Ratings.TV_G,
                     Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
@@ -342,18 +342,18 @@ namespace DustyPig.Server.Data
 
             modelBuilder.Entity<SearchTerm>().HasData(new SearchTerm[]
             {
-                new SearchTerm { Id = 1, Term = "agent" },
-                new SearchTerm { Id = 2, Term = "327" },
-                new SearchTerm { Id = 3, Term = "operation" },
-                new SearchTerm { Id = 4, Term = "barbershop" },
-                new SearchTerm { Id = 5, Term = "big" },
-                new SearchTerm { Id = 6, Term = "buck" },
-                new SearchTerm { Id = 7, Term = "bunny" },
-                new SearchTerm { Id = 8, Term = "coffee" },
-                new SearchTerm { Id = 9, Term = "run" },
-                new SearchTerm { Id = 10, Term = "hero" },
-                new SearchTerm { Id = 11, Term = "spring" },
-                new SearchTerm { Id = 12, Term = "caminandes" }
+                new SearchTerm { Id = 1, Term = "agent", Hash = Crypto.NormalizedHash("agent") },
+                new SearchTerm { Id = 2, Term = "327", Hash = Crypto.NormalizedHash("327") },
+                new SearchTerm { Id = 3, Term = "operation", Hash = Crypto.NormalizedHash("operation") },
+                new SearchTerm { Id = 4, Term = "barbershop", Hash = Crypto.NormalizedHash("barbershop") },
+                new SearchTerm { Id = 5, Term = "big", Hash = Crypto.NormalizedHash("big") },
+                new SearchTerm { Id = 6, Term = "buck", Hash = Crypto.NormalizedHash("buck") },
+                new SearchTerm { Id = 7, Term = "bunny", Hash = Crypto.NormalizedHash("bunny") },
+                new SearchTerm { Id = 8, Term = "coffee", Hash = Crypto.NormalizedHash("coffee") },
+                new SearchTerm { Id = 9, Term = "run", Hash = Crypto.NormalizedHash("run") },
+                new SearchTerm { Id = 10, Term = "hero", Hash = Crypto.NormalizedHash("hero") },
+                new SearchTerm { Id = 11, Term = "spring" , Hash = Crypto.NormalizedHash("spring")},
+                new SearchTerm { Id = 12, Term = "caminandes", Hash = Crypto.NormalizedHash("caminandes") }
             });
 
 

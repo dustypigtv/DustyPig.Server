@@ -1,6 +1,9 @@
-﻿using DustyPig.Server.Data;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,104 +12,174 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     public static class MediaEntryLogic
     {
-        public static async Task UpdateSearchTerms(AppDbContext DB, MediaEntry mediaEntry, List<string> searchTerms)
+        class NormHash
         {
-            var dbSearchTerms = await DB.SearchTerms
-                .AsNoTracking()
-                .Where(item => searchTerms.Contains(item.Term))
-                .ToListAsync();
+            public NormHash() { }
 
-            foreach (string term in searchTerms)
+            public NormHash(string norm, string hash)
             {
-                var exists = dbSearchTerms
-                    .Where(item => item.Term == term)
-                    .Any();
-
-                if (!exists)
-                    dbSearchTerms.Add(DB.SearchTerms.Add(new SearchTerm { Term = term }).Entity);
+                Norm = norm;
+                Hash = hash;
             }
 
+            public string Norm { get; set; }
+            public string Hash { get; set; }
+        }
+
+
+        private static List<string> FixList(List<string> lst)
+        {
+            if (lst == null)
+                return new List<string>();
+
+            lst = lst.Select(item => (item + string.Empty).NormalizeMiscCharacters().Trim()).Distinct().ToList();
+            lst.RemoveAll(item => string.IsNullOrWhiteSpace(item));
+            lst = lst.Select(item => item.Substring(0, Math.Min(item.Length, Constants.MAX_NAME_LENGTH))).Distinct().ToList();
+
+            return lst;
+        }
+
+        /// <summary>
+        /// Call FixList before passing to this method
+        /// </summary>
+        private static List<NormHash> CreateNormalizedList(List<string> lst, bool lowerCase)
+        {
+            var ret = new List<NormHash>();
+
+            foreach (string item in lst)
+            {
+                string norm = item;
+                if (lowerCase)
+                    norm = norm.ToLower();
+
+                string hash = Crypto.NormalizedHash(norm);
+                if (!ret.Any(item => item.Hash == hash))
+                    ret.Add(new NormHash(norm, hash));
+            }
+
+            return ret;
+        }
+
+
+        public static async Task UpdateSearchTerms(AppDbContext DB, MediaEntry mediaEntry, List<string> searchTerms)
+        {
+            using var localCtx = new AppDbContext();
+
+            //Normalize
+            var normLst = CreateNormalizedList(FixList(searchTerms), true);
+            var hashes = normLst.Select(item => item.Hash).ToList();
+
+            //Find existing terms based on hash
+            var dbSearchTerms = await localCtx.SearchTerms
+                .AsNoTracking()
+                .Where(item => hashes.Contains(item.Hash))
+                .ToListAsync();
+
+            //Add any new terms needed
+            var newDBTerms = new List<SearchTerm>();
+            foreach (var term in normLst)
+                if (!dbSearchTerms.Any(item => item.Hash == term.Hash))
+                    newDBTerms.Add(localCtx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
+
+            if(newDBTerms.Count > 0)
+            {
+                await localCtx.SaveChangesAsync();
+                foreach (var newDBTerm in newDBTerms)
+                    dbSearchTerms.Add(newDBTerm);
+            }
+
+           
+            //Update the media entry
             if (mediaEntry.MediaSearchBridges == null)
                 mediaEntry.MediaSearchBridges = new List<MediaSearchBridge>();
 
+            //Remove any terms that are not in the list
             foreach (var bridge in mediaEntry.MediaSearchBridges)
-                if (!searchTerms.Contains(bridge.SearchTerm.Term))
-                    DB.MediaSearchBridges.Remove(bridge);
+                if (!hashes.Contains(bridge.SearchTerm.Hash))
+                    localCtx.MediaSearchBridges.Remove(bridge);
 
-            foreach (string term in searchTerms)
+            //Add any new terms
+            foreach(var term in normLst)
             {
-                var exists = mediaEntry.MediaSearchBridges
-                    .Where(item => item.SearchTerm.Term == term)
-                    .Any();
-
+                var exists = mediaEntry.MediaSearchBridges.Any(item => item.SearchTerm.Hash == term.Hash);
                 if (!exists)
                     mediaEntry.MediaSearchBridges.Add(new MediaSearchBridge
                     {
                         MediaEntry = mediaEntry,
-                        SearchTerm = dbSearchTerms.First(item => item.Term == term)
+                        SearchTermId = dbSearchTerms.First(item => item.Hash == term.Hash).Id
                     });
             }
         }
 
+        
+
 
         public static async Task UpdatePeople(AppDbContext DB, MediaEntry mediaEntry, List<string> cast, List<string> directors, List<string> producers, List<string> writers)
         {
-            if (cast == null) cast = new List<string>();
-            if (directors == null) directors = new List<string>();
-            if (producers == null) producers = new List<string>();
-            if (writers == null) writers = new List<string>();
+            using var localCtx = new AppDbContext();
 
-            var allPeople = new List<string>();
-            allPeople.AddRange(cast);
-            allPeople.AddRange(directors);
-            allPeople.AddRange(producers);
-            allPeople.AddRange(writers);
-            allPeople = allPeople.Distinct().ToList();
+            cast = FixList(cast);
+            directors = FixList(directors);
+            producers = FixList(producers);
+            writers = FixList(writers);
 
+            var normLst = CreateNormalizedList(cast, false);
+            normLst.AddRange(CreateNormalizedList(directors, false));
+            normLst.AddRange(CreateNormalizedList(producers, false));
+            normLst.AddRange(CreateNormalizedList(writers, false));
 
-            var dbPeople = await DB.People
+            var hashes = normLst.Select(item => item.Hash).ToList();
+
+            var dbPeople = await localCtx.People
                 .AsNoTracking()
-                .Where(item => allPeople.Contains(item.Name))
+                .Where(item => hashes.Contains(item.Hash))
                 .ToListAsync();
 
-            foreach (string person in allPeople)
-            {
-                var exists = dbPeople
-                    .Where(item => item.Name == person)
-                    .Any();
 
-                if (!exists)
-                    dbPeople.Add(DB.People.Add(new Person { Name = person }).Entity);
+            //Add any new people needed
+            var newDBPeople = new List<Person>();
+            foreach (var person in normLst)
+                if (!dbPeople.Any(item => item.Hash == person.Hash))
+                    newDBPeople.Add(localCtx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
+            
+            if (newDBPeople.Count > 0)
+            {
+                await localCtx.SaveChangesAsync();
+                foreach (var newDBPerson in newDBPeople)
+                    dbPeople.Add(newDBPerson);
             }
 
 
+            //Update media entry
             if (mediaEntry.People == null)
                 mediaEntry.People = new List<MediaPersonBridge>();
 
+
             foreach (var bridge in mediaEntry.People)
-                if (!allPeople.Contains(bridge.Person.Name))
+                if (!hashes.Contains(bridge.Person.Hash))
                     DB.MediaPersonBridges.Remove(bridge);
 
-            AddNewPeople(mediaEntry, cast, dbPeople, Roles.Cast);
-            AddNewPeople(mediaEntry, directors, dbPeople, Roles.Director);
-            AddNewPeople(mediaEntry, producers, dbPeople, Roles.Producer);
-            AddNewPeople(mediaEntry, writers, dbPeople, Roles.Writer);
+            AddNewPeople(mediaEntry, cast, normLst, dbPeople, Roles.Cast);
+            AddNewPeople(mediaEntry, directors, normLst, dbPeople, Roles.Director);
+            AddNewPeople(mediaEntry, producers, normLst, dbPeople, Roles.Producer);
+            AddNewPeople(mediaEntry, writers, normLst, dbPeople, Roles.Writer);
         }
 
-        private static void AddNewPeople(MediaEntry mediaEntry, List<string> people, List<Person> dbPeople, Roles role)
+        private static void AddNewPeople(MediaEntry mediaEntry, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)
         {
             int sort = 0;
             foreach (string person in people)
             {
+                var normItem = normLst.First(item => item.Norm == person);
                 var exists = mediaEntry.People
-                       .Where(item => item.Person.Name == person)
-                       .Where(item => item.Role == role)
-                       .Any();
+                    .Where(item => item.Person.Hash == normItem.Hash)
+                    .Where(item => item.Role == role)
+                    .Any();
 
                 if (!exists)
                     mediaEntry.People.Add(new MediaPersonBridge
                     {
-                        Person = dbPeople.First(item => item.Name == person),
+                        Person = dbPeople.First(item => item.Hash == normItem.Hash),
                         Role = role,
                         SortOrder = sort++
                     });

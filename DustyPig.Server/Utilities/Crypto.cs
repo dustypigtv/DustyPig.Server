@@ -19,7 +19,7 @@ namespace DustyPig.Server.Utilities
 
         public static string HashString(string value) => _hasher.Hash(value).Replace("-", null);
 
-        public static string HashTitle(string title)
+        public static string NormalizedHash(string title)
         {
             title = (title + string.Empty).Trim();
             title = title.ToLower();
@@ -27,7 +27,7 @@ namespace DustyPig.Server.Utilities
             return HashString(title);
         }
 
-        public static string HashMovieTitle(string title, int year) => HashTitle($"{title}{year}");
+        public static string HashMovieTitle(string title, int year) => NormalizedHash($"{title}{year}");
 
         public static string HashEpisode(int seriesId, int season, int episode) => HashString($"{seriesId}.{season}.{episode}");
     }

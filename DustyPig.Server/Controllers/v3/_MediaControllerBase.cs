@@ -111,12 +111,9 @@ namespace DustyPig.Server.Controllers.v3
             //    ret.AddRange(name.Tokenize());
 
             if (extraSearchTerms != null)
-                ret.AddRange(extraSearchTerms);
+                ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));
 
             ret.RemoveAll(item => string.IsNullOrWhiteSpace(item));
-
-            for (int i = 0; i < ret.Count; i++)
-                ret[i] = ret[i].ToLower().Trim();
 
             return ret.Distinct().ToList();
         }

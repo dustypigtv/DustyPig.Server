@@ -144,7 +144,7 @@ namespace DustyPig.Server.Data.Models
                 return Crypto.HashMovieTitle(Title, Date.Value.Year);
 
             //Series
-            return Crypto.HashTitle(Title);
+            return Crypto.NormalizedHash(Title);
         }
 
         public long? ComputeXid()
