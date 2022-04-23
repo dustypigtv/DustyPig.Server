@@ -1,76 +1,93 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
-using MySql.EntityFrameworkCore.Metadata;
+
+#nullable disable
 
 namespace DustyPig.Server.Data.Migrations
 {
-    public partial class Init : Migration
+    public partial class Initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterDatabase()
+                .Annotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.CreateTable(
                 name: "Accounts",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     FirebaseId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Accounts", x => x.Id);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Logs",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Timestamp = table.Column<DateTime>(type: "datetime", nullable: false),
-                    Logger = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: true),
-                    CallSite = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: true),
-                    Level = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: true),
-                    Message = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: true),
-                    Exception = table.Column<string>(type: "text", nullable: true)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Logger = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CallSite = table.Column<string>(type: "varchar(250)", maxLength: 250, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Level = table.Column<string>(type: "varchar(12)", maxLength: 12, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Message = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Exception = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Logs", x => x.Id);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "People",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_People", x => x.Id);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "SearchTerms",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Term = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SearchTerms", x => x.Id);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "AccountTokens",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -82,13 +99,15 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ActivationCodes",
                 columns: table => new
                 {
-                    Code = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: false),
+                    Code = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AccountId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -100,18 +119,21 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "EncryptedServiceCredentials",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CredentialType = table.Column<int>(type: "int", nullable: false),
-                    Data = table.Column<string>(type: "text", nullable: false)
+                    Data = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -122,22 +144,26 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Friendships",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Account1Id = table.Column<int>(type: "int", nullable: false),
                     Account2Id = table.Column<int>(type: "int", nullable: false),
-                    Hash = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
-                    DisplayName1 = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
-                    DisplayName2 = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
+                    Hash = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DisplayName1 = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DisplayName2 = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Accepted = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NotificationCreated = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -154,16 +180,18 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Libraries",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsTV = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -175,21 +203,24 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Profiles",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     IsMain = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     AllowedRatings = table.Column<int>(type: "int", nullable: false),
                     PinNumber = table.Column<short>(type: "smallint", nullable: true),
                     TitleRequestPermission = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    AvatarUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    AvatarUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Locked = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     WeeklySummary = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NotificationMethods = table.Column<int>(type: "int", nullable: false)
@@ -203,7 +234,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Accounts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "FriendLibraryShares",
@@ -212,6 +244,7 @@ namespace DustyPig.Server.Data.Migrations
                     LibraryId = table.Column<int>(type: "int", nullable: false),
                     FriendshipId = table.Column<int>(type: "int", nullable: false),
                     LibraryDisplayName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -228,23 +261,28 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Libraries",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "MediaEntries",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     LibraryId = table.Column<int>(type: "int", nullable: false),
                     EntryType = table.Column<int>(type: "int", nullable: false),
                     TMDB_Id = table.Column<int>(type: "int", nullable: true),
-                    Title = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
-                    Hash = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false),
-                    SortTitle = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true),
-                    Date = table.Column<DateTime>(type: "datetime", nullable: true),
+                    Title = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Hash = table.Column<string>(type: "varchar(32)", maxLength: 32, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SortTitle = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     Rated = table.Column<int>(type: "int", nullable: true),
-                    Description = table.Column<string>(type: "varchar(2500)", maxLength: 2500, nullable: true),
+                    Description = table.Column<string>(type: "varchar(2500)", maxLength: 2500, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Genres = table.Column<long>(type: "bigint", nullable: true),
                     LinkedToId = table.Column<int>(type: "int", nullable: true),
                     Season = table.Column<int>(type: "int", nullable: true),
@@ -255,12 +293,15 @@ namespace DustyPig.Server.Data.Migrations
                     IntroStartTime = table.Column<double>(type: "double", nullable: true),
                     IntroEndTime = table.Column<double>(type: "double", nullable: true),
                     CreditsStartTime = table.Column<double>(type: "double", nullable: true),
-                    ArtworkUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false),
-                    VideoUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    ArtworkUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    VideoUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     VideoServiceCredentialId = table.Column<int>(type: "int", nullable: true),
-                    BifUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    BifUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     BifServiceCredentialId = table.Column<int>(type: "int", nullable: true),
-                    Added = table.Column<DateTime>(type: "datetime", nullable: true),
+                    Added = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     Popularity = table.Column<double>(type: "double", nullable: true),
                     NotificationsCreated = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
@@ -291,17 +332,19 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "MediaEntries",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "DeviceTokens",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
-                    Token = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: false),
-                    LastSeen = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Token = table.Column<string>(type: "varchar(1024)", maxLength: 1024, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    LastSeen = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -312,21 +355,22 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "GetRequests",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
                     AccountId = table.Column<int>(type: "int", nullable: false),
                     EntryType = table.Column<int>(type: "int", nullable: false),
                     TMDB_Id = table.Column<int>(type: "int", nullable: false),
                     ParentalStatus = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -343,17 +387,20 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Playlists",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
-                    ArtworkUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ArtworkUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CurrentIndex = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -365,7 +412,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ProfileLibraryShares",
@@ -389,7 +437,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "MediaPersonBridges",
@@ -415,7 +464,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "People",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "MediaSearchBridges",
@@ -439,19 +489,20 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "SearchTerms",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "OverrideRequests",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     NotificationCreated = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -468,7 +519,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "ProfileMediaProgresses",
@@ -477,7 +529,7 @@ namespace DustyPig.Server.Data.Migrations
                     ProfileId = table.Column<int>(type: "int", nullable: false),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
                     Played = table.Column<double>(type: "double", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -494,7 +546,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Subscriptions",
@@ -518,17 +571,20 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Subtitles",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
-                    Url = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false),
+                    Url = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ServiceCredentialId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -546,7 +602,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "MediaEntries",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "TitleOverrides",
@@ -571,7 +628,8 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "WatchListItems",
@@ -579,7 +637,7 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     ProfileId = table.Column<int>(type: "int", nullable: false),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
-                    Added = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Added = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -596,14 +654,15 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "PlaylistItems",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     PlaylistId = table.Column<int>(type: "int", nullable: false),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
                     Index = table.Column<int>(type: "int", nullable: false)
@@ -623,17 +682,20 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Playlists",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Notifications",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
-                    Message = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
+                    Title = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Message = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     NotificationType = table.Column<int>(type: "int", nullable: false),
                     FriendshipId = table.Column<int>(type: "int", nullable: true),
                     MediaEntryId = table.Column<int>(type: "int", nullable: true),
@@ -641,7 +703,7 @@ namespace DustyPig.Server.Data.Migrations
                     GetRequestId = table.Column<int>(type: "int", nullable: true),
                     Sent = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Seen = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime", nullable: false)
+                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -676,12 +738,13 @@ namespace DustyPig.Server.Data.Migrations
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.InsertData(
                 table: "Accounts",
                 columns: new[] { "Id", "FirebaseId" },
-                values: new object[] { 1, "qVp7jUVVTgS0HAQLd33HCsTmUeI2" });
+                values: new object[] { 1, "TEST ACCOUNT" });
 
             migrationBuilder.InsertData(
                 table: "SearchTerms",
@@ -715,7 +778,7 @@ namespace DustyPig.Server.Data.Migrations
             migrationBuilder.InsertData(
                 table: "Profiles",
                 columns: new[] { "Id", "AccountId", "AllowedRatings", "AvatarUrl", "IsMain", "Locked", "Name", "NotificationMethods", "PinNumber", "TitleRequestPermission", "WeeklySummary" },
-                values: new object[] { 1, 1, 8191, null, true, false, "Test User", 0, null, (byte)1, false });
+                values: new object[] { 1, 1, 8191, "https://s3.us-central-1.wasabisys.com/dustypig/media/profile_grey.png", true, false, "Test User", 0, null, (byte)1, false });
 
             migrationBuilder.InsertData(
                 table: "MediaEntries",
@@ -744,8 +807,8 @@ namespace DustyPig.Server.Data.Migrations
                 columns: new[] { "Id", "Added", "ArtworkUrl", "BifServiceCredentialId", "BifUrl", "CreditsStartTime", "Date", "Description", "EntryType", "Episode", "ExtraSortOrder", "Genres", "Hash", "IntroEndTime", "IntroStartTime", "Length", "LibraryId", "LinkedToId", "NotificationsCreated", "Popularity", "Rated", "Season", "SortTitle", "TMDB_Id", "Title", "VideoServiceCredentialId", "VideoUrl", "Xid" },
                 values: new object[,]
                 {
-                    { 8, new DateTime(2021, 9, 6, 5, 20, 38, 559, DateTimeKind.Unspecified).AddTicks(3102), "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.bif", 119.25, new DateTime(2013, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), "Koro hunts for food on the other side of a fence and is once again inspired by the Armadillo but this time to a shocking effect.", 3, 2, null, null, "13BEA3CDE590997C1094F9BBA14D719A", null, null, 146.00800000000001, 2, 6, true, null, null, 1, null, 0, "Gran Dillama", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.mp4", 10002L },
                     { 7, new DateTime(2021, 9, 6, 5, 20, 39, 559, DateTimeKind.Unspecified).AddTicks(3737), "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.jpg", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.bif", 139.5, new DateTime(2013, 12, 20, 0, 0, 0, 0, DateTimeKind.Unspecified), "Koro meets Oti, a pesky Magellanic penguin, in an epic battle over tasty red berries during the winter.", 3, 3, null, null, "1EBABA3465F39106375BE623A0EBAB45", null, null, 150.048, 2, 6, true, null, null, 1, null, 0, "Llamigos", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.mp4", 10003L },
+                    { 8, new DateTime(2021, 9, 6, 5, 20, 38, 559, DateTimeKind.Unspecified).AddTicks(3102), "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.bif", 119.25, new DateTime(2013, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified), "Koro hunts for food on the other side of a fence and is once again inspired by the Armadillo but this time to a shocking effect.", 3, 2, null, null, "13BEA3CDE590997C1094F9BBA14D719A", null, null, 146.00800000000001, 2, 6, true, null, null, 1, null, 0, "Gran Dillama", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.mp4", 10002L },
                     { 9, new DateTime(2021, 9, 6, 5, 20, 37, 559, DateTimeKind.Unspecified).AddTicks(1031), "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.jpg", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.bif", 87.917000000000002, new DateTime(2013, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "Koro has trouble crossing an apparent desolate road, a problem that an unwitting Armadillo does not share.", 3, 1, null, null, "81582BDB254A94E4464424087C6479A8", null, null, 90.001000000000005, 2, 6, true, null, null, 1, null, 0, "Llama Drama", null, "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.mp4", 10001L }
                 });
 
@@ -755,17 +818,17 @@ namespace DustyPig.Server.Data.Migrations
                 values: new object[,]
                 {
                     { 1, 1 },
-                    { 5, 11 },
-                    { 4, 10 },
-                    { 3, 9 },
-                    { 3, 8 },
-                    { 6, 12 },
-                    { 2, 6 },
-                    { 2, 5 },
-                    { 1, 4 },
-                    { 1, 3 },
                     { 1, 2 },
-                    { 2, 7 }
+                    { 1, 3 },
+                    { 1, 4 },
+                    { 2, 5 },
+                    { 2, 6 },
+                    { 2, 7 },
+                    { 3, 8 },
+                    { 3, 9 },
+                    { 4, 10 },
+                    { 5, 11 },
+                    { 6, 12 }
                 });
 
             migrationBuilder.InsertData(
@@ -875,8 +938,7 @@ namespace DustyPig.Server.Data.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_MediaPersonBridges_PersonId",
                 table: "MediaPersonBridges",
-                column: "PersonId",
-                unique: true);
+                column: "PersonId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaSearchBridges_SearchTermId",

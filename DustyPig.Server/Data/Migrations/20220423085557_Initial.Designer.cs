@@ -6,18 +6,20 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+#nullable disable
+
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220329185500_Init")]
-    partial class Init
+    [Migration("20220423085557_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.13");
+                .HasAnnotation("ProductVersion", "6.0.4")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Account", b =>
                 {
@@ -41,7 +43,7 @@ namespace DustyPig.Server.Data.Migrations
                         new
                         {
                             Id = 1,
-                            FirebaseId = "qVp7jUVVTgS0HAQLd33HCsTmUeI2"
+                            FirebaseId = "TEST ACCOUNT"
                         });
                 });
 
@@ -84,7 +86,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("LastSeen")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("ProfileId")
                         .HasColumnType("int");
@@ -115,7 +117,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Data")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -181,7 +183,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -220,7 +222,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -283,7 +285,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("varchar(250)");
 
                     b.Property<string>("Exception")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Level")
                         .HasMaxLength(12)
@@ -298,7 +300,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("varchar(4000)");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -312,7 +314,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("Added")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("ArtworkUrl")
                         .IsRequired()
@@ -330,7 +332,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("double");
 
                     b.Property<DateTime?>("Date")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(2500)
@@ -624,8 +626,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("MediaEntryId", "PersonId");
 
-                    b.HasIndex("PersonId")
-                        .IsUnique();
+                    b.HasIndex("PersonId");
 
                     b.HasIndex("MediaEntryId", "PersonId", "Role");
 
@@ -744,7 +745,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .HasMaxLength(1000)
@@ -784,7 +785,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -920,6 +921,7 @@ namespace DustyPig.Server.Data.Migrations
                             Id = 1,
                             AccountId = 1,
                             AllowedRatings = 8191,
+                            AvatarUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/profile_grey.png",
                             IsMain = true,
                             Locked = false,
                             Name = "Test User",
@@ -968,7 +970,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("double");
 
                     b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("ProfileId", "MediaEntryId");
 
@@ -1154,7 +1156,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("Added")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("ProfileId", "MediaEntryId");
 

@@ -50,7 +50,8 @@ namespace DustyPig.Server.Data
         {
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
-                .UseMySQL(_connectionString)
+                //.UseMySQL(_connectionString)
+                .UseMySql(_connectionString, ServerVersion.Create(8,0,28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
                 .UseLoggerFactory(MyLoggerFactory)
 
 #if DEBUG
@@ -102,7 +103,8 @@ namespace DustyPig.Server.Data
 
 
 
-
+            //Not sure what the deal is with MediaPersonBridge, but if I don't do this then it tries to create a unique index on PersonId - which is bad
+            modelBuilder.Entity<MediaPersonBridge>().HasIndex(e => e.PersonId).IsUnique(false);
 
 
 
