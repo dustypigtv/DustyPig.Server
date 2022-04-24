@@ -9,9 +9,7 @@ namespace DustyPig.Server.Utilities
     {
         private static readonly ISymmetric _crypto = SymmetricFactory.CreateAES();
         private static Key _cryptoKey;
-        private static readonly IHasher _hasher = HasherFactory.CreateMD5();
-
-        private static System.Security.Cryptography.SHA512 _sha512 = System.Security.Cryptography.SHA512.Create();
+        private static readonly IHasher _hasher = HasherFactory.CreateSHA512();
 
         public static void Configure(string key) => _cryptoKey = new Key(key);
 
