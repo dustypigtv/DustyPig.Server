@@ -23,7 +23,7 @@ namespace DustyPig.Server.Utilities
         {
             title = (title + string.Empty).Trim();
             title = title.ToLower();
-            title = Regex.Replace(title, "[^a-z0-9]", string.Empty);
+            title = Regex.Replace(title, "[^\\w]", string.Empty);
             return HashString(title);
         }
 
