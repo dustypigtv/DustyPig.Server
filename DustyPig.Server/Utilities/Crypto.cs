@@ -9,7 +9,7 @@ namespace DustyPig.Server.Utilities
     {
         private static readonly ISymmetric _crypto = SymmetricFactory.CreateAES();
         private static Key _cryptoKey;
-        //private static readonly IHasher _hasher = HasherFactory.CreateMD5();
+        private static readonly IHasher _hasher = HasherFactory.CreateMD5();
 
         private static System.Security.Cryptography.SHA512 _sha512 = System.Security.Cryptography.SHA512.Create();
 
@@ -19,9 +19,8 @@ namespace DustyPig.Server.Utilities
 
         public static string Decrypt(string value) => _crypto.Decrypt(_cryptoKey, value);
 
-        //public static string HashString(string value) => _hasher.Hash(value).Replace("-", null);
-        public static string HashString(string value) => System.BitConverter.ToString(_sha512.ComputeHash(System.Text.Encoding.Unicode.GetBytes(value))).Replace("-", null);
-
+        public static string HashString(string value) => _hasher.Hash(value).Replace("-", null);
+        
         public static string NormalizedHash(string title)
         {
             title = (title + string.Empty).Trim();
