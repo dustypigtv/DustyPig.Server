@@ -145,8 +145,10 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (friendAccount == null)
-                throw new Exception("Account exists in Firebase but not in Dusty Pig");
+                return BadRequest("THe specified email doesn't appear to be a Dusty Pig account");
 
+            if (friendAccount.Id == UserAccount.Id)
+                return BadRequest("Cannot friend yourself");
 
             string uniqueFriendId = Utils.UniqueFriendId(UserAccount.Id, friendAccount.Id);
             var friendship = await DB.Friendships
