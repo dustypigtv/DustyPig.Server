@@ -58,7 +58,7 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
@@ -75,7 +75,7 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Term = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Term = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
@@ -133,7 +133,7 @@ namespace DustyPig.Server.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CredentialType = table.Column<int>(type: "int", nullable: false),
                     Data = table.Column<string>(type: "longtext", nullable: false)
@@ -161,9 +161,9 @@ namespace DustyPig.Server.Data.Migrations
                     Account2Id = table.Column<int>(type: "int", nullable: false),
                     Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    DisplayName1 = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    DisplayName1 = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    DisplayName2 = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    DisplayName2 = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Accepted = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     NotificationCreated = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -194,7 +194,7 @@ namespace DustyPig.Server.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsTV = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
@@ -217,7 +217,7 @@ namespace DustyPig.Server.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     AccountId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsMain = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     AllowedRatings = table.Column<int>(type: "int", nullable: false),
@@ -247,7 +247,7 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     LibraryId = table.Column<int>(type: "int", nullable: false),
                     FriendshipId = table.Column<int>(type: "int", nullable: false),
-                    LibraryDisplayName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    LibraryDisplayName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -277,15 +277,15 @@ namespace DustyPig.Server.Data.Migrations
                     LibraryId = table.Column<int>(type: "int", nullable: false),
                     EntryType = table.Column<int>(type: "int", nullable: false),
                     TMDB_Id = table.Column<int>(type: "int", nullable: true),
-                    Title = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    SortTitle = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                    SortTitle = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     Rated = table.Column<int>(type: "int", nullable: true),
-                    Description = table.Column<string>(type: "varchar(2500)", maxLength: 2500, nullable: true)
+                    Description = table.Column<string>(type: "varchar(10000)", maxLength: 10000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Genres = table.Column<long>(type: "bigint", nullable: true),
                     LinkedToId = table.Column<int>(type: "int", nullable: true),
@@ -401,7 +401,7 @@ namespace DustyPig.Server.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ArtworkUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -584,7 +584,7 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
                     Url = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)

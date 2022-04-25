@@ -119,8 +119,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("Id");
 
@@ -139,8 +139,8 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("LibraryDisplayName")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("FriendshipId", "LibraryId");
 
@@ -165,12 +165,12 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("DisplayName1")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("DisplayName2")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Hash")
                         .IsRequired()
@@ -245,8 +245,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("Id");
 
@@ -333,8 +333,8 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(2500)
-                        .HasColumnType("varchar(2500)");
+                        .HasMaxLength(10000)
+                        .HasColumnType("varchar(10000)");
 
                     b.Property<int>("EntryType")
                         .HasColumnType("int");
@@ -381,16 +381,16 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SortTitle")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int?>("TMDB_Id")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int?>("VideoServiceCredentialId")
                         .HasColumnType("int");
@@ -805,8 +805,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("Id");
 
@@ -832,8 +832,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("ProfileId")
                         .HasColumnType("int");
@@ -894,8 +894,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int>("NotificationMethods")
                         .HasColumnType("int");
@@ -1016,8 +1016,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Term")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.HasKey("Id");
 
@@ -1127,8 +1127,8 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<int?>("ServiceCredentialId")
                         .HasColumnType("int");
