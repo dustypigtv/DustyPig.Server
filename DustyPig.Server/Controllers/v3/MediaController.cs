@@ -116,6 +116,13 @@ namespace DustyPig.Server.Controllers.v3
 
                 lst.Items.Add(result.MediaEntry.ToBasicMedia());
             }
+
+            var tooSmall = new List<long>();
+            foreach(var sect in ret.Sections.Where(item => item.ListId > 0))
+                if(sect.Items.Count < 25)
+                    tooSmall.Add(sect.ListId);
+            ret.Sections.RemoveAll(item => tooSmall.Contains(item.ListId));
+
             return ret;
         }
 
