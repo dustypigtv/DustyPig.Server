@@ -151,8 +151,8 @@ namespace DustyPig.Server.Data.Models
         {
             if (EntryType == MediaTypes.Episode)
             {
-                int s = Season ?? 0;
-                int e = Episode ?? 0;
+                long s = Season ?? 0;
+                long e = Episode ?? 0;
                 return s * int.MaxValue + e;
             }
             return null;
