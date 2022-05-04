@@ -6,7 +6,6 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(PlaylistsController))]
     public class PlaylistsController : _MediaControllerBase
     {
-        public PlaylistsController(AppDbContext db, TMDBClient tmdbClient, IMemoryCache memoryCache) : base(db, tmdbClient, memoryCache) { }
+        public PlaylistsController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient) { }
 
 
         /// <summary>
@@ -126,8 +125,8 @@ namespace DustyPig.Server.Controllers.v3
                     Index = dbPlaylistItem.Index,
                     MediaId = dbPlaylistItem.MediaEntryId,
                     MediaType = dbPlaylistItem.MediaEntry.EntryType,
-                    BifAsset = Utils.GetAsset(dbPlaylistItem.MediaEntry.BifServiceCredential, _memoryCache, dbPlaylistItem.MediaEntry.BifUrl),
-                    VideoAsset = Utils.GetAsset(dbPlaylistItem.MediaEntry.VideoServiceCredential, _memoryCache, dbPlaylistItem.MediaEntry.VideoUrl)
+                    BifUrl = Utils.GetAssetUrl(dbPlaylistItem.MediaEntry.BifServiceCredential, dbPlaylistItem.MediaEntry.BifUrl),
+                    VideoUrl = Utils.GetAssetUrl(dbPlaylistItem.MediaEntry.VideoServiceCredential, dbPlaylistItem.MediaEntry.VideoUrl)
                 };
 
                 switch (dbPlaylistItem.MediaEntry.EntryType)
@@ -159,18 +158,11 @@ namespace DustyPig.Server.Controllers.v3
                     dbPlaylistItem.MediaEntry.Subtitles.Sort();
                     pli.ExternalSubtitles = new List<ExternalSubtitle>();
                     foreach (var sub in dbPlaylistItem.MediaEntry.Subtitles)
-                    {
-                        var asset = Utils.GetAsset(sub.ServiceCredential, _memoryCache, sub.Url);
-                        var xs = new ExternalSubtitle { Name = sub.Name };
-                        if (asset != null)
+                        pli.ExternalSubtitles.Add(new ExternalSubtitle
                         {
-                            xs.ExpiresUTC = asset.ExpiresUTC;
-                            xs.ServiceCredentialId = asset.ServiceCredentialId;
-                            xs.Token = asset.Token;
-                            xs.Url = asset.Url;
-                        }
-                        pli.ExternalSubtitles.Add(xs);
-                    }
+                            Name = sub.Name,
+                            Url = Utils.GetAssetUrl(sub.ServiceCredential, sub.Url)
+                        });
                 }
 
                 ret.Items.Add(pli);

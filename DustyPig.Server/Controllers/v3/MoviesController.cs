@@ -22,7 +22,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(MoviesController))]
     public class MoviesController : _MediaControllerBase
     {
-        public MoviesController(AppDbContext db, TMDBClient tmdbClient, IMemoryCache memoryCache) : base(db, tmdbClient, memoryCache)
+        public MoviesController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
         {
         }
 
@@ -139,7 +139,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedMovie
             {
                 ArtworkUrl = data.mediaEntry.ArtworkUrl,
-                BifAsset = playable ? Utils.GetAsset(data.mediaEntry.BifServiceCredential, _memoryCache, data.mediaEntry.BifUrl) : null,
+                BifUrl = playable ? Utils.GetAssetUrl(data.mediaEntry.BifServiceCredential, data.mediaEntry.BifUrl) : null,
                 Cast = data.mediaEntry.GetPeople(Roles.Cast),
                 CreditsStartTime = data.mediaEntry.CreditsStartTime,
                 Date = data.mediaEntry.Date.Value,
@@ -155,7 +155,7 @@ namespace DustyPig.Server.Controllers.v3
                 Rated = (data.mediaEntry.Rated ?? Ratings.None),
                 Title = data.mediaEntry.Title + $" ({data.mediaEntry.Date.Value.Year})",
                 TMDB_Id = data.mediaEntry.TMDB_Id,
-                VideoAsset = playable ? Utils.GetAsset(data.mediaEntry.VideoServiceCredential, _memoryCache, data.mediaEntry.VideoUrl) : null,
+                VideoUrl = playable ? Utils.GetAssetUrl(data.mediaEntry.VideoServiceCredential, data.mediaEntry.VideoUrl) : null,
                 Writers = data.mediaEntry.GetPeople(Roles.Writer)
             };
 
@@ -166,18 +166,11 @@ namespace DustyPig.Server.Controllers.v3
                 data.mediaEntry.Subtitles.Sort();
                 ret.ExternalSubtitles = new List<ExternalSubtitle>();
                 foreach (var item in data.mediaEntry.Subtitles)
-                {
-                    var asset = playable ? Utils.GetAsset(item.ServiceCredential, _memoryCache, item.Url) : null;
-                    var xs = new ExternalSubtitle { Name = item.Name };
-                    if (asset != null)
+                    ret.ExternalSubtitles.Add(new ExternalSubtitle
                     {
-                        xs.ExpiresUTC = asset.ExpiresUTC;
-                        xs.ServiceCredentialId = asset.ServiceCredentialId;
-                        xs.Token = asset.Token;
-                        xs.Url = asset.Url;
-                    }
-                    ret.ExternalSubtitles.Add(xs);
-                }
+                        Name = item.Name,
+                        Url = Utils.GetAssetUrl(item.ServiceCredential, item.Url)
+                    });
             }
 
 
@@ -239,7 +232,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedMovie
             {
                 ArtworkUrl = mediaEntry.ArtworkUrl,
-                BifAsset = Utils.GetAsset(mediaEntry.BifServiceCredential, _memoryCache, mediaEntry.BifUrl),
+                BifUrl = Utils.GetAssetUrl(mediaEntry.BifServiceCredential, mediaEntry.BifUrl),
                 Cast = mediaEntry.GetPeople(Roles.Cast),
                 CreditsStartTime = mediaEntry.CreditsStartTime,
                 Date = mediaEntry.Date.Value,
@@ -255,14 +248,10 @@ namespace DustyPig.Server.Controllers.v3
                 Rated = (mediaEntry.Rated ?? Ratings.None),
                 Title = mediaEntry.Title + $" ({mediaEntry.Date.Value.Year})",
                 TMDB_Id = mediaEntry.TMDB_Id,
-                VideoAsset = Utils.GetAsset(mediaEntry.VideoServiceCredential, _memoryCache, mediaEntry.VideoUrl),
+                VideoUrl = Utils.GetAssetUrl(mediaEntry.VideoServiceCredential, mediaEntry.VideoUrl),
                 Writers = mediaEntry.GetPeople(Roles.Writer)
             };
 
-            if (ret.BifAsset != null)
-                ret.BifAsset = new StreamingAsset { AssetType = ret.BifAsset.AssetType, ServiceCredentialId = mediaEntry.BifServiceCredentialId, Url = mediaEntry.BifUrl };
-            ret.VideoAsset = new StreamingAsset { AssetType = ret.VideoAsset.AssetType, ServiceCredentialId = mediaEntry.VideoServiceCredentialId, Url = mediaEntry.VideoUrl };
-           
 
 
             //Subs
@@ -271,16 +260,11 @@ namespace DustyPig.Server.Controllers.v3
                 mediaEntry.Subtitles.Sort();
                 ret.ExternalSubtitles = new List<ExternalSubtitle>();
                 foreach (var item in mediaEntry.Subtitles)
-                {
-                    var asset = Utils.GetAsset(item.ServiceCredential, _memoryCache, item.Url);
-                    asset = new StreamingAsset { AssetType = asset.AssetType, ServiceCredentialId = item.ServiceCredentialId, Url = item.Url };
-                    var xs = new ExternalSubtitle { Name = item.Name };
-                    xs.ExpiresUTC = asset.ExpiresUTC;
-                    xs.ServiceCredentialId = asset.ServiceCredentialId;
-                    xs.Token = asset.Token;
-                    xs.Url = asset.Url;
-                    ret.ExternalSubtitles.Add(xs);
-                }
+                    ret.ExternalSubtitles.Add(new ExternalSubtitle
+                    {
+                        Name = item.Name,
+                        Url = Utils.GetAssetUrl(item.ServiceCredential, item.Url)
+                    });
             }
 
 

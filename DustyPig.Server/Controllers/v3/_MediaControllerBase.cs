@@ -5,7 +5,6 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,14 +22,11 @@ namespace DustyPig.Server.Controllers.v3
         internal const long ID_RECENTLY_ADDED = -4;
 
         internal readonly Services.TMDBClient _tmdbClient;
-        internal readonly IMemoryCache _memoryCache;
 
 
-        internal _MediaControllerBase(AppDbContext db, Services.TMDBClient tmdbClient, IMemoryCache memoryCache) : base(db)
+        internal _MediaControllerBase(AppDbContext db, Services.TMDBClient tmdbClient) : base(db)
         {
-            _tmdbClient = tmdbClient;
-            _memoryCache = memoryCache;
-        }
+            _tmdbClient = tmdbClient;        }
 
 
         internal async Task<ActionResult> DeleteMedia(int id)

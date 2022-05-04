@@ -20,7 +20,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(EpisodesController))]
     public class EpisodesController : _MediaControllerBase
     {
-        public EpisodesController(AppDbContext db, TMDBClient tmdbClient, IMemoryCache memoryCache) : base(db, tmdbClient, memoryCache)
+        public EpisodesController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
         {
         }
 
@@ -77,7 +77,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedEpisode
             {
                 ArtworkUrl = data.ArtworkUrl,
-                BifAsset = playable ? Utils.GetAsset(data.BifServiceCredential, _memoryCache, data.BifUrl) : null,
+                BifUrl = playable ? Utils.GetAssetUrl(data.BifServiceCredential, data.BifUrl) : null,
                 CreditsStartTime = data.CreditsStartTime,
                 Date = data.Date.Value,
                 Description = data.Description,
@@ -90,24 +90,18 @@ namespace DustyPig.Server.Controllers.v3
                 SeriesId = data.LinkedToId.Value,
                 Title = data.Title,
                 TMDB_Id = data.TMDB_Id,
-                VideoAsset = playable ? Utils.GetAsset(data.VideoServiceCredential, _memoryCache, data.VideoUrl) : null
+                VideoUrl = playable ? Utils.GetAssetUrl(data.VideoServiceCredential, data.VideoUrl) : null
             };
 
 
             if (playable)
             {
                 foreach (var dbSub in data.Subtitles)
-                {
-                    var asset = Utils.GetAsset(dbSub.ServiceCredential, _memoryCache, dbSub.Url);
                     ret.ExternalSubtitles.Add(new ExternalSubtitle
                     {
                         Name = dbSub.Name,
-                        ExpiresUTC = asset.ExpiresUTC,
-                        ServiceCredentialId = asset.ServiceCredentialId,
-                        Token = asset.Token,
-                        Url = asset.Url
+                        Url = Utils.GetAssetUrl(dbSub.ServiceCredential, dbSub.Url)
                     });
-                }
 
                 if (ret.ExternalSubtitles.Count == 0)
                     ret.ExternalSubtitles = null;

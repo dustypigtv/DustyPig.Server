@@ -8,7 +8,6 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -22,7 +21,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(MediaController))]
     public class MediaController : _MediaControllerBase
     {
-        public MediaController(AppDbContext db, TMDBClient tmdbClient, IMemoryCache memoryCache) : base(db, tmdbClient, memoryCache)
+        public MediaController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
         {
         }
 
