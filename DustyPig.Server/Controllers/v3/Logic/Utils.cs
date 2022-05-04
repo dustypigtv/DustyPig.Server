@@ -6,10 +6,12 @@ using DustyPig.Server.Utilities;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
+using Krypto.WonderDog.Symmetric;
 using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
@@ -52,6 +54,16 @@ namespace DustyPig.Server.Controllers.v3.Logic
                             return new StreamingAsset { Url = url, Token = token.Token, ExpiresUTC = token.ExpiresUTC, AssetType = StreamingAssetType.GoogleDrive };
                         break;
 
+
+                    case ServiceCredentialTypes.DPFS:
+                        var dpfsToken = (DPFSToken)val;
+                        if(dpfsToken.ExpiresUTC > DateTime.UtcNow.AddMinutes(15))
+                        {
+                            url += url.Contains('?') ? '&' : '?' + dpfsToken.Token;
+                            return new StreamingAsset { Url = url, ExpiresUTC = dpfsToken.ExpiresUTC, AssetType = StreamingAssetType.DPFS };
+                        }
+                        break;
+
                     default:
                         throw new NotImplementedException();
                 }
@@ -62,7 +74,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 case ServiceCredentialTypes.S3:
                     var decryptedS3 = encryptedCred.Decrypt<S3Credential>();
                     var client = new AmazonS3Client(decryptedS3.AccessKey, decryptedS3.AccessSecret, new AmazonS3Config { ServiceURL = decryptedS3.Endpoint });
-                    memoryCache.Set(encryptedCred.Id, client, TimeSpan.FromDays(365));
+                    memoryCache.Set(encryptedCred.Id, client, TimeSpan.FromDays(1));
                     var exp = DateTime.UtcNow.AddDays(5);
                     var req = new GetPreSignedUrlRequest
                     {
@@ -71,6 +83,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                         Expires = exp
                     };
                     return new StreamingAsset { Url = client.GetPreSignedURL(req), ExpiresUTC = exp, AssetType = StreamingAssetType.S3 };
+
 
                 case ServiceCredentialTypes.GoogleDriveServiceAccount:
                     var decryptedGD = encryptedCred.Decrypt<GoogleDriveCredential>();
@@ -91,6 +104,20 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     memoryCache.Set(encryptedCred.Id, gdToken, TimeSpan.FromMinutes(45));
                     return new StreamingAsset { Url = url, Token = gdToken.Token, ExpiresUTC = gdToken.ExpiresUTC, AssetType = StreamingAssetType.GoogleDrive };
 
+
+                case ServiceCredentialTypes.DPFS:
+                    var decryptedDPFS = encryptedCred.Decrypt<DPFSCredential>();
+                    var aes = SymmetricFactory.CreateAES();
+                    var key = new Krypto.WonderDog.Key("");
+                    var dpfsToken = new DPFSToken
+                    {
+                        ExpiresUTC = DateTime.UtcNow.AddDays(5),
+                        Token = "dpfs=" + WebUtility.UrlEncode(aes.Encrypt(key, DateTime.UtcNow.AddDays(5).AddMinutes(1).ToString("O")))
+                    };
+                    memoryCache.Set(encryptedCred.Id, dpfsToken, TimeSpan.FromDays(5));
+                    url += url.Contains('?') ? '&' : '?' + dpfsToken.Token;
+                    return new StreamingAsset { Url = url, ExpiresUTC = dpfsToken.ExpiresUTC, AssetType = StreamingAssetType.DPFS };
+
                 default:
                     throw new NotImplementedException();
             }
@@ -105,6 +132,14 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 s = $"https://s3.us-central-1.wasabisys.com/dustypig/media/profile_{color}.png";
             }
             return s;
+        }
+
+
+
+        class DPFSToken
+        {
+            public string Token { get; set; }
+            public DateTime ExpiresUTC { get; set; }
         }
     }
 }

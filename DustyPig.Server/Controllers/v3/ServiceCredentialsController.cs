@@ -201,6 +201,129 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
+        /// <summary>
+        /// Level 3
+        /// </summary>
+        [HttpGet("{id}")]
+        [RequireMainProfile]
+        [ProhibitTestUser]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult<DPFSCredential>> GetDPFSDetails(int id)
+        {
+            var cred = await DB.EncryptedServiceCredentials
+                .AsNoTracking()
+                .Where(item => item.AccountId == UserAccount.Id)
+                .Where(item => item.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (cred == null)
+                return NotFound();
+
+            if (cred.CredentialType != ServiceCredentialTypes.DPFS)
+                return BadRequest($"Credential {id} is not a {nameof(DPFSCredential)}");
+
+            return cred.Decrypt<DPFSCredential>();
+        }
+
+        /// <summary>
+        /// Level 3
+        /// </summary>
+        [HttpPost]
+        [RequireMainProfile]
+        [ProhibitTestUser]
+        [SwaggerResponse((int)HttpStatusCode.Created)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<SimpleValue<int>>> CreateDPFS(CreateDPFSCredential credential)
+        {
+            //Validate
+            try { credential.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
+
+            //Ensure Unique
+            var existing = await DB.EncryptedServiceCredentials
+                .AsNoTracking()
+                .Where(item => item.AccountId == UserAccount.Id)
+                .Where(item => item.Name == credential.Name)
+                .AnyAsync();
+            if (existing)
+                return BadRequest("A credential with the specified name already exists in this account");
+
+
+            //Create
+            var newItem = new EncryptedServiceCredential
+            {
+                AccountId = UserAccount.Id,
+                CredentialType = ServiceCredentialTypes.DPFS,
+                Name = credential.Name
+            };
+            newItem.Encrypt(credential);
+
+            DB.EncryptedServiceCredentials.Add(newItem);
+            await DB.SaveChangesAsync();
+
+            return CommonResponses.CreatedObject(new SimpleValue<int>(newItem.Id));
+        }
+
+        /// <summary>
+        /// Level 3
+        /// </summary>
+        [HttpPost]
+        [RequireMainProfile]
+        [ProhibitTestUser]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult> UpdateDPFS(DPFSCredential credential)
+        {
+            //Validate
+            try { credential.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
+
+            var existing = await DB.EncryptedServiceCredentials
+                .Where(item => item.AccountId == UserAccount.Id)
+                .Where(item => item.Id == credential.Id)
+                .FirstOrDefaultAsync();
+            if (existing == null)
+                return NotFound();
+
+            if (existing.CredentialType != ServiceCredentialTypes.DPFS)
+                return BadRequest($"Credential {credential.Id} is not a {nameof(DPFSCredential)}");
+
+            //Check for unique
+            if (credential.Name != existing.Name)
+            {
+                var dup = await DB.EncryptedServiceCredentials
+                    .AsNoTracking()
+                    .Where(item => item.AccountId == UserAccount.Id)
+                    .Where(item => item.Id != credential.Id)
+                    .Where(item => item.Name == credential.Name)
+                    .AnyAsync();
+                if (dup)
+                    return BadRequest($"Another credential in this account already has the specified {nameof(credential.Name)}");
+            }
+
+
+            //Update
+            existing.Name = credential.Name;
+            existing.Encrypt(credential);
+            await DB.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
+
+
+
+
+
+
+
 
         /// <summary>
         /// Level 3
