@@ -36,8 +36,6 @@ namespace DustyPig.Server
 
             AppDbContext.Configure(Configuration["mysql-server-v3"]);
 
-            Crypto.Configure(Configuration["encryption-key"]);
-
             //Use this for messaging
             FirebaseApp.Create(new AppOptions()
             {
