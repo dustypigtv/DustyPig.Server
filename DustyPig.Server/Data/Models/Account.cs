@@ -22,8 +22,6 @@ namespace DustyPig.Server.Data.Models
 
         public List<AccountToken> AccountTokens { get; set; } = new List<AccountToken>();
 
-        public List<EncryptedServiceCredential> EncryptedServiceCredentials { get; set; } = new List<EncryptedServiceCredential>();
-
         //EF Core can't seem to handle this
         //public List<Friendship> Friendships { get; set; }
     }

@@ -33,7 +33,7 @@ namespace DustyPig.Server.Services
                 case FirebaseMethods.ConfirmEmailVerification:
                 case FirebaseMethods.ConfirmPasswordResetCode:
                 case FirebaseMethods.PasswordReset:
-                    switch(error.Message)
+                    switch (error.Message)
                     {
                         case "EMAIL_NOT_FOUND":
                             return "There is no user record corresponding to this identifier. The user may have been deleted";

@@ -37,20 +37,20 @@ namespace DustyPig.Server.Services
         {
             int? deviceTokenId = null;
 
-            if(profileId != null && !string.IsNullOrWhiteSpace(deviceToken))
+            if (profileId != null && !string.IsNullOrWhiteSpace(deviceToken))
             {
                 var dbDeviceToken = await _db.DeviceTokens
                     .Where(item => item.ProfileId == profileId.Value)
                     .Where(item => item.Token == deviceToken)
                     .FirstOrDefaultAsync();
 
-                if(dbDeviceToken == null)
+                if (dbDeviceToken == null)
                     dbDeviceToken = _db.DeviceTokens.Add(new Data.Models.DeviceToken
                     {
                         ProfileId = profileId.Value,
                         Token = deviceToken
                     }).Entity;
-                
+
                 dbDeviceToken.LastSeen = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
                 deviceTokenId = dbDeviceToken.Id;

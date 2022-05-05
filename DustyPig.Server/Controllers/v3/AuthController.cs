@@ -132,7 +132,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
             if (!ret.Success)
                 return BadRequest(ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset));
-            
+
             return Ok();
         }
 
@@ -278,7 +278,7 @@ namespace DustyPig.Server.Controllers.v3
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
                 return Unauthorized();
-               
+
 
             if (profile.Locked)
                 return CommonResponses.ProfileIsLocked;

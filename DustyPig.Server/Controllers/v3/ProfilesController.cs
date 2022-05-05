@@ -69,7 +69,7 @@ namespace DustyPig.Server.Controllers.v3
                 allowed = id == UserProfile.Id;
             if (!allowed)
                 return CommonResponses.Forbid;
-                
+
 
             var profile = UserAccount.Profiles.SingleOrDefault(item => item.Id == id);
             if (profile == null)

@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if (profile != null && deviceTokenId != null)
             {
                 var dbToken = profile.DeviceTokens.FirstOrDefault(item => item.Id == deviceTokenId);
-    
+
                 //Only update once/day
                 if (dbToken == null && dbToken.LastSeen.AddDays(1) < DateTime.UtcNow)
                 {

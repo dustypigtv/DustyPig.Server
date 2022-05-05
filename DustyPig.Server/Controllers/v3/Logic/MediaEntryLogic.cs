@@ -81,14 +81,14 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 if (!dbSearchTerms.Any(item => item.Hash == term.Hash))
                     newDBTerms.Add(localCtx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
 
-            if(newDBTerms.Count > 0)
+            if (newDBTerms.Count > 0)
             {
                 await localCtx.SaveChangesAsync();
                 foreach (var newDBTerm in newDBTerms)
                     dbSearchTerms.Add(newDBTerm);
             }
 
-           
+
             //Update the media entry
             if (mediaEntry.MediaSearchBridges == null)
                 mediaEntry.MediaSearchBridges = new List<MediaSearchBridge>();
@@ -99,7 +99,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     localCtx.MediaSearchBridges.Remove(bridge);
 
             //Add any new terms
-            foreach(var term in normLst)
+            foreach (var term in normLst)
             {
                 var exists = mediaEntry.MediaSearchBridges.Any(item => item.SearchTerm.Hash == term.Hash);
                 if (!exists)
@@ -111,7 +111,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             }
         }
 
-        
+
 
 
         public static async Task UpdatePeople(AppDbContext DB, MediaEntry mediaEntry, List<string> cast, List<string> directors, List<string> producers, List<string> writers)
@@ -141,7 +141,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             foreach (var person in normLst)
                 if (!dbPeople.Any(item => item.Hash == person.Hash))
                     newDBPeople.Add(localCtx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
-            
+
             if (newDBPeople.Count > 0)
             {
                 await localCtx.SaveChangesAsync();

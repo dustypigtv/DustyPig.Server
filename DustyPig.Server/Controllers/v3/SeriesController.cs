@@ -161,10 +161,7 @@ namespace DustyPig.Server.Controllers.v3
             var epQ =
                 from mediaEntry in DB.MediaEntries
                     .AsNoTracking()
-                    .Include(item => item.BifServiceCredential)
-                    .Include(item => item.VideoServiceCredential)
                     .Include(item => item.Subtitles)
-                    .ThenInclude(item => item.ServiceCredential)
                     .Include(item => item.People)
                     .ThenInclude(item => item.Person)
 
@@ -187,7 +184,7 @@ namespace DustyPig.Server.Controllers.v3
                 var ep = new DetailedEpisode
                 {
                     ArtworkUrl = dbEp.mediaEntry.ArtworkUrl,
-                    BifUrl = playable ? Utils.GetAssetUrl(dbEp.mediaEntry.BifServiceCredential, dbEp.mediaEntry.BifUrl) : null,
+                    BifUrl = playable ? dbEp.mediaEntry.BifUrl : null,
                     CreditsStartTime = dbEp.mediaEntry.CreditsStartTime,
                     Date = dbEp.mediaEntry.Date.Value,
                     Description = dbEp.mediaEntry.Description,
@@ -200,7 +197,7 @@ namespace DustyPig.Server.Controllers.v3
                     SeriesId = id,
                     Title = dbEp.mediaEntry.Title,
                     TMDB_Id = dbEp.mediaEntry.TMDB_Id,
-                    VideoUrl = playable ? Utils.GetAssetUrl(dbEp.mediaEntry.VideoServiceCredential, dbEp.mediaEntry.VideoUrl) : null
+                    VideoUrl = playable ? dbEp.mediaEntry.VideoUrl : null
                 };
 
                 if (playable)
@@ -220,16 +217,7 @@ namespace DustyPig.Server.Controllers.v3
                         }
                     }
 
-                    if (dbEp.mediaEntry.Subtitles != null && dbEp.mediaEntry.Subtitles.Count > 0)
-                    {
-                        ep.ExternalSubtitles = new List<ExternalSubtitle>();
-                        foreach (var dbSub in dbEp.mediaEntry.Subtitles)
-                            ep.ExternalSubtitles.Add(new ExternalSubtitle
-                            {
-                                Name = dbSub.Name,
-                                Url = Utils.GetAssetUrl(dbSub.ServiceCredential, dbSub.Url)
-                            });
-                    }
+                    ep.ExternalSubtitles = dbEp.mediaEntry.Subtitles.ToExternalSubtitleList();
                 }
 
 
@@ -293,10 +281,7 @@ namespace DustyPig.Server.Controllers.v3
             //Get the episodes
             var dbEps = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.BifServiceCredential)
-                .Include(item => item.VideoServiceCredential)
                 .Include(item => item.Subtitles)
-                .ThenInclude(item => item.ServiceCredential)
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
                 .Where(item => item.LinkedToId == id)
@@ -309,7 +294,7 @@ namespace DustyPig.Server.Controllers.v3
                 var ep = new DetailedEpisode
                 {
                     ArtworkUrl = dbEp.ArtworkUrl,
-                    BifUrl = Utils.GetAssetUrl(dbEp.BifServiceCredential, dbEp.BifUrl),
+                    BifUrl = dbEp.BifUrl,
                     CreditsStartTime = dbEp.CreditsStartTime,
                     Date = dbEp.Date.Value,
                     Description = dbEp.Description,
@@ -322,21 +307,10 @@ namespace DustyPig.Server.Controllers.v3
                     SeriesId = id,
                     Title = dbEp.Title,
                     TMDB_Id = dbEp.TMDB_Id,
-                    VideoUrl = Utils.GetAssetUrl(dbEp.VideoServiceCredential, dbEp.VideoUrl)
+                    VideoUrl = dbEp.VideoUrl
                 };
 
-
-                if (dbEp.Subtitles != null && dbEp.Subtitles.Count > 0)
-                {
-                    ep.ExternalSubtitles = new List<ExternalSubtitle>();
-                    foreach (var dbSub in dbEp.Subtitles)
-                        ep.ExternalSubtitles.Add(new ExternalSubtitle
-                        {
-                            Name = dbSub.Name,
-                            Url = Utils.GetAssetUrl(dbSub.ServiceCredential, dbSub.Url)
-                        });
-                }
-
+                ep.ExternalSubtitles = dbEp.Subtitles.ToExternalSubtitleList();
 
                 ret.Episodes.Add(ep);
             }

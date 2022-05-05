@@ -12,7 +12,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
 
         public IndexModel(FirebaseAuthClient client) => _client = client;
 
-        [BindProperty] 
+        [BindProperty]
         public FirebaseActionModel FAM { get; set; }
 
 
@@ -21,14 +21,14 @@ namespace DustyPig.Server.Pages.FirebaseActions
         {
             FAM = new FirebaseActionModel();
 
-            if(string.IsNullOrWhiteSpace(oobCode))
+            if (string.IsNullOrWhiteSpace(oobCode))
             {
                 FAM.Title = "Error";
                 FAM.ErrorMessage = "Invalid action code";
                 return;
             }
 
-            switch(mode)
+            switch (mode)
             {
                 case "resetPassword":
                     var checkCodeResponse = await _client.VerifyPasswordResetCodeAsync(oobCode);

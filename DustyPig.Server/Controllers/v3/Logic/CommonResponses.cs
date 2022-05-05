@@ -14,7 +14,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static ObjectResult BuildResult(HttpStatusCode code, object? value) => new ObjectResult(value) { StatusCode = (int)code };
 
         public static StatusCodeResult Ok => BuildResult(HttpStatusCode.OK);
-        
+
         public static ObjectResult NotFoundObject(string msg) => BuildResult(HttpStatusCode.NotFound, msg);
 
         public static StatusCodeResult Created => BuildResult(HttpStatusCode.Created);
@@ -22,7 +22,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
         public static StatusCodeResult Forbid => BuildResult(HttpStatusCode.Forbidden);
         public static ObjectResult ForbidObject(object? value) => BuildResult(HttpStatusCode.Forbidden, value);
-        
+
         public static ObjectResult ProhibitTestUser => BuildResult(HttpStatusCode.Forbidden, "Test account is not authorized to to perform this action");
 
         public static ObjectResult RequireMainProfile => BuildResult(HttpStatusCode.Forbidden, "You must be logged in with the main profile to perform this action");

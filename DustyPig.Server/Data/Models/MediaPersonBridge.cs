@@ -1,7 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-
-namespace DustyPig.Server.Data.Models
+﻿namespace DustyPig.Server.Data.Models
 {
     public enum Roles : int
     {

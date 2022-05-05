@@ -18,7 +18,7 @@ namespace DustyPig.Server.Utilities
         public static string Decrypt(string value) => _crypto.Decrypt(_cryptoKey, value);
 
         public static string HashString(string value) => _hasher.Hash(value).Replace("-", null);
-        
+
         public static string NormalizedHash(string title)
         {
             title = (title + string.Empty).Trim();

@@ -14,7 +14,7 @@ namespace DustyPig.Server.HostedServices
 
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
-        
+
         public LogCleaner()
         {
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
@@ -58,6 +58,6 @@ namespace DustyPig.Server.HostedServices
             using var db = new AppDbContext();
             await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM logs WHERE Timestamp < {DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}", _cancellationToken);
         }
-        
+
     }
 }

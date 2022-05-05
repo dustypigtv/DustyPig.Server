@@ -72,7 +72,7 @@ namespace DustyPig.Server.Controllers.v3
                     await DB.SaveChangesAsync();
                     profileId = profile.Id;
                 }
-                
+
                 //Send verification mail
 
                 var dataResponse = await _client.GetUserDataAsync(signinResponse.Data.IdToken);
@@ -113,7 +113,7 @@ namespace DustyPig.Server.Controllers.v3
                         return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.Account });
                     }
                 }
-                
+
             }
             else
             {

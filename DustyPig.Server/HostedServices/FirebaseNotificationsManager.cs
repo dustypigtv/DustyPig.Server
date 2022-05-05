@@ -41,8 +41,8 @@ namespace DustyPig.Server.HostedServices
 
 #if !DEBUG
             _timer.Change(0, Timeout.Infinite);
-#endif            
-            
+#endif
+
             return Task.CompletedTask;
         }
 
@@ -478,7 +478,7 @@ namespace DustyPig.Server.HostedServices
                     }
                 }
 
-                if(msgs.Count > 0)
+                if (msgs.Count > 0)
                     await SendBatchOfNotificationsAsync(msgs, dict, db);
 
                 if (notifications.Count < CHUNK_SIZE)

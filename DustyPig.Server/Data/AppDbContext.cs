@@ -23,7 +23,6 @@ namespace DustyPig.Server.Data
         public DbSet<AccountToken> AccountTokens { get; set; }
         public DbSet<ActivationCode> ActivationCodes { get; set; }
         public DbSet<DeviceToken> DeviceTokens { get; set; }
-        public DbSet<EncryptedServiceCredential> EncryptedServiceCredentials { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<FriendLibraryShare> FriendLibraryShares { get; set; }
         public DbSet<GetRequest> GetRequests { get; set; }
@@ -51,7 +50,7 @@ namespace DustyPig.Server.Data
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
                 //.UseMySQL(_connectionString)
-                .UseMySql(_connectionString, ServerVersion.Create(8,0,28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
+                .UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
                 .UseLoggerFactory(MyLoggerFactory)
 
 #if DEBUG
@@ -86,8 +85,6 @@ namespace DustyPig.Server.Data
             modelBuilder.Entity<MediaEntry>(e =>
             {
                 e.HasOne(p => p.LinkedTo).WithMany().OnDelete(DeleteBehavior.Cascade);
-                e.HasOne(p => p.BifServiceCredential).WithMany().OnDelete(DeleteBehavior.Cascade);
-                e.HasOne(p => p.VideoServiceCredential).WithMany().OnDelete(DeleteBehavior.Cascade);
             });
 
 
@@ -98,8 +95,6 @@ namespace DustyPig.Server.Data
                 e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(p => p.OverrideRequest).WithMany().OnDelete(DeleteBehavior.Cascade);
             });
-
-            modelBuilder.Entity<Subtitle>().HasOne(p => p.ServiceCredential).WithMany().OnDelete(DeleteBehavior.Cascade);
 
 
 

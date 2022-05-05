@@ -26,7 +26,8 @@ namespace DustyPig.Server.Controllers.v3
 
         internal _MediaControllerBase(AppDbContext db, Services.TMDBClient tmdbClient) : base(db)
         {
-            _tmdbClient = tmdbClient;        }
+            _tmdbClient = tmdbClient;
+        }
 
 
         internal async Task<ActionResult> DeleteMedia(int id)
@@ -357,7 +358,7 @@ namespace DustyPig.Server.Controllers.v3
 
             return Ok();
         }
-                
+
 
         internal IQueryable<ProfileMediaProgress> MediaProgress =>
             DB.ProfileMediaProgresses
@@ -395,6 +396,6 @@ namespace DustyPig.Server.Controllers.v3
             throw new ArgumentOutOfRangeException(nameof(sortOrder));
         }
 
-        
+
     }
 }

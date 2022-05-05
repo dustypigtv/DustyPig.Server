@@ -58,12 +58,6 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(item => item.Playlist)
 
                 .Include(item => item.MediaEntry)
-                .ThenInclude(item => item.BifServiceCredential)
-
-                .Include(item => item.MediaEntry)
-                .ThenInclude(item => item.VideoServiceCredential)
-
-                .Include(item => item.MediaEntry)
                 .ThenInclude(item => item.LinkedTo)
 
                 .Include(item => item.MediaEntry)
@@ -125,8 +119,8 @@ namespace DustyPig.Server.Controllers.v3
                     Index = dbPlaylistItem.Index,
                     MediaId = dbPlaylistItem.MediaEntryId,
                     MediaType = dbPlaylistItem.MediaEntry.EntryType,
-                    BifUrl = Utils.GetAssetUrl(dbPlaylistItem.MediaEntry.BifServiceCredential, dbPlaylistItem.MediaEntry.BifUrl),
-                    VideoUrl = Utils.GetAssetUrl(dbPlaylistItem.MediaEntry.VideoServiceCredential, dbPlaylistItem.MediaEntry.VideoUrl)
+                    BifUrl = dbPlaylistItem.MediaEntry.BifUrl,
+                    VideoUrl = dbPlaylistItem.MediaEntry.VideoUrl
                 };
 
                 switch (dbPlaylistItem.MediaEntry.EntryType)
@@ -152,18 +146,7 @@ namespace DustyPig.Server.Controllers.v3
                         pli.Played = progress.Played;
                 }
 
-
-                if (dbPlaylistItem.MediaEntry.Subtitles != null && dbPlaylistItem.MediaEntry.Subtitles.Count > 0)
-                {
-                    dbPlaylistItem.MediaEntry.Subtitles.Sort();
-                    pli.ExternalSubtitles = new List<ExternalSubtitle>();
-                    foreach (var sub in dbPlaylistItem.MediaEntry.Subtitles)
-                        pli.ExternalSubtitles.Add(new ExternalSubtitle
-                        {
-                            Name = sub.Name,
-                            Url = Utils.GetAssetUrl(sub.ServiceCredential, sub.Url)
-                        });
-                }
+                pli.ExternalSubtitles = dbPlaylistItem.MediaEntry.Subtitles.ToExternalSubtitleList();
 
                 ret.Items.Add(pli);
             }

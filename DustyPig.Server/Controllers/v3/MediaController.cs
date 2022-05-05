@@ -117,8 +117,8 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             var tooSmall = new List<long>();
-            foreach(var sect in ret.Sections.Where(item => item.ListId > 0))
-                if(sect.Items.Count < 25)
+            foreach (var sect in ret.Sections.Where(item => item.ListId > 0))
+                if (sect.Items.Count < 25)
                     tooSmall.Add(sect.ListId);
             ret.Sections.RemoveAll(item => tooSmall.Contains(item.ListId));
 
@@ -153,7 +153,7 @@ namespace DustyPig.Server.Controllers.v3
                             .Take(LIST_SIZE)
                             .ToListAsync())
                             .Select(item => item.ToBasicMedia());
-            
+
 
             if (request.ListId == ID_RECENTLY_ADDED)
                 results = (await RecentlyAddedQuery
@@ -398,7 +398,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
 
-            if(item != null)
+            if (item != null)
             {
                 DB.WatchListItems.Remove(item);
                 await DB.SaveChangesAsync();

@@ -20,8 +20,6 @@ namespace DustyPig.Server.Data.Models
         [Required]
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string Url { get; set; }
-        public int? ServiceCredentialId { get; set; }
-        public EncryptedServiceCredential ServiceCredential { get; set; }
 
         public int CompareTo(object obj)
         {

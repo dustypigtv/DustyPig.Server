@@ -7,7 +7,6 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Linq;
@@ -77,7 +76,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedEpisode
             {
                 ArtworkUrl = data.ArtworkUrl,
-                BifUrl = playable ? Utils.GetAssetUrl(data.BifServiceCredential, data.BifUrl) : null,
+                BifUrl = playable ? data.BifUrl : null,
                 CreditsStartTime = data.CreditsStartTime,
                 Date = data.Date.Value,
                 Description = data.Description,
@@ -90,32 +89,20 @@ namespace DustyPig.Server.Controllers.v3
                 SeriesId = data.LinkedToId.Value,
                 Title = data.Title,
                 TMDB_Id = data.TMDB_Id,
-                VideoUrl = playable ? Utils.GetAssetUrl(data.VideoServiceCredential, data.VideoUrl) : null
+                VideoUrl = playable ? data.VideoUrl : null
             };
 
 
             if (playable)
             {
-                foreach (var dbSub in data.Subtitles)
-                    ret.ExternalSubtitles.Add(new ExternalSubtitle
-                    {
-                        Name = dbSub.Name,
-                        Url = Utils.GetAssetUrl(dbSub.ServiceCredential, dbSub.Url)
-                    });
-
-                if (ret.ExternalSubtitles.Count == 0)
-                    ret.ExternalSubtitles = null;
-
+                ret.ExternalSubtitles = data.Subtitles.ToExternalSubtitleList();
 
 
                 //Get all episodes
                 var epQ =
                     from mediaEntry in DB.MediaEntries
                         .AsNoTracking()
-                        .Include(item => item.BifServiceCredential)
-                        .Include(item => item.VideoServiceCredential)
                         .Include(item => item.Subtitles)
-                        .ThenInclude(item => item.ServiceCredential)
                         .Include(item => item.People)
                         .ThenInclude(item => item.Person)
                         .Where(item => item.LinkedToId == id)
@@ -187,33 +174,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-            //Make sure any credential ids are owned
-            if (episodeInfo.VideoAsset.ServiceCredentialId != null || (episodeInfo.BifAsset != null && episodeInfo.BifAsset.ServiceCredentialId != null))
-            {
-                var acctCredentialIds = await DB.EncryptedServiceCredentials
-                    .AsNoTracking()
-                    .Where(item => item.AccountId == UserAccount.Id)
-                    .Select(item => item.Id)
-                    .ToListAsync();
-
-                if (episodeInfo.BifAsset != null && episodeInfo.BifAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(episodeInfo.BifAsset.ServiceCredentialId.Value))
-                        return NotFound($"{nameof(CreateMovie.BifAsset)}.{nameof(episodeInfo.BifAsset.ServiceCredentialId)}");
-
-                if (episodeInfo.VideoAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(episodeInfo.VideoAsset.ServiceCredentialId.Value))
-                        return NotFound(nameof(episodeInfo.VideoAsset.ServiceCredentialId));
-
-                if (episodeInfo.ExternalSubtitles != null)
-                    foreach (var subtitle in episodeInfo.ExternalSubtitles)
-                        if (subtitle.ServiceCredentialId != null)
-                            if (!acctCredentialIds.Contains(subtitle.ServiceCredentialId.Value))
-                                return NotFound($"{nameof(CreateExternalSubtitle)}.{nameof(subtitle.ServiceCredentialId)}");
-            }
-
-
-
-
             //Make sure the series is owned
             var ownedSeries = await DB.MediaEntries
                 .AsNoTracking()
@@ -233,8 +193,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Added = DateTime.UtcNow,
                 ArtworkUrl = episodeInfo.ArtworkUrl,
-                BifUrl = episodeInfo.BifAsset?.Url,
-                BifServiceCredentialId = episodeInfo.BifAsset?.ServiceCredentialId,
+                BifUrl = episodeInfo.BifUrl,
                 CreditsStartTime = episodeInfo.CreditsStartTime,
                 Date = episodeInfo.Date,
                 Description = episodeInfo.Description,
@@ -249,8 +208,7 @@ namespace DustyPig.Server.Controllers.v3
                 Season = episodeInfo.SeasonNumber,
                 Title = episodeInfo.Title,
                 TMDB_Id = episodeInfo.TMDB_Id,
-                VideoServiceCredentialId = episodeInfo.VideoAsset.ServiceCredentialId,
-                VideoUrl = episodeInfo.VideoAsset.Url
+                VideoUrl = episodeInfo.VideoUrl
             };
 
             newItem.Hash = newItem.ComputeHash();
@@ -280,7 +238,6 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntry = newItem,
                         Name = srt.Name,
-                        ServiceCredentialId = srt.ServiceCredentialId,
                         Url = srt.Url
                     });
 
@@ -308,31 +265,6 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
 
-            //Make sure any credential ids are owned
-            if (episodeInfo.VideoAsset.ServiceCredentialId != null || (episodeInfo.BifAsset != null && episodeInfo.BifAsset.ServiceCredentialId != null))
-            {
-                var acctCredentialIds = await DB.EncryptedServiceCredentials
-                    .AsNoTracking()
-                    .Where(item => item.AccountId == UserAccount.Id)
-                    .Select(item => item.Id)
-                    .ToListAsync();
-
-                if (episodeInfo.BifAsset != null && episodeInfo.BifAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(episodeInfo.BifAsset.ServiceCredentialId.Value))
-                        return NotFound($"{nameof(CreateMovie.BifAsset)}.{nameof(episodeInfo.BifAsset.ServiceCredentialId)}");
-
-                if (episodeInfo.VideoAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(episodeInfo.VideoAsset.ServiceCredentialId.Value))
-                        return NotFound(nameof(episodeInfo.VideoAsset.ServiceCredentialId));
-
-                if (episodeInfo.ExternalSubtitles != null)
-                    foreach (var subtitle in episodeInfo.ExternalSubtitles)
-                        if (subtitle.ServiceCredentialId != null)
-                            if (!acctCredentialIds.Contains(subtitle.ServiceCredentialId.Value))
-                                return NotFound($"{nameof(CreateExternalSubtitle)}.{nameof(subtitle.ServiceCredentialId)}");
-            }
-
-
             //Update
             var existingEpisode = await DB.MediaEntries
                 .Include(item => item.LinkedTo)
@@ -349,8 +281,7 @@ namespace DustyPig.Server.Controllers.v3
 
             existingEpisode.Added = DateTime.UtcNow;
             existingEpisode.ArtworkUrl = episodeInfo.ArtworkUrl;
-            existingEpisode.BifUrl = episodeInfo.BifAsset?.Url;
-            existingEpisode.BifServiceCredentialId = episodeInfo.BifAsset?.ServiceCredentialId;
+            existingEpisode.BifUrl = episodeInfo.BifUrl;
             existingEpisode.CreditsStartTime = episodeInfo.CreditsStartTime;
             existingEpisode.Date = episodeInfo.Date;
             existingEpisode.Description = episodeInfo.Description;
@@ -362,8 +293,7 @@ namespace DustyPig.Server.Controllers.v3
             existingEpisode.Season = episodeInfo.SeasonNumber;
             existingEpisode.Title = episodeInfo.Title;
             existingEpisode.TMDB_Id = episodeInfo.TMDB_Id;
-            existingEpisode.VideoServiceCredentialId = episodeInfo.VideoAsset.ServiceCredentialId;
-            existingEpisode.VideoUrl = episodeInfo.VideoAsset.Url;
+            existingEpisode.VideoUrl = episodeInfo.VideoUrl;
 
             existingEpisode.Hash = existingEpisode.ComputeHash();
             existingEpisode.Xid = existingEpisode.ComputeXid();
@@ -394,7 +324,6 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntryId = existingEpisode.Id,
                         Name = srt.Name,
-                        ServiceCredentialId = srt.ServiceCredentialId,
                         Url = srt.Url
                     });
 

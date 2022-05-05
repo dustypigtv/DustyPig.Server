@@ -1,6 +1,5 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
-using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -8,7 +7,6 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -91,8 +89,6 @@ namespace DustyPig.Server.Controllers.v3
                 from mediaEntry in DB.MediaEntries
                     .AsNoTracking()
                     .Include(item => item.Subtitles)
-                    .ThenInclude(item => item.ServiceCredential)
-                    .Include(item => item.VideoServiceCredential)
                     .Include(Item => Item.Library)
                     .ThenInclude(item => item.Account)
                     .ThenInclude(item => item.Profiles)
@@ -136,42 +132,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Build the response
-            var ret = new DetailedMovie
-            {
-                ArtworkUrl = data.mediaEntry.ArtworkUrl,
-                BifUrl = playable ? Utils.GetAssetUrl(data.mediaEntry.BifServiceCredential, data.mediaEntry.BifUrl) : null,
-                Cast = data.mediaEntry.GetPeople(Roles.Cast),
-                CreditsStartTime = data.mediaEntry.CreditsStartTime,
-                Date = data.mediaEntry.Date.Value,
-                Description = data.mediaEntry.Description,
-                Directors = data.mediaEntry.GetPeople(Roles.Director),
-                Genres = data.mediaEntry.Genres.Value,
-                Id = data.mediaEntry.Id,
-                IntroEndTime = data.mediaEntry.IntroEndTime,
-                IntroStartTime = data.mediaEntry.IntroStartTime,
-                Length = data.mediaEntry.Length.Value,
-                LibraryId = data.mediaEntry.LibraryId,
-                Producers = data.mediaEntry.GetPeople(Roles.Producer),
-                Rated = (data.mediaEntry.Rated ?? Ratings.None),
-                Title = data.mediaEntry.Title + $" ({data.mediaEntry.Date.Value.Year})",
-                TMDB_Id = data.mediaEntry.TMDB_Id,
-                VideoUrl = playable ? Utils.GetAssetUrl(data.mediaEntry.VideoServiceCredential, data.mediaEntry.VideoUrl) : null,
-                Writers = data.mediaEntry.GetPeople(Roles.Writer)
-            };
-
-
-            //Subs
-            if (data.mediaEntry.Subtitles != null && data.mediaEntry.Subtitles.Count > 0)
-            {
-                data.mediaEntry.Subtitles.Sort();
-                ret.ExternalSubtitles = new List<ExternalSubtitle>();
-                foreach (var item in data.mediaEntry.Subtitles)
-                    ret.ExternalSubtitles.Add(new ExternalSubtitle
-                    {
-                        Name = item.Name,
-                        Url = Utils.GetAssetUrl(item.ServiceCredential, item.Url)
-                    });
-            }
+            var ret = data.mediaEntry.ToDetailedMovie(playable);
 
 
             //Get the media owner
@@ -213,10 +174,7 @@ namespace DustyPig.Server.Controllers.v3
             var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(item => item.Library)
-                .Include(item => item.VideoServiceCredential)
-                .Include(item => item.BifServiceCredential)
                 .Include(item => item.Subtitles)
-                .ThenInclude(item => item.ServiceCredential)
                 .Include(item => item.MediaSearchBridges)
                 .ThenInclude(item => item.SearchTerm)
                 .Include(item => item.People)
@@ -224,49 +182,10 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .SingleOrDefaultAsync();
-            
 
 
 
-            //Build the response
-            var ret = new DetailedMovie
-            {
-                ArtworkUrl = mediaEntry.ArtworkUrl,
-                BifUrl = Utils.GetAssetUrl(mediaEntry.BifServiceCredential, mediaEntry.BifUrl),
-                Cast = mediaEntry.GetPeople(Roles.Cast),
-                CreditsStartTime = mediaEntry.CreditsStartTime,
-                Date = mediaEntry.Date.Value,
-                Description = mediaEntry.Description,
-                Directors = mediaEntry.GetPeople(Roles.Director),
-                Genres = mediaEntry.Genres.Value,
-                Id = mediaEntry.Id,
-                IntroEndTime = mediaEntry.IntroEndTime,
-                IntroStartTime = mediaEntry.IntroStartTime,
-                Length = mediaEntry.Length.Value,
-                LibraryId = mediaEntry.LibraryId,
-                Producers = mediaEntry.GetPeople(Roles.Producer),
-                Rated = (mediaEntry.Rated ?? Ratings.None),
-                Title = mediaEntry.Title + $" ({mediaEntry.Date.Value.Year})",
-                TMDB_Id = mediaEntry.TMDB_Id,
-                VideoUrl = Utils.GetAssetUrl(mediaEntry.VideoServiceCredential, mediaEntry.VideoUrl),
-                Writers = mediaEntry.GetPeople(Roles.Writer)
-            };
-
-
-
-            //Subs
-            if (mediaEntry.Subtitles != null && mediaEntry.Subtitles.Count > 0)
-            {
-                mediaEntry.Subtitles.Sort();
-                ret.ExternalSubtitles = new List<ExternalSubtitle>();
-                foreach (var item in mediaEntry.Subtitles)
-                    ret.ExternalSubtitles.Add(new ExternalSubtitle
-                    {
-                        Name = item.Name,
-                        Url = Utils.GetAssetUrl(item.ServiceCredential, item.Url)
-                    });
-            }
-
+            var ret = mediaEntry.ToDetailedMovie(true);
 
             //Extra Search Terms
             var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
@@ -296,32 +215,6 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
 
-
-
-            //Make sure any credential ids are owned
-            if (movieInfo.VideoAsset.ServiceCredentialId != null || (movieInfo.BifAsset != null && movieInfo.BifAsset.ServiceCredentialId != null))
-            {
-                var acctCredentialIds = await DB.EncryptedServiceCredentials
-                    .AsNoTracking()
-                    .Where(item => item.AccountId == UserAccount.Id)
-                    .Select(item => item.Id)
-                    .ToListAsync();
-
-                if (movieInfo.BifAsset != null && movieInfo.BifAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(movieInfo.BifAsset.ServiceCredentialId.Value))
-                        return NotFound($"{nameof(CreateMovie.BifAsset)}.{nameof(movieInfo.BifAsset.ServiceCredentialId)}");
-
-                if (movieInfo.VideoAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(movieInfo.VideoAsset.ServiceCredentialId.Value))
-                        return NotFound(nameof(movieInfo.VideoAsset.ServiceCredentialId));
-
-                if (movieInfo.ExternalSubtitles != null)
-                    foreach (var subtitle in movieInfo.ExternalSubtitles)
-                        if (subtitle.ServiceCredentialId != null)
-                            if (!acctCredentialIds.Contains(subtitle.ServiceCredentialId.Value))
-                                return NotFound($"{nameof(CreateExternalSubtitle)}.{nameof(subtitle.ServiceCredentialId)}");
-            }
-
             //Make sure the library is owned
             var ownedLib = await DB.Libraries
                 .AsNoTracking()
@@ -337,8 +230,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Added = DateTime.UtcNow,
                 ArtworkUrl = movieInfo.ArtworkUrl,
-                BifUrl = movieInfo.BifAsset?.Url,
-                BifServiceCredentialId = movieInfo.BifAsset?.ServiceCredentialId,
+                BifUrl = movieInfo.BifUrl,
                 CreditsStartTime = movieInfo.CreditsStartTime,
                 Date = movieInfo.Date,
                 Description = movieInfo.Description,
@@ -352,8 +244,7 @@ namespace DustyPig.Server.Controllers.v3
                 SortTitle = StringUtils.SortTitle(movieInfo.Title),
                 Title = movieInfo.Title,
                 TMDB_Id = movieInfo.TMDB_Id,
-                VideoServiceCredentialId = movieInfo.VideoAsset.ServiceCredentialId,
-                VideoUrl = movieInfo.VideoAsset.Url
+                VideoUrl = movieInfo.VideoUrl
             };
 
             newItem.Hash = newItem.ComputeHash();
@@ -392,7 +283,6 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntry = newItem,
                         Name = srt.Name,
-                        ServiceCredentialId = srt.ServiceCredentialId,
                         Url = srt.Url
                     });
 
@@ -446,38 +336,12 @@ namespace DustyPig.Server.Controllers.v3
                 return NotFound(nameof(movieInfo.LibraryId));
 
 
-            //Make sure any credential ids are owned
-            if (movieInfo.VideoAsset.ServiceCredentialId != null || (movieInfo.BifAsset != null && movieInfo.BifAsset.ServiceCredentialId != null))
-            {
-                var acctCredentialIds = await DB.EncryptedServiceCredentials
-                    .AsNoTracking()
-                    .Where(item => item.AccountId == UserAccount.Id)
-                    .Select(item => item.Id)
-                    .ToListAsync();
-
-                if (movieInfo.BifAsset != null && movieInfo.BifAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(movieInfo.BifAsset.ServiceCredentialId.Value))
-                        return NotFound($"{nameof(CreateMovie.BifAsset)}.{nameof(movieInfo.BifAsset.ServiceCredentialId)}");
-
-                if (movieInfo.VideoAsset.ServiceCredentialId != null)
-                    if (!acctCredentialIds.Contains(movieInfo.VideoAsset.ServiceCredentialId.Value))
-                        return NotFound(nameof(movieInfo.VideoAsset.ServiceCredentialId));
-
-                if (movieInfo.ExternalSubtitles != null)
-                    foreach (var subtitle in movieInfo.ExternalSubtitles)
-                        if (subtitle.ServiceCredentialId != null)
-                            if (!acctCredentialIds.Contains(subtitle.ServiceCredentialId.Value))
-                                return NotFound($"{nameof(CreateExternalSubtitle)}.{nameof(subtitle.ServiceCredentialId)}");
-            }
-
-
 
             //Update info
             bool tmdb_changed = existingItem.TMDB_Id != movieInfo.TMDB_Id;
 
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
-            existingItem.BifUrl = movieInfo.BifAsset?.Url;
-            existingItem.BifServiceCredentialId = movieInfo.BifAsset?.ServiceCredentialId;
+            existingItem.BifUrl = movieInfo.BifUrl;
             existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
             existingItem.Date = movieInfo.Date;
             existingItem.Description = movieInfo.Description;
@@ -491,8 +355,7 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.SortTitle = StringUtils.SortTitle(movieInfo.Title);
             existingItem.Title = movieInfo.Title;
             existingItem.TMDB_Id = movieInfo.TMDB_Id;
-            existingItem.VideoServiceCredentialId = movieInfo.VideoAsset.ServiceCredentialId;
-            existingItem.VideoUrl = movieInfo.VideoAsset.Url;
+            existingItem.VideoUrl = movieInfo.VideoUrl;
 
             existingItem.Hash = existingItem.ComputeHash();
 
@@ -531,7 +394,6 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntryId = existingItem.Id,
                         Name = srt.Name,
-                        ServiceCredentialId = srt.ServiceCredentialId,
                         Url = srt.Url
                     });
 
@@ -589,9 +451,6 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public Task<ActionResult> UpdatePlaybackProgress(PlaybackProgress hist) => UpdateMediaPlaybackProgress(hist, DB.MoviesPlayableByProfile(UserProfile));
-
-
-
 
     }
 }

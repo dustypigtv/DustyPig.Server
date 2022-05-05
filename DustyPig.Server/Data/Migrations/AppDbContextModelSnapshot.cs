@@ -101,35 +101,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.ToTable("DeviceTokens");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.EncryptedServiceCredential", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<int>("AccountId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CredentialType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Data")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccountId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("EncryptedServiceCredentials");
-                });
-
             modelBuilder.Entity("DustyPig.Server.Data.Models.FriendLibraryShare", b =>
                 {
                     b.Property<int>("FriendshipId")
@@ -319,9 +290,6 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
-                    b.Property<int?>("BifServiceCredentialId")
-                        .HasColumnType("int");
-
                     b.Property<string>("BifUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
@@ -392,9 +360,6 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<int?>("VideoServiceCredentialId")
-                        .HasColumnType("int");
-
                     b.Property<string>("VideoUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
@@ -404,11 +369,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BifServiceCredentialId");
-
                     b.HasIndex("LinkedToId");
-
-                    b.HasIndex("VideoServiceCredentialId");
 
                     b.HasIndex("LibraryId", "EntryType", "TMDB_Id", "Hash")
                         .IsUnique();
@@ -1130,17 +1091,12 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<int?>("ServiceCredentialId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ServiceCredentialId");
 
                     b.HasIndex("MediaEntryId", "Name")
                         .IsUnique();
@@ -1216,17 +1172,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Navigation("Profile");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.EncryptedServiceCredential", b =>
-                {
-                    b.HasOne("DustyPig.Server.Data.Models.Account", "Account")
-                        .WithMany("EncryptedServiceCredentials")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-                });
-
             modelBuilder.Entity("DustyPig.Server.Data.Models.FriendLibraryShare", b =>
                 {
                     b.HasOne("DustyPig.Server.Data.Models.Friendship", "Friendship")
@@ -1297,11 +1242,6 @@ namespace DustyPig.Server.Data.Migrations
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaEntry", b =>
                 {
-                    b.HasOne("DustyPig.Server.Data.Models.EncryptedServiceCredential", "BifServiceCredential")
-                        .WithMany()
-                        .HasForeignKey("BifServiceCredentialId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("DustyPig.Server.Data.Models.Library", "Library")
                         .WithMany("MediaEntries")
                         .HasForeignKey("LibraryId")
@@ -1313,18 +1253,9 @@ namespace DustyPig.Server.Data.Migrations
                         .HasForeignKey("LinkedToId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("DustyPig.Server.Data.Models.EncryptedServiceCredential", "VideoServiceCredential")
-                        .WithMany()
-                        .HasForeignKey("VideoServiceCredentialId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("BifServiceCredential");
-
                     b.Navigation("Library");
 
                     b.Navigation("LinkedTo");
-
-                    b.Navigation("VideoServiceCredential");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaPersonBridge", b =>
@@ -1529,14 +1460,7 @@ namespace DustyPig.Server.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DustyPig.Server.Data.Models.EncryptedServiceCredential", "ServiceCredential")
-                        .WithMany()
-                        .HasForeignKey("ServiceCredentialId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.Navigation("MediaEntry");
-
-                    b.Navigation("ServiceCredential");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.TitleOverride", b =>
@@ -1580,8 +1504,6 @@ namespace DustyPig.Server.Data.Migrations
             modelBuilder.Entity("DustyPig.Server.Data.Models.Account", b =>
                 {
                     b.Navigation("AccountTokens");
-
-                    b.Navigation("EncryptedServiceCredentials");
 
                     b.Navigation("GetRequests");
 

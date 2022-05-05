@@ -71,7 +71,7 @@ namespace DustyPig.Server.HostedServices
 
         private async Task DoUpdate()
         {
-            
+
             using var db = new AppDbContext();
 
             // To keep it lean, limit to 1k at once
@@ -132,7 +132,7 @@ namespace DustyPig.Server.HostedServices
 
                 if (ids.Count < CHUNK_SIZE)
                     break;
-                
+
                 start += CHUNK_SIZE;
             }
         }

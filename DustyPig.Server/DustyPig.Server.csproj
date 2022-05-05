@@ -7,7 +7,7 @@
 	<NoWarn>$(NoWarn);1591,CS1573,IDE0090</NoWarn>
 
 	 <!-- Leave the revision as zero, it will be set by github actions -->
-	 <Version>3.0.0.0</Version>
+	 <Version>3.0.2.0</Version>
 
 </PropertyGroup>
 
@@ -17,10 +17,9 @@
 
 
 <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="3.7.8.26" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
     <PackageReference Include="Azure.Identity" Version="1.6.0" />
-    <PackageReference Include="DustyPig.API" Version="3.0.1.39" />
+    <PackageReference Include="DustyPig.API" Version="3.0.2.41" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.4" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.1.3" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />

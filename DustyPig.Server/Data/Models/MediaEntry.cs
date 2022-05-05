@@ -83,14 +83,10 @@ namespace DustyPig.Server.Data.Models
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string VideoUrl { get; set; }
-        public int? VideoServiceCredentialId { get; set; }
-        public EncryptedServiceCredential VideoServiceCredential { get; set; }
 
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BifUrl { get; set; }
-        public int? BifServiceCredentialId { get; set; }
-        public EncryptedServiceCredential BifServiceCredential { get; set; }
 
 
         public List<MediaPersonBridge> People { get; set; }
