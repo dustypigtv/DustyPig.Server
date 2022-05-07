@@ -321,27 +321,27 @@ namespace DustyPig.Server.Controllers.v3
             /****************************************
              * Search online databases
              ****************************************/
-            if (UserAccount.Id != TestAccount.AccountId)
-            {
-                if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled)
-                {
-                    var response = await _tmdbClient.SearchAsync(q.Value);
-                    if (response.Success)
-                    {
-                        var skipMovies = ret.Available.Where(item => item.MediaType == MediaTypes.Movie).Select(item => item.Id);
-                        var skipTV = ret.Available.Where(item => item.MediaType == MediaTypes.Series).Select(item => item.Id);
-                        foreach (var result in response.Data)
-                        {
-                            bool add = result.IsMovie ?
-                                !skipMovies.Contains(result.Id) :
-                                !skipTV.Contains(result.Id);
+            //if (UserAccount.Id != TestAccount.AccountId)
+            //{
+            //    if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled)
+            //    {
+            //        var response = await _tmdbClient.SearchAsync(q.Value);
+            //        if (response.Success)
+            //        {
+            //            var skipMovies = ret.Available.Where(item => item.MediaType == MediaTypes.Movie).Select(item => item.Id);
+            //            var skipTV = ret.Available.Where(item => item.MediaType == MediaTypes.Series).Select(item => item.Id);
+            //            foreach (var result in response.Data)
+            //            {
+            //                bool add = result.IsMovie ?
+            //                    !skipMovies.Contains(result.Id) :
+            //                    !skipTV.Contains(result.Id);
 
-                            if (add)
-                                ret.OtherTitles.Add(result.ToBasicTMDBInfo());
-                        }
-                    }
-                }
-            }
+            //                if (add)
+            //                    ret.OtherTitles.Add(result.ToBasicTMDBInfo());
+            //            }
+            //        }
+            //    }
+            //}
 
             return ret;
         }
