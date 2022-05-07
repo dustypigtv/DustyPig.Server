@@ -38,11 +38,128 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new HomeScreen();
 
 
+            ////Continue Watching
+            //var cwResults = await ContinueWatchingQuery
+            //    .Take(LIST_SIZE)
+            //    .ToListAsync();
+
+            //if (cwResults.Count > 0)
+            //    ret.Sections.Add(new HomeScreenList
+            //    {
+            //        ListId = ID_CONTINUE_WATCHING,
+            //        Title = "Continue Watching",
+            //        Items = new List<BasicMedia>(cwResults.Select(item => item.ToBasicMedia()))
+            //    });
+
+
+            ////Watchlist
+            //var wlResults = await WatchlistQuery
+            //    .Take(LIST_SIZE)
+            //    .ToListAsync();
+
+            //if (wlResults.Count > 0)
+            //    ret.Sections.Add(new HomeScreenList
+            //    {
+            //        ListId = ID_WATCHLIST,
+            //        Title = "Watchlist",
+            //        Items = new List<BasicMedia>(wlResults.Select(item => item.ToBasicMedia()))
+            //    });
+
+
+            ////Playlists
+            //var plResults = await PlaylistQuery
+            //    .Take(LIST_SIZE)
+            //    .ToListAsync();
+            //if (plResults.Count > 0)
+            //    ret.Sections.Add(new HomeScreenList
+            //    {
+            //        ListId = ID_PLAYLISTS,
+            //        Title = "Playlists",
+            //        Items = new List<BasicMedia>(plResults.Select(item => item.ToBasicMedia()))
+            //    });
+
+
+            ////Recently Added
+            //var raResults = await RecentlyAddedQuery
+            //    .Take(LIST_SIZE)
+            //    .ToListAsync();
+
+            //if (raResults.Count > 0)
+            //    ret.Sections.Add(new HomeScreenList
+            //    {
+            //        ListId = ID_RECENTLY_ADDED,
+            //        Title = "Recently Added",
+            //        Items = new List<BasicMedia>(raResults.Select(item => item.ToBasicMedia()))
+            //    });
+
+
+            ////Genres
+            //var genresQ = GenresQuery(Genres.Action).Take(LIST_SIZE);
+            //foreach (Genres genre in Enum.GetValues(typeof(Genres)))
+            //    if (genre != Genres.Unknown && genre != Genres.Action)
+            //        genresQ = genresQ.Union(GenresQuery(genre).Take(LIST_SIZE));
+
+            //var gResults = await genresQ.ToListAsync();
+            //foreach (var result in gResults)
+            //{
+            //    var lst = ret.Sections.FirstOrDefault(item => item.ListId == (long)result.Genre);
+            //    if (lst == null)
+            //    {
+            //        lst = new HomeScreenList
+            //        {
+            //            ListId = (long)result.Genre,
+            //            Title = result.Genre.AsString(),
+            //            Items = new List<BasicMedia>()
+            //        };
+            //        ret.Sections.Add(lst);
+            //    }
+
+            //    lst.Items.Add(result.MediaEntry.ToBasicMedia());
+            //}
+
+
+            //To speed up, run all queries at once
+            var allTasks = new List<Task>();
+
             //Continue Watching
-            var cwResults = await ContinueWatchingQuery
+            var cwTask = ContinueWatchingQuery
                 .Take(LIST_SIZE)
                 .ToListAsync();
+            allTasks.Add(cwTask);
 
+            //Watchlist
+            var wlTask = WatchlistQuery
+                .Take(LIST_SIZE)
+                .ToListAsync();
+            allTasks.Add(wlTask);
+
+            //Playlists
+            var plTask = PlaylistQuery
+                .Take(LIST_SIZE)
+                .ToListAsync();
+            allTasks.Add(plTask);
+
+            //Recently Added
+            var raTask = RecentlyAddedQuery
+                .Take(LIST_SIZE)
+                .ToListAsync();
+            allTasks.Add(raTask);
+
+            //Genres
+            var genresQ = GenresQuery(Genres.Action).Take(LIST_SIZE);
+            foreach (Genres genre in Enum.GetValues(typeof(Genres)))
+                if (genre != Genres.Unknown && genre != Genres.Action)
+                    genresQ = genresQ.Union(GenresQuery(genre).Take(LIST_SIZE));
+            var genresTask = genresQ.ToListAsync();
+            allTasks.Add(genresTask);
+
+
+
+            await Task.WhenAll(allTasks);
+
+
+            //Continue Watching
+            var cwResults = cwTask.Result;
             if (cwResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
@@ -53,10 +170,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Watchlist
-            var wlResults = await WatchlistQuery
-                .Take(LIST_SIZE)
-                .ToListAsync();
-
+            var wlResults = wlTask.Result;
             if (wlResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
@@ -67,9 +181,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Playlists
-            var plResults = await PlaylistQuery
-                .Take(LIST_SIZE)
-                .ToListAsync();
+            var plResults = plTask.Result;
             if (plResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
@@ -80,10 +192,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Recently Added
-            var raResults = await RecentlyAddedQuery
-                .Take(LIST_SIZE)
-                .ToListAsync();
-
+            var raResults = raTask.Result;
             if (raResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
@@ -93,13 +202,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
 
-            //Genres
-            var genresQ = GenresQuery(Genres.Action).Take(LIST_SIZE);
-            foreach (Genres genre in Enum.GetValues(typeof(Genres)))
-                if (genre != Genres.Unknown && genre != Genres.Action)
-                    genresQ = genresQ.Union(GenresQuery(genre).Take(LIST_SIZE));
-
-            var gResults = await genresQ.ToListAsync();
+            var gResults = genresTask.Result;
             foreach (var result in gResults)
             {
                 var lst = ret.Sections.FirstOrDefault(item => item.ListId == (long)result.Genre);
@@ -116,6 +219,9 @@ namespace DustyPig.Server.Controllers.v3
 
                 lst.Items.Add(result.MediaEntry.ToBasicMedia());
             }
+
+
+
 
             var tooSmall = new List<long>();
             foreach (var sect in ret.Sections.Where(item => item.ListId > 0))
