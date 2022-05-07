@@ -327,18 +327,18 @@ namespace DustyPig.Server.Controllers.v3
         /// </param>
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<SearchResults>> Search(SimpleValue<string> q, CancellationToken cancellationToken)
+        public async Task<ActionResult<SearchResults>> Search(SearchRequest q, CancellationToken cancellationToken)
         {
             var ret = new SearchResults();
 
-            if (string.IsNullOrWhiteSpace(q.Value))
+            if (string.IsNullOrWhiteSpace(q.Query))
                 return ret;
 
-            q.Value = StringUtils.NormalizedQueryString(q.Value);
-            if (string.IsNullOrWhiteSpace(q.Value))
+            q.Query = StringUtils.NormalizedQueryString(q.Query);
+            if (string.IsNullOrWhiteSpace(q.Query))
                 return ret;
 
-            var terms = q.Value.Tokenize();
+            var terms = q.Query.Tokenize();
 
 
 
@@ -378,11 +378,11 @@ namespace DustyPig.Server.Controllers.v3
             //Search sort
             mediaEntries.Sort((x, y) =>
             {
-                int ret = -x.QueryTitle.ICEquals(q.Value).CompareTo(y.QueryTitle.ICEquals(q.Value));
+                int ret = -x.QueryTitle.ICEquals(q.Query).CompareTo(y.QueryTitle.ICEquals(q.Query));
                 if (ret == 0)
-                    ret = -x.QueryTitle.ICStartsWith(q.Value).CompareTo(y.QueryTitle.ICStartsWith(q.Value));
+                    ret = -x.QueryTitle.ICStartsWith(q.Query).CompareTo(y.QueryTitle.ICStartsWith(q.Query));
                 if (ret == 0)
-                    ret = -x.QueryTitle.ICContains(q.Value).CompareTo(y.QueryTitle.ICContains(q.Value));
+                    ret = -x.QueryTitle.ICContains(q.Query).CompareTo(y.QueryTitle.ICContains(q.Query));
                 if (ret == 0)
                     ret = x.SortTitle.CompareTo(y.SortTitle);
                 if (ret == 0)
@@ -396,11 +396,11 @@ namespace DustyPig.Server.Controllers.v3
             /****************************************
              * Search online databases
              ****************************************/
-            if (UserAccount.Id != TestAccount.AccountId)
+            if (q.SearchTMDB && UserAccount.Id != TestAccount.AccountId)
             {
                 if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled)
                 {
-                    var response = await _tmdbClient.SearchAsync(q.Value, cancellationToken);
+                    var response = await _tmdbClient.SearchAsync(q.Query, cancellationToken);
                     if (response.Success)
                     {
                         var skipMovies = ret.Available.Where(item => item.MediaType == MediaTypes.Movie).Select(item => item.Id);
