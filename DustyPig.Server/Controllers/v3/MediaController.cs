@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -252,7 +253,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </param>
         [HttpPost]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<SearchResults>> Search(SimpleValue<string> q)
+        public async Task<ActionResult<SearchResults>> Search(SimpleValue<string> q, CancellationToken cancellationToken)
         {
             var ret = new SearchResults();
 
@@ -297,7 +298,7 @@ namespace DustyPig.Server.Controllers.v3
                 join dummy in DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile) on mediaEntry.Id equals dummy.Id
                 select mediaEntry;
 
-            mediaEntries = await mediaEntriesQ.Distinct().ToListAsync();
+            mediaEntries = await mediaEntriesQ.Distinct().ToListAsync(cancellationToken);
 
 
             //Search sort
@@ -321,27 +322,27 @@ namespace DustyPig.Server.Controllers.v3
             /****************************************
              * Search online databases
              ****************************************/
-            //if (UserAccount.Id != TestAccount.AccountId)
-            //{
-            //    if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled)
-            //    {
-            //        var response = await _tmdbClient.SearchAsync(q.Value);
-            //        if (response.Success)
-            //        {
-            //            var skipMovies = ret.Available.Where(item => item.MediaType == MediaTypes.Movie).Select(item => item.Id);
-            //            var skipTV = ret.Available.Where(item => item.MediaType == MediaTypes.Series).Select(item => item.Id);
-            //            foreach (var result in response.Data)
-            //            {
-            //                bool add = result.IsMovie ?
-            //                    !skipMovies.Contains(result.Id) :
-            //                    !skipTV.Contains(result.Id);
+            if (UserAccount.Id != TestAccount.AccountId)
+            {
+                if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled)
+                {
+                    var response = await _tmdbClient.SearchAsync(q.Value, cancellationToken);
+                    if (response.Success)
+                    {
+                        var skipMovies = ret.Available.Where(item => item.MediaType == MediaTypes.Movie).Select(item => item.Id);
+                        var skipTV = ret.Available.Where(item => item.MediaType == MediaTypes.Series).Select(item => item.Id);
+                        foreach (var result in response.Data)
+                        {
+                            bool add = result.IsMovie ?
+                                !skipMovies.Contains(result.Id) :
+                                !skipTV.Contains(result.Id);
 
-            //                if (add)
-            //                    ret.OtherTitles.Add(result.ToBasicTMDBInfo());
-            //            }
-            //        }
-            //    }
-            //}
+                            if (add)
+                                ret.OtherTitles.Add(result.ToBasicTMDBInfo());
+                        }
+                    }
+                }
+            }
 
             return ret;
         }
