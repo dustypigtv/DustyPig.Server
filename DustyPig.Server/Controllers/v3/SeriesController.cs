@@ -165,7 +165,7 @@ namespace DustyPig.Server.Controllers.v3
                     .Include(item => item.People)
                     .ThenInclude(item => item.Person)
 
-                join progress in MediaProgress on mediaEntry.Id equals progress.MediaEntryId into progressLJ
+                join progress in DB.MediaProgress(UserProfile) on mediaEntry.Id equals progress.MediaEntryId into progressLJ
                 from progress in progressLJ.DefaultIfEmpty()
 
                 where mediaEntry.LinkedToId == id
@@ -643,7 +643,7 @@ namespace DustyPig.Server.Controllers.v3
             var query =
                 from series in DB.SeriesPlayableByProfile(UserProfile)
                 join episode in DB.EpisodesPlayableByProfile(UserProfile) on series.Id equals episode.LinkedToId
-                join progress in MediaProgress on episode.Id equals progress.MediaEntryId
+                join progress in DB.MediaProgress(UserProfile) on episode.Id equals progress.MediaEntryId
                 where series.Id == id
                 select progress;
 

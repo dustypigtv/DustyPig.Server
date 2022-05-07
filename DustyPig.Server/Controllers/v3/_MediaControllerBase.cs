@@ -16,10 +16,12 @@ namespace DustyPig.Server.Controllers.v3
     {
         internal const int LIST_SIZE = 100;
 
-        internal const long ID_CONTINUE_WATCHING = -1;
-        internal const long ID_WATCHLIST = -2;
+        //Put these in sort order
+        internal const long ID_CONTINUE_WATCHING = -5;
+        internal const long ID_WATCHLIST = -4;
         internal const long ID_PLAYLISTS = -3;
-        internal const long ID_RECENTLY_ADDED = -4;
+        internal const long ID_RECENTLY_ADDED = -2;
+        internal const long ID_POPULAR = -1;
 
         internal readonly Services.TMDBClient _tmdbClient;
 
@@ -324,7 +326,7 @@ namespace DustyPig.Server.Controllers.v3
                 from mediaEntry in q
                     .Where(item => item.Id == hist.Id)
 
-                join progress in MediaProgress on mediaEntry.Id equals progress.MediaEntryId into progressLJ
+                join progress in DB.MediaProgress(UserProfile) on mediaEntry.Id equals progress.MediaEntryId into progressLJ
                 from progress in progressLJ.DefaultIfEmpty()
 
                 select new { mediaEntry, progress };
@@ -360,11 +362,11 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal IQueryable<ProfileMediaProgress> MediaProgress =>
-            DB.ProfileMediaProgresses
-            .AsNoTracking()
-            .Include(item => item.Profile)
-            .Where(item => item.ProfileId == UserProfile.Id);
+        //internal IQueryable<ProfileMediaProgress> MediaProgress =>
+        //    DB.ProfileMediaProgresses
+        //    .AsNoTracking()
+        //    .Include(item => item.Profile)
+        //    .Where(item => item.ProfileId == UserProfile.Id);
 
 
         internal static IOrderedQueryable<MediaEntry> ApplySortOrder(IQueryable<MediaEntry> q, SortOrder sortOrder)

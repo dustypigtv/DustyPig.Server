@@ -105,7 +105,7 @@ namespace DustyPig.Server.Controllers.v3
                     .Include(item => item.People)
                     .ThenInclude(item => item.Person)
 
-                join progress in MediaProgress on mediaEntry.Id equals progress.MediaEntryId into progressLJ
+                join progress in DB.MediaProgress(UserProfile) on mediaEntry.Id equals progress.MediaEntryId into progressLJ
                 from progress in progressLJ.DefaultIfEmpty()
 
                 where mediaEntry.Id == id && mediaEntry.EntryType == MediaTypes.Movie

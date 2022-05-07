@@ -39,7 +39,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             ////Continue Watching
-            //var cwResults = await ContinueWatchingQuery
+            //var cwResults = await ContinueWatchingQuery(DB)
             //    .Take(LIST_SIZE)
             //    .ToListAsync();
 
@@ -53,7 +53,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             ////Watchlist
-            //var wlResults = await WatchlistQuery
+            //var wlResults = await WatchlistQuery(DB)
             //    .Take(LIST_SIZE)
             //    .ToListAsync();
 
@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             ////Playlists
-            //var plResults = await PlaylistQuery
+            //var plResults = await PlaylistQuery(DB)
             //    .Take(LIST_SIZE)
             //    .ToListAsync();
             //if (plResults.Count > 0)
@@ -80,7 +80,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             ////Recently Added
-            //var raResults = await RecentlyAddedQuery
+            //var raResults = await RecentlyAddedQuery(DB)
             //    .Take(LIST_SIZE)
             //    .ToListAsync();
 
@@ -93,65 +93,40 @@ namespace DustyPig.Server.Controllers.v3
             //    });
 
 
-            ////Genres
-            //var genresQ = GenresQuery(Genres.Action).Take(LIST_SIZE);
-            //foreach (Genres genre in Enum.GetValues(typeof(Genres)))
-            //    if (genre != Genres.Unknown && genre != Genres.Action)
-            //        genresQ = genresQ.Union(GenresQuery(genre).Take(LIST_SIZE));
-
-            //var gResults = await genresQ.ToListAsync();
-            //foreach (var result in gResults)
-            //{
-            //    var lst = ret.Sections.FirstOrDefault(item => item.ListId == (long)result.Genre);
-            //    if (lst == null)
-            //    {
-            //        lst = new HomeScreenList
-            //        {
-            //            ListId = (long)result.Genre,
-            //            Title = result.Genre.AsString(),
-            //            Items = new List<BasicMedia>()
-            //        };
-            //        ret.Sections.Add(lst);
-            //    }
-
-            //    lst.Items.Add(result.MediaEntry.ToBasicMedia());
-            //}
 
 
             //To speed up, run all queries at once
             var allTasks = new List<Task>();
 
             //Continue Watching
-            var cwTask = ContinueWatchingQuery
+            var cwTask = ContinueWatchingQuery(new AppDbContext())
                 .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(cwTask);
 
             //Watchlist
-            var wlTask = WatchlistQuery
+            var wlTask = WatchlistQuery(new AppDbContext())
                 .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(wlTask);
 
             //Playlists
-            var plTask = PlaylistQuery
+            var plTask = PlaylistQuery(new AppDbContext())
                 .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(plTask);
 
             //Recently Added
-            var raTask = RecentlyAddedQuery
+            var raTask = RecentlyAddedQuery(new AppDbContext())
                 .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(raTask);
 
-            //Genres
-            var genresQ = GenresQuery(Genres.Action).Take(LIST_SIZE);
-            foreach (Genres genre in Enum.GetValues(typeof(Genres)))
-                if (genre != Genres.Unknown && genre != Genres.Action)
-                    genresQ = genresQ.Union(GenresQuery(genre).Take(LIST_SIZE));
-            var genresTask = genresQ.ToListAsync();
-            allTasks.Add(genresTask);
+            //Popular
+            var popTask = PopularQuery(new AppDbContext())
+                .Take(LIST_SIZE)
+                .ToListAsync();
+            allTasks.Add(popTask);
 
 
 
@@ -202,33 +177,17 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
 
-            var gResults = genresTask.Result;
-            foreach (var result in gResults)
-            {
-                var lst = ret.Sections.FirstOrDefault(item => item.ListId == (long)result.Genre);
-                if (lst == null)
+            //Popular
+            var popResults = popTask.Result;
+            if (popResults.Count > 0)
+                ret.Sections.Add(new HomeScreenList
                 {
-                    lst = new HomeScreenList
-                    {
-                        ListId = (long)result.Genre,
-                        Title = result.Genre.AsString(),
-                        Items = new List<BasicMedia>()
-                    };
-                    ret.Sections.Add(lst);
-                }
+                    ListId = ID_POPULAR,
+                    Title = "Popular",
+                    Items = new List<BasicMedia>(popResults.Select(item => item.ToBasicMedia()))
+                });
 
-                lst.Items.Add(result.MediaEntry.ToBasicMedia());
-            }
-
-
-
-
-            var tooSmall = new List<long>();
-            foreach (var sect in ret.Sections.Where(item => item.ListId > 0))
-                if (sect.Items.Count < 25)
-                    tooSmall.Add(sect.ListId);
-            ret.Sections.RemoveAll(item => tooSmall.Contains(item.ListId));
-
+            ret.Sections.Sort((x, y) => x.ListId.CompareTo(y.ListId));
             return ret;
         }
 
@@ -248,14 +207,14 @@ namespace DustyPig.Server.Controllers.v3
             IEnumerable<BasicMedia> results = null;
 
             if (request.ListId == ID_CONTINUE_WATCHING)
-                results = (await ContinueWatchingQuery
+                results = (await ContinueWatchingQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
                             .ToListAsync())
                             .Select(item => item.ToBasicMedia());
 
             if (request.ListId == ID_WATCHLIST)
-                results = (await WatchlistQuery
+                results = (await WatchlistQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
                             .ToListAsync())
@@ -263,7 +222,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (request.ListId == ID_RECENTLY_ADDED)
-                results = (await RecentlyAddedQuery
+                results = (await RecentlyAddedQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
                             .ToListAsync())
@@ -271,15 +230,24 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (request.ListId == ID_PLAYLISTS)
-                results = (await PlaylistQuery
+                results = (await PlaylistQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
                             .ToListAsync())
                             .Select(item => item.ToBasicMedia());
 
+
+            if (request.ListId == ID_POPULAR)
+                results = (await PopularQuery(DB)
+                            .Skip(request.Start)
+                            .Take(LIST_SIZE)
+                            .ToListAsync())
+                            .Select(item => item.ToBasicMedia());
+
+
             if (request.ListId > 0)
             {
-                var q = GenresQuery((Genres)request.ListId);
+                var q = GenresQuery((Genres)request.ListId, (DB));
                 var sortedQ = ApplySortOrder(q, SortOrder.Popularity_Descending);
                 results = (await sortedQ
                             .Skip(request.Start)
@@ -336,7 +304,7 @@ namespace DustyPig.Server.Controllers.v3
             try { request.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            var q = GenresQuery(request.Genre);
+            var q = GenresQuery(request.Genre, DB);
 
             var sortedQ = ApplySortOrder(q, SortOrder.Popularity_Descending);
 
@@ -518,153 +486,174 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-        private IQueryable<MediaEntry> ContinueWatchingQuery
+        private IQueryable<MediaEntry> ContinueWatchingQuery(AppDbContext dbInstance)
         {
-            get
-            {
-                //Get the max Xid for series
-                var maxXidQ =
-                   from mediaEntry in DB.EpisodesPlayableByProfile(UserProfile)
-                   group mediaEntry by mediaEntry.LinkedToId into g
-                   select new
-                   {
-                       SeriesId = g.Key,
-                       LastXid = g.Max(item => item.Xid)
-                   };
+            //Get the max Xid for series
+            var maxXidQ =
+               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+               group mediaEntry by mediaEntry.LinkedToId into g
+               select new
+               {
+                   SeriesId = g.Key,
+                   LastXid = g.Max(item => item.Xid)
+               };
 
-                //Get the timings for last Xid in series
-                var lastEpInfoQ =
-                    from maxXid in maxXidQ
-                    join mediaEntry in DB.EpisodesPlayableByProfile(UserProfile)
-                        on new { maxXid.SeriesId, maxXid.LastXid } equals new { SeriesId = mediaEntry.LinkedToId, LastXid = mediaEntry.Xid }
+            //Get the timings for last Xid in series
+            var lastEpInfoQ =
+                from maxXid in maxXidQ
+                join mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+                    on new { maxXid.SeriesId, maxXid.LastXid } equals new { SeriesId = mediaEntry.LinkedToId, LastXid = mediaEntry.Xid }
 
-                    where
-                        mediaEntry.LinkedToId.HasValue
-                        && mediaEntry.Xid.HasValue
-                        && mediaEntry.Length.HasValue
-                        && maxXid.SeriesId.HasValue
-                        && maxXid.LastXid.HasValue
-                    select new
-                    {
-                        maxXid.SeriesId,
-                        maxXid.LastXid,
-                        mediaEntry.Length,
-                        mediaEntry.CreditsStartTime,
-                        mediaEntry.Added
-                    };
+                where
+                    mediaEntry.LinkedToId.HasValue
+                    && mediaEntry.Xid.HasValue
+                    && mediaEntry.Length.HasValue
+                    && maxXid.SeriesId.HasValue
+                    && maxXid.LastXid.HasValue
+                select new
+                {
+                    maxXid.SeriesId,
+                    maxXid.LastXid,
+                    mediaEntry.Length,
+                    mediaEntry.CreditsStartTime,
+                    mediaEntry.Added
+                };
 
 
-                //Get seriesId for watched
-                var watchedSeriesQ = MediaProgress
-                    .Include(item => item.MediaEntry)
-                    .Where(item => item.MediaEntry.EntryType == MediaTypes.Episode)
-                    .Where(item => item.MediaEntry.LinkedToId.HasValue)
-                    .Where(item => item.MediaEntry.Xid.HasValue)
-                    .Select(item => new
-                    {
-                        item.MediaEntry.LinkedToId,
-                        item.MediaEntry.Xid,
-                        item.Played,
-                        item.Timestamp
-                    });
+            //Get seriesId for watched
+            var watchedSeriesQ = dbInstance.MediaProgress(UserProfile)
+                .Include(item => item.MediaEntry)
+                .Where(item => item.MediaEntry.EntryType == MediaTypes.Episode)
+                .Where(item => item.MediaEntry.LinkedToId.HasValue)
+                .Where(item => item.MediaEntry.Xid.HasValue)
+                .Select(item => new
+                {
+                    item.MediaEntry.LinkedToId,
+                    item.MediaEntry.Xid,
+                    item.Played,
+                    item.Timestamp
+                });
 
-                //Finalize the series query
-                var seriesFinalQ =
-                    from mediaEntry in DB.SeriesPlayableByProfile(UserProfile)
-                    join watchedSeries in watchedSeriesQ on mediaEntry.Id equals watchedSeries.LinkedToId
-                    join lastEpInfo in lastEpInfoQ on mediaEntry.Id equals lastEpInfo.SeriesId
-                    where
-                        watchedSeries.Xid.HasValue
-                        && lastEpInfo.LastXid.HasValue
-                        && lastEpInfo.Length.HasValue
-                        &&
+            //Finalize the series query
+            var seriesFinalQ =
+                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
+                join watchedSeries in watchedSeriesQ on mediaEntry.Id equals watchedSeries.LinkedToId
+                join lastEpInfo in lastEpInfoQ on mediaEntry.Id equals lastEpInfo.SeriesId
+                where
+                    watchedSeries.Xid.HasValue
+                    && lastEpInfo.LastXid.HasValue
+                    && lastEpInfo.Length.HasValue
+                    &&
+                    (
+                        watchedSeries.Xid < lastEpInfo.LastXid
+                        ||
                         (
-                            watchedSeries.Xid < lastEpInfo.LastXid
-                            ||
-                            (
-                                watchedSeries.Xid == lastEpInfo.LastXid
-                                && watchedSeries.Played < (lastEpInfo.CreditsStartTime ?? lastEpInfo.Length - 30)
-                            )
+                            watchedSeries.Xid == lastEpInfo.LastXid
+                            && watchedSeries.Played < (lastEpInfo.CreditsStartTime ?? lastEpInfo.Length - 30)
                         )
+                    )
 
-                    select new
-                    {
-                        mediaEntry,
-                        Timestamp = watchedSeries.Timestamp > lastEpInfo.Added ? watchedSeries.Timestamp : lastEpInfo.Added.Value
-                    };
-
-
-                //The movie query is pretty simple compared to the series
-                var movieQ =
-                    from mediaEntry in DB.MoviesPlayableByProfile(UserProfile)
-                    join profileMediaProgress in MediaProgress on mediaEntry.Id equals profileMediaProgress.MediaEntryId
-
-                    where
-                        profileMediaProgress.Played > 1000 && profileMediaProgress.Played < (mediaEntry.CreditsStartTime ?? mediaEntry.Length.Value * 0.9)
-
-                    select new { mediaEntry, profileMediaProgress.Timestamp };
+                select new
+                {
+                    mediaEntry,
+                    Timestamp = watchedSeries.Timestamp > lastEpInfo.Added ? watchedSeries.Timestamp : lastEpInfo.Added.Value
+                };
 
 
+            //The movie query is pretty simple compared to the series
+            var movieQ =
+                from mediaEntry in dbInstance.MoviesPlayableByProfile(UserProfile)
+                join profileMediaProgress in dbInstance.MediaProgress(UserProfile) on mediaEntry.Id equals profileMediaProgress.MediaEntryId
 
-                var combinedQ = seriesFinalQ.Union(movieQ);
+                where
+                    profileMediaProgress.Played > 1000 && profileMediaProgress.Played < (mediaEntry.CreditsStartTime ?? mediaEntry.Length.Value * 0.9)
 
-                var continueWatchingQ =
-                    from item in combinedQ
-                    orderby item.Timestamp descending
-                    select item.mediaEntry;
+                select new { mediaEntry, profileMediaProgress.Timestamp };
 
-                return continueWatchingQ.AsNoTracking();
 
-            }
+
+            var combinedQ = seriesFinalQ.Union(movieQ);
+
+            var continueWatchingQ =
+                from item in combinedQ
+                orderby item.Timestamp descending
+                select item.mediaEntry;
+
+            return continueWatchingQ.AsNoTracking();
         }
 
 
-        private IQueryable<MediaEntry> RecentlyAddedQuery
+        private IQueryable<MediaEntry> RecentlyAddedQuery(AppDbContext dbInstance)
         {
-            get
-            {
-                var maxAddedForSeriesQ =
-                   from mediaEntry in DB.EpisodesPlayableByProfile(UserProfile)
-                   group mediaEntry by mediaEntry.LinkedToId into g
-                   select new
-                   {
-                       Id = g.Key,
-                       Timestamp = g.Max(item => item.Added)
-                   };
+            var maxAddedForSeriesQ =
+               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+               group mediaEntry by mediaEntry.LinkedToId into g
+               select new
+               {
+                   Id = g.Key,
+                   Timestamp = g.Max(item => item.Added)
+               };
 
-                var seriesQ =
-                    from mediaEntry in DB.SeriesPlayableByProfile(UserProfile)
-                    join maxAddedForSeries in maxAddedForSeriesQ on mediaEntry.Id equals maxAddedForSeries.Id
-                    select new
-                    {
-                        MediaEntry = mediaEntry,
-                        maxAddedForSeries.Timestamp
-                    };
+            var seriesQ =
+                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
+                join maxAddedForSeries in maxAddedForSeriesQ on mediaEntry.Id equals maxAddedForSeries.Id
+                select new
+                {
+                    MediaEntry = mediaEntry,
+                    maxAddedForSeries.Timestamp
+                };
 
 
-                var movieQ =
-                   from mediaEntry in DB.MoviesPlayableByProfile(UserProfile)
-                   select new
-                   {
-                       MediaEntry = mediaEntry,
-                       Timestamp = mediaEntry.Added
-                   };
+            var movieQ =
+               from mediaEntry in dbInstance.MoviesPlayableByProfile(UserProfile)
+               select new
+               {
+                   MediaEntry = mediaEntry,
+                   Timestamp = mediaEntry.Added
+               };
 
 
-                var recentlyAddedQ =
-                    from item in seriesQ.Union(movieQ)
-                    orderby item.Timestamp descending
-                    select item.MediaEntry;
+            var recentlyAddedQ =
+                from item in seriesQ.Union(movieQ)
+                orderby item.Timestamp descending
+                select item.MediaEntry;
 
-                return recentlyAddedQ.AsNoTracking();
-            }
+            return recentlyAddedQ.AsNoTracking();
         }
 
 
-        private IQueryable<GenreListDTO> GenresQuery(Genres genre)
+        private IQueryable<MediaEntry> PopularQuery(AppDbContext dbInstance)
+        {
+            var maxAddedForSeriesQ =
+               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+               group mediaEntry by mediaEntry.LinkedToId into g
+               select g.Key;
+
+            var seriesQ =
+                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
+                join maxAddedForSeries in maxAddedForSeriesQ on mediaEntry.Id equals maxAddedForSeries
+                select mediaEntry;
+
+
+            var movieQ =
+               from mediaEntry in dbInstance.MoviesPlayableByProfile(UserProfile)
+               select mediaEntry;
+
+
+            var recentlyAddedQ =
+                from item in seriesQ.Union(movieQ)
+                where item.Popularity > 0
+                orderby item.Popularity descending
+                select item;
+
+            return recentlyAddedQ.AsNoTracking();
+        }
+
+
+        private IQueryable<GenreListDTO> GenresQuery(Genres genre, AppDbContext dbInstance)
         {
             var genreQ =
-                from mediaEntry in DB.MoviesAndSeriesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.MoviesAndSeriesPlayableByProfile(UserProfile)
                 where (mediaEntry.Genres & genre) == genre
                 orderby
                     mediaEntry.Popularity descending,
@@ -680,33 +669,27 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        private IQueryable<MediaEntry> WatchlistQuery
+        private IQueryable<MediaEntry> WatchlistQuery(AppDbContext dbInstance)
         {
-            get
-            {
-                var watchlistQ = DB.WatchListItems
-                    .Where(item => item.ProfileId == UserProfile.Id);
+            var watchlistQ = dbInstance.WatchListItems
+                .Where(item => item.ProfileId == UserProfile.Id);
 
-                var ret =
-                    from mediaEntry in DB.MoviesAndSeriesPlayableByProfile(UserProfile)
-                    join watchListItem in watchlistQ on mediaEntry.Id equals watchListItem.MediaEntryId
-                    orderby watchListItem.Added
-                    select mediaEntry;
+            var ret =
+                from mediaEntry in dbInstance.MoviesAndSeriesPlayableByProfile(UserProfile)
+                join watchListItem in watchlistQ on mediaEntry.Id equals watchListItem.MediaEntryId
+                orderby watchListItem.Added
+                select mediaEntry;
 
-                return ret.AsNoTracking();
-            }
+            return ret.AsNoTracking();
         }
 
-        private IQueryable<Data.Models.Playlist> PlaylistQuery
+        private IQueryable<Data.Models.Playlist> PlaylistQuery(AppDbContext dbInstance)
         {
-            get
-            {
-                var ret = DB.Playlists
-                    .Where(item => item.ProfileId == UserProfile.Id)
-                    .OrderBy(item => item.Name);
+            var ret = dbInstance.Playlists
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .OrderBy(item => item.Name);
 
-                return ret.AsNoTracking();
-            }
+            return ret.AsNoTracking();
         }
 
 

@@ -159,15 +159,14 @@ namespace DustyPig.Server.Data
                 Main profile can play all media in a possible path
                     All owned libraries
                     All libraries shared with account                    
-                    Since Main may not want to see titles from specific librarys, limit to ones in their own profile-library shares   
+                    Since Main may not want to see all titles, limit to ones in their own profile-library shares and ratings limits
 
                 Non-main can play:
                     Media from all libraries shared with profile, within ratings limits
 
                 
                 So combined, it's:
-                    All media in profile-library shares
-                        If not Main, limit by ratings
+                    All media in profile-library shares, limit by ratings
                     + All title overrides 
             */
 
@@ -225,6 +224,12 @@ namespace DustyPig.Server.Data
             .Where(item => item.EntryType == MediaTypes.Episode)
             .Where(item => item.Season.HasValue)
             .Where(item => item.Episode.HasValue);
+
+        public IQueryable<ProfileMediaProgress> MediaProgress(Profile profile) =>
+            ProfileMediaProgresses
+            .AsNoTracking()
+            .Include(item => item.Profile)
+            .Where(item => item.ProfileId == profile.Id);
 
     }
 }
