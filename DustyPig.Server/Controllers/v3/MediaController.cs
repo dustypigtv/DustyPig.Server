@@ -403,8 +403,8 @@ namespace DustyPig.Server.Controllers.v3
                     var response = await _tmdbClient.SearchAsync(q.Query, cancellationToken);
                     if (response.Success)
                     {
-                        var skipMovies = ret.Available.Where(item => item.MediaType == MediaTypes.Movie).Select(item => item.Id);
-                        var skipTV = ret.Available.Where(item => item.MediaType == MediaTypes.Series).Select(item => item.Id);
+                        var skipMovies = mediaEntries.Where(item => item.EntryType == MediaTypes.Movie).Select(item => item.TMDB_Id);
+                        var skipTV = mediaEntries.Where(item => item.EntryType == MediaTypes.Series).Select(item => item.TMDB_Id);
                         foreach (var result in response.Data)
                         {
                             bool add = result.IsMovie ?
