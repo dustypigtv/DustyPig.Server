@@ -15,7 +15,9 @@ namespace DustyPig.Server.Controllers.v3.Filters
 
         public override void OnException(ExceptionContext context)
         {
-            _logger.Error(context.Exception, context.Exception.Message);
+            if(context.Exception.GetType() != typeof(OperationCanceledException))           
+                _logger.Error(context.Exception, context.Exception.Message);
+
             context.Result = new StatusCodeResult(500);
             context.ExceptionHandled = true;
         }
