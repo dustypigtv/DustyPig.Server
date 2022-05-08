@@ -20,12 +20,13 @@ jobs:
       - name: Build Server
         run: |
             sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
-            dotnet publish -c release -o publish
+            dotnet publish -c release -p:PublishProfile=FolderProfile -o publish
+            zip -rm9j DustyPig.Server.zip publish
 
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2
+      - name: Create Release
+      - uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          app-name: 'dustypig'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: publish
+            repo_token: "${{ secrets.GITHUB_TOKEN }}"
+            prerelease: false
+            files: DustyPig.Server.zip
+            automatic_release_tag: v3.0.2.${{github.run_number}}
