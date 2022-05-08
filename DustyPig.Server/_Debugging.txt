@@ -1,7 +1,0 @@
-﻿To debug locally:
-
-Make sure visual studio has apps@jddustypig.onmicrosoft.com logged in
-
-Tools --> Options --> Azure Service Authentication --> Account Selection: apps@jddustypig.onmicrosoft.com
-
-Also, in Azure portal, make sure the SQL Server firewall allows the current ip address

@@ -1,4 +1,3 @@
-using Azure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -37,9 +36,12 @@ namespace DustyPig.Server
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureAppConfiguration((context, config) =>
+                .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddAzureKeyVault(new Uri("https://dusty-pig.vault.azure.net/"), new DefaultAzureCredential());
+                    //Prod secrets file
+                    config.AddJsonFile("/etc/DustyPig.Server/secrets.json",
+                                       optional: true,
+                                       reloadOnChange: true);
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
