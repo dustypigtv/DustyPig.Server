@@ -21,6 +21,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server Config Example", "Server Config Example", "{8CA01048-5275-42CD-A242-843384DF1F4B}"
+	ProjectSection(SolutionItems) = preProject
+		Server Config Example\nginx.txt = Server Config Example\nginx.txt
+		Server Config Example\service-dustypig-tv.service = Server Config Example\service-dustypig-tv.service
+		Server Config Example\upgrade.sh = Server Config Example\upgrade.sh
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +45,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5CF6D16D-ED06-498A-AFC6-942771DEB2CB} = {7C8FBA2C-234A-46A9-A71E-ED453FCA7EBE}
 		{061B89F5-48A4-4BC4-A39E-C9B77898214A} = {5CF6D16D-ED06-498A-AFC6-942771DEB2CB}
+		{8CA01048-5275-42CD-A242-843384DF1F4B} = {7C8FBA2C-234A-46A9-A71E-ED453FCA7EBE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ADC217DE-607E-4E56-9A20-460D3C727341}
