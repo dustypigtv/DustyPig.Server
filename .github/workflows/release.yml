@@ -23,7 +23,6 @@ jobs:
             dotnet publish -c release -p:PublishProfile=FolderProfile -o publish
             zip -rm9j DustyPig.Server.zip publish
 
-      - name: Create Release
       - uses: marvinpinto/action-automatic-releases@latest
         with:
             repo_token: "${{ secrets.GITHUB_TOKEN }}"
