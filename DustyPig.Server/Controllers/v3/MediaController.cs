@@ -379,6 +379,8 @@ namespace DustyPig.Server.Controllers.v3
             mediaEntries.Sort((x, y) =>
             {
                 int ret = -x.QueryTitle.ICEquals(q.Query).CompareTo(y.QueryTitle.ICEquals(q.Query));
+                if (ret == 0 && x.QueryTitle.ICEquals(y.QueryTitle))
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
                 if (ret == 0)
                     ret = -x.QueryTitle.ICStartsWith(q.Query).CompareTo(y.QueryTitle.ICStartsWith(q.Query));
                 if (ret == 0)
