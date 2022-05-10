@@ -392,7 +392,7 @@ namespace DustyPig.Server.Controllers.v3
                 return ret;
             });
 
-            ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()));
+            ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()).Take(LIST_SIZE));
 
 
             /****************************************
@@ -404,7 +404,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var response = await _tmdbClient.SearchAsync(q.Query, cancellationToken);
                 if (response.Success)
-                    ret.OtherTitles.AddRange(response.Data.Select(item => item.ToBasicTMDBInfo()));
+                    ret.OtherTitles.AddRange(response.Data.Select(item => item.ToBasicTMDBInfo()).Take(LIST_SIZE));
             }
 
             return ret;
