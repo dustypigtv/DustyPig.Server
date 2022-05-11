@@ -129,6 +129,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedSeries
             {
                 ArtworkUrl = data.ArtworkUrl,
+                BackdropUrl = data.BackdropUrl,
                 Cast = data.GetPeople(Roles.Cast),
                 Description = data.Description,
                 Directors = data.GetPeople(Roles.Director),
@@ -264,6 +265,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedSeries
             {
                 ArtworkUrl = mediaEntry.ArtworkUrl,
+                BackdropUrl = mediaEntry.BackdropUrl,
                 Cast = mediaEntry.GetPeople(Roles.Cast),
                 Description = mediaEntry.Description,
                 Directors = mediaEntry.GetPeople(Roles.Director),
@@ -359,6 +361,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Added = DateTime.UtcNow,
                 ArtworkUrl = seriesInfo.ArtworkUrl,
+                BackdropUrl = seriesInfo.BackdropUrl,
                 Description = seriesInfo.Description,
                 EntryType = MediaTypes.Series,
                 Genres = seriesInfo.Genres,
@@ -451,6 +454,7 @@ namespace DustyPig.Server.Controllers.v3
             bool rated_changed = existingItem.Rated != seriesInfo.Rated;
 
             existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
+            existingItem.BackdropUrl = seriesInfo.BackdropUrl;
             existingItem.Description = seriesInfo.Description;
             existingItem.Genres = seriesInfo.Genres;
             existingItem.LibraryId = seriesInfo.LibraryId;

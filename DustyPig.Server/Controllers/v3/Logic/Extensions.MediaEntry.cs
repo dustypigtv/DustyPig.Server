@@ -55,6 +55,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var ret = new DetailedMovie
             {
                 ArtworkUrl = @this.ArtworkUrl,
+                BackdropUrl = @this.BackdropUrl,
                 BifUrl = playable ? @this.BifUrl : null,
                 Cast = @this.GetPeople(Roles.Cast),
                 CreditsStartTime = @this.CreditsStartTime,

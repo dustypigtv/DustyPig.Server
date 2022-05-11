@@ -80,6 +80,9 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string ArtworkUrl { get; set; }
 
+        [MaxLength(Constants.MAX_URL_LENGTH)]
+        public string BackdropUrl { get; set; }
+
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string VideoUrl { get; set; }

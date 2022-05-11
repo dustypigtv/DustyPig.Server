@@ -230,6 +230,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Added = DateTime.UtcNow,
                 ArtworkUrl = movieInfo.ArtworkUrl,
+                BackdropUrl = movieInfo.BackdropUrl,
                 BifUrl = movieInfo.BifUrl,
                 CreditsStartTime = movieInfo.CreditsStartTime,
                 Date = movieInfo.Date,
@@ -341,6 +342,7 @@ namespace DustyPig.Server.Controllers.v3
             bool tmdb_changed = existingItem.TMDB_Id != movieInfo.TMDB_Id;
 
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
+            existingItem.BackdropUrl = movieInfo.BackdropUrl;
             existingItem.BifUrl = movieInfo.BifUrl;
             existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
             existingItem.Date = movieInfo.Date;
