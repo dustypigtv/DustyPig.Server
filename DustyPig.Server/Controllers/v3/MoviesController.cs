@@ -134,6 +134,12 @@ namespace DustyPig.Server.Controllers.v3
             //Build the response
             var ret = data.mediaEntry.ToDetailedMovie(playable);
 
+            if (playable)
+                ret.InWatchlist = await DB.WatchListItems
+                    .AsNoTracking()
+                    .Where(item => item.MediaEntryId == id)
+                    .Where(item => item.ProfileId == UserProfile.Id)
+                    .AnyAsync();
 
             //Get the media owner
             if (data.mediaEntry.Library.AccountId == UserAccount.Id)

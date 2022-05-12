@@ -143,6 +143,13 @@ namespace DustyPig.Server.Controllers.v3
                 Writers = data.GetPeople(Roles.Writer)
             };
 
+            if (playable)
+                ret.InWatchlist = await DB.WatchListItems
+                    .AsNoTracking()
+                    .Where(item => item.MediaEntryId == id)
+                    .Where(item => item.ProfileId == UserProfile.Id)
+                    .AnyAsync();
+
             //Get the media owner
             if (data.Library.AccountId == UserAccount.Id)
             {
