@@ -70,7 +70,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 LibraryId = @this.LibraryId,
                 Producers = @this.GetPeople(Roles.Producer),
                 Rated = (@this.Rated ?? Ratings.None),
-                Title = @this.Title + $" ({@this.Date.Value.Year})",
+                Title = @this.Title,
                 TMDB_Id = @this.TMDB_Id,
                 VideoUrl = playable ? @this.VideoUrl : null,
                 Writers = @this.GetPeople(Roles.Writer)
