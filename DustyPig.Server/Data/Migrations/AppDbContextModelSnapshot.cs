@@ -631,43 +631,63 @@ namespace DustyPig.Server.Data.Migrations
                         },
                         new
                         {
-                            MediaEntryId = 2,
+                            MediaEntryId = 1,
                             SearchTermId = 5
                         },
                         new
                         {
-                            MediaEntryId = 2,
+                            MediaEntryId = 1,
                             SearchTermId = 6
                         },
                         new
                         {
-                            MediaEntryId = 2,
+                            MediaEntryId = 1,
                             SearchTermId = 7
                         },
                         new
                         {
-                            MediaEntryId = 3,
+                            MediaEntryId = 1,
                             SearchTermId = 8
                         },
                         new
                         {
-                            MediaEntryId = 3,
+                            MediaEntryId = 2,
                             SearchTermId = 9
                         },
                         new
                         {
-                            MediaEntryId = 4,
+                            MediaEntryId = 2,
                             SearchTermId = 10
                         },
                         new
                         {
-                            MediaEntryId = 5,
+                            MediaEntryId = 2,
                             SearchTermId = 11
                         },
                         new
                         {
-                            MediaEntryId = 6,
+                            MediaEntryId = 3,
                             SearchTermId = 12
+                        },
+                        new
+                        {
+                            MediaEntryId = 3,
+                            SearchTermId = 13
+                        },
+                        new
+                        {
+                            MediaEntryId = 4,
+                            SearchTermId = 14
+                        },
+                        new
+                        {
+                            MediaEntryId = 5,
+                            SearchTermId = 15
+                        },
+                        new
+                        {
+                            MediaEntryId = 6,
+                            SearchTermId = 16
                         });
                 });
 
@@ -1001,66 +1021,90 @@ namespace DustyPig.Server.Data.Migrations
                         new
                         {
                             Id = 2,
-                            Hash = "A5B1637633C691D8B36488767DF926B1284F238B17659FD2C1773E30D96482111D8AE1AD261945B536016C4D7C917EED0E58C91B793524A52DB426E367D88169",
-                            Term = "327"
+                            Hash = "A2D37ACFEF44E343C8927DC8BB2E034AE595F8BA1CBC4826B83A162B7316AD444CAB756B01588D3EDA4FBEA384CF8D35105D4D49A4A67CCE8A37FCAD24FFE77A",
+                            Term = "three"
                         },
                         new
                         {
                             Id = 3,
+                            Hash = "9730E3966623741F4CD74CA2B30C283BA35A7B9A23081E7AA4D418411A65D5280C7FC62B49474AE0F584F08AE4ED81C043DC383E8D448F507A902040696DA694",
+                            Term = "hundred"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Hash = "F952314A7CB04DD066E8262BA212ECE3A8E8D389274526BCAB36B583E576CE10B2B1AEA520AE90B44CF966E50181DFD4344CD24B1E970E9155BC75FDA04F3F93",
+                            Term = "and"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Hash = "92843A344FC34C6B315DC47DB798D9E5927F2B560C2EEDB72E4532679486F08CBBF239E3EBD963147986A60E27ED9A4303130689D747DFF1F7F5B383C7889941",
+                            Term = "twenty"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Hash = "3A36ACD803CD9E0A6B76E6380C0F4644500EF32EE1DDCCA7BEC288D0CB02708E3215FB9B7BDA2A54306A6445DA30F221ABB931B3BB5EE18224FB535470F55060",
+                            Term = "seven"
+                        },
+                        new
+                        {
+                            Id = 7,
                             Hash = "C7F49C357C2042E8F32D53E29F33896A4A10A3EDB8135C8E45A8FE0AE4AA59BE0A50485A1CF954EE033A522D2A136224D7F228EC654DF5ACE9D950222615C611",
                             Term = "operation"
                         },
                         new
                         {
-                            Id = 4,
+                            Id = 8,
                             Hash = "87EFEC91CEACDC6002B1BD25C1C6F7EA030C7D862A1B7C12B8B0A9990E7A7C2B4ABF89D9ACE5E1DEC117C9110D97BE1C8FAAEB314CC2683E496463E79AECA4A4",
                             Term = "barbershop"
                         },
                         new
                         {
-                            Id = 5,
+                            Id = 9,
                             Hash = "E5174FE396755C5A9C2298344B758BF0429CDADBB5CEA9D3657F6AF8F0FF81C5EBD18114D2ACFA551E97A8AF64230CEB56E697E52CA4F122D275D17887CCD234",
                             Term = "big"
                         },
                         new
                         {
-                            Id = 6,
+                            Id = 10,
                             Hash = "605D795D46EDE50E397CF9738BC178E160045F24173F7F6B379BBD710F452A442A061A5FEDED1F3C7350563853F2D7F412E2C64A47B4B77956C0C8CF45726B2B",
                             Term = "buck"
                         },
                         new
                         {
-                            Id = 7,
+                            Id = 11,
                             Hash = "0B183278B9EC4FBBF9FD7A6CF71191F3C2F9AA2900B272D5FB6D5115DFC9F8E37B73A38C8790C16C88A10EFF89F3D4747971B39B1D9EC295957F365F34A4BAED",
                             Term = "bunny"
                         },
                         new
                         {
-                            Id = 8,
+                            Id = 12,
                             Hash = "08E87AC6C87C9E72BA27A00787AF7F41B1E6CF713FF19B82E3BFAF5C2033AE0E9D33360285BFC286923C79678F4AB1961F4A615A547024C1203B39E4CF256627",
                             Term = "coffee"
                         },
                         new
                         {
-                            Id = 9,
+                            Id = 13,
                             Hash = "7DE0F9ED5EE7D87C8BA957EAB554BF7FF434F8D7BB3248A86D7970062CE34989D4413303DE0CC1835FEC01A9D8C2C77C5AB1B742F3E6F973C3A783FBB4444FDB",
                             Term = "run"
                         },
                         new
                         {
-                            Id = 10,
+                            Id = 14,
                             Hash = "3AAE2745CC1985EF3AB324F9A49A91A97B48878F24F7FB1C9B19B79E4C47CBE5F6C0A0F5FA636A918EE788582EC4ABC942863880803AEC5E663CDD509B646124",
                             Term = "hero"
                         },
                         new
                         {
-                            Id = 11,
+                            Id = 15,
                             Hash = "D791311ECD55380BC434619AA3F876C77596A7BFBC4A8C00E39E38D05C5AFE115932877C8758D7284BBB0EDFED0E28AB8318B0D68259EA8BD870C5E1B0BEC4E7",
                             Term = "spring"
                         },
                         new
                         {
-                            Id = 12,
+                            Id = 16,
                             Hash = "E47A2E93157FE103F49F71DE1D04CA6E31F47F6DFFADAA2CDA654B71C61BB0E4038235F5C97C09323590BB084EF5BD30C58B555689FE835668A2DC68232C548F",
                             Term = "caminandes"
                         });

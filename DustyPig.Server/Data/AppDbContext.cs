@@ -338,17 +338,26 @@ namespace DustyPig.Server.Data
             modelBuilder.Entity<SearchTerm>().HasData(new SearchTerm[]
             {
                 new SearchTerm { Id = 1, Term = "agent", Hash = Crypto.NormalizedHash("agent") },
-                new SearchTerm { Id = 2, Term = "327", Hash = Crypto.NormalizedHash("327") },
-                new SearchTerm { Id = 3, Term = "operation", Hash = Crypto.NormalizedHash("operation") },
-                new SearchTerm { Id = 4, Term = "barbershop", Hash = Crypto.NormalizedHash("barbershop") },
-                new SearchTerm { Id = 5, Term = "big", Hash = Crypto.NormalizedHash("big") },
-                new SearchTerm { Id = 6, Term = "buck", Hash = Crypto.NormalizedHash("buck") },
-                new SearchTerm { Id = 7, Term = "bunny", Hash = Crypto.NormalizedHash("bunny") },
-                new SearchTerm { Id = 8, Term = "coffee", Hash = Crypto.NormalizedHash("coffee") },
-                new SearchTerm { Id = 9, Term = "run", Hash = Crypto.NormalizedHash("run") },
-                new SearchTerm { Id = 10, Term = "hero", Hash = Crypto.NormalizedHash("hero") },
-                new SearchTerm { Id = 11, Term = "spring" , Hash = Crypto.NormalizedHash("spring")},
-                new SearchTerm { Id = 12, Term = "caminandes", Hash = Crypto.NormalizedHash("caminandes") }
+                new SearchTerm { Id = 2, Term = "three", Hash = Crypto.NormalizedHash("three") },
+                new SearchTerm { Id = 3, Term = "hundred", Hash = Crypto.NormalizedHash("hundred") },
+                new SearchTerm { Id = 4, Term = "and", Hash = Crypto.NormalizedHash("and") },
+                new SearchTerm { Id = 5, Term = "twenty", Hash = Crypto.NormalizedHash("twenty") },
+                new SearchTerm { Id = 6, Term = "seven", Hash = Crypto.NormalizedHash("seven") },
+                new SearchTerm { Id = 7, Term = "operation", Hash = Crypto.NormalizedHash("operation") },
+                new SearchTerm { Id = 8, Term = "barbershop", Hash = Crypto.NormalizedHash("barbershop") },
+
+                new SearchTerm { Id = 9, Term = "big", Hash = Crypto.NormalizedHash("big") },
+                new SearchTerm { Id = 10, Term = "buck", Hash = Crypto.NormalizedHash("buck") },
+                new SearchTerm { Id = 11, Term = "bunny", Hash = Crypto.NormalizedHash("bunny") },
+
+                new SearchTerm { Id = 12, Term = "coffee", Hash = Crypto.NormalizedHash("coffee") },
+                new SearchTerm { Id = 13, Term = "run", Hash = Crypto.NormalizedHash("run") },
+
+                new SearchTerm { Id = 14, Term = "hero", Hash = Crypto.NormalizedHash("hero") },
+                
+                new SearchTerm { Id = 15, Term = "spring" , Hash = Crypto.NormalizedHash("spring")},
+                
+                new SearchTerm { Id = 16, Term = "caminandes", Hash = Crypto.NormalizedHash("caminandes") }
             });
 
 
@@ -358,14 +367,24 @@ namespace DustyPig.Server.Data
                 new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 2 },
                 new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 3 },
                 new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 4 },
-                new MediaSearchBridge { MediaEntryId = 2, SearchTermId = 5 },
-                new MediaSearchBridge { MediaEntryId = 2, SearchTermId = 6 },
-                new MediaSearchBridge { MediaEntryId = 2, SearchTermId = 7 },
-                new MediaSearchBridge { MediaEntryId = 3, SearchTermId = 8 },
-                new MediaSearchBridge { MediaEntryId = 3, SearchTermId = 9 },
-                new MediaSearchBridge { MediaEntryId = 4, SearchTermId = 10 },
-                new MediaSearchBridge { MediaEntryId = 5, SearchTermId = 11 },
-                new MediaSearchBridge { MediaEntryId = 6, SearchTermId = 12 }
+                new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 5 },
+                new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 6 },
+                new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 7 },
+                new MediaSearchBridge { MediaEntryId = 1, SearchTermId = 8 },
+
+                new MediaSearchBridge { MediaEntryId = 2, SearchTermId = 9 },
+                new MediaSearchBridge { MediaEntryId = 2, SearchTermId = 10 },
+                new MediaSearchBridge { MediaEntryId = 2, SearchTermId = 11 },
+
+                new MediaSearchBridge { MediaEntryId = 3, SearchTermId = 12 },
+                new MediaSearchBridge { MediaEntryId = 3, SearchTermId = 13 },
+
+
+                new MediaSearchBridge { MediaEntryId = 4, SearchTermId = 14 },
+
+                new MediaSearchBridge { MediaEntryId = 5, SearchTermId = 15 },
+
+                new MediaSearchBridge { MediaEntryId = 6, SearchTermId = 16 }
             });
 
 
