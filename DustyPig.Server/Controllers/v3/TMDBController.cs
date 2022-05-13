@@ -53,7 +53,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = new DetailedTMDB
             {
-                ArtworkUrl = TMDB.Utils.GetFullImagePath(movie.Data.PosterPath, false),
+                ArtworkUrl = TMDB.Utils.GetFullImagePath(movie.Data.PosterPath, true),
+                BackdropUrl = TMDB.Utils.GetFullImagePath(movie.Data.BackdropPath, true),
                 Description = movie.Data.Overview,
                 MediaType = MediaTypes.Movie,
                 Rated = MapRatings(movie.Data.Releases),
@@ -92,7 +93,8 @@ namespace DustyPig.Server.Controllers.v3
             // Response
             var ret = new DetailedTMDB
             {
-                ArtworkUrl = TMDB.Utils.GetFullImagePath(series.Data.PosterPath, false),
+                ArtworkUrl = TMDB.Utils.GetFullImagePath(series.Data.PosterPath, true),
+                BackdropUrl = TMDB.Utils.GetFullImagePath(series.Data.BackdropPath, true),
                 Description = series.Data.Overview,
                 MediaType = MediaTypes.Movie,
                 Rated = MapRatings(series.Data.ContentRatings),
