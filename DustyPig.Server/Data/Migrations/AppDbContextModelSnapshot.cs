@@ -346,6 +346,9 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<double?>("Popularity")
                         .HasColumnType("double");
 
+                    b.Property<DateTime?>("PopularityUpdated")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int?>("Rated")
                         .HasColumnType("int");
 

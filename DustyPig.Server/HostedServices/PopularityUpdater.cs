@@ -38,11 +38,7 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-
-#if !DEBUG
             _timer.Change(0, Timeout.Infinite);
-#endif
-
             return Task.CompletedTask;
         }
 
@@ -71,7 +67,6 @@ namespace DustyPig.Server.HostedServices
 
         private async Task DoUpdate()
         {
-
             using var db = new AppDbContext();
 
             // To keep it lean, limit to 1k at once
@@ -85,6 +80,7 @@ namespace DustyPig.Server.HostedServices
                     .Where(item => item.EntryType == MediaTypes.Movie)
                     .Where(item => item.TMDB_Id.HasValue)
                     .Where(item => item.TMDB_Id > 0)
+                    .Where(item => item.PopularityUpdated == null || item.PopularityUpdated < DateTime.UtcNow.AddDays(-1))
                     .Select(item => item.TMDB_Id)
                     .Distinct()
                     .OrderBy(item => item)
@@ -96,7 +92,8 @@ namespace DustyPig.Server.HostedServices
                 {
                     var movie = await _client.GetMovieAsync(id.Value, _cancellationToken);
                     double popularity = movie.Success ? movie.Data.Popularity : 0;
-                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE MediaEntries SET Popularity={popularity} WHERE TMDB_Id={id} AND EntryType={MediaTypes.Movie}", _cancellationToken);
+                    string ts = DateTime.UtcNow.ToString("yyyy-MM-dd H:mm:ss");
+                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE MediaEntries SET Popularity={popularity}, PopularityUpdated={ts} WHERE TMDB_Id={id} AND EntryType={MediaTypes.Movie}", _cancellationToken);
                     await Task.Delay(1000, _cancellationToken);
                 }
 
@@ -115,6 +112,7 @@ namespace DustyPig.Server.HostedServices
                     .Where(item => item.EntryType == MediaTypes.Series)
                     .Where(item => item.TMDB_Id.HasValue)
                     .Where(item => item.TMDB_Id > 0)
+                    .Where(item => item.PopularityUpdated == null || item.PopularityUpdated < DateTime.UtcNow.AddDays(-1))
                     .Select(item => item.TMDB_Id)
                     .Distinct()
                     .OrderBy(item => item)
@@ -126,7 +124,8 @@ namespace DustyPig.Server.HostedServices
                 {
                     var series = await _client.GetSeriesAsync(id.Value, _cancellationToken);
                     double popularity = series.Success ? series.Data.Popularity : 0;
-                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE MediaEntries SET Popularity={popularity} WHERE TMDB_Id={id} AND EntryType={MediaTypes.Series}", _cancellationToken);
+                    string ts = DateTime.UtcNow.ToString("yyyy-MM-dd H:mm:ss");
+                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE MediaEntries SET Popularity={popularity}, PopularityUpdated={ts} WHERE TMDB_Id={id} AND EntryType={MediaTypes.Series}", _cancellationToken);
                     await Task.Delay(1000, _cancellationToken);
                 }
 

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220513145114_Initial")]
+    [Migration("20220513174023_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -347,6 +347,9 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<double?>("Popularity")
                         .HasColumnType("double");
+
+                    b.Property<DateTime?>("PopularityUpdated")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<int?>("Rated")
                         .HasColumnType("int");

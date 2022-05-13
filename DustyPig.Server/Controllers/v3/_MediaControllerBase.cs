@@ -90,6 +90,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 me.Popularity = 0;
             }
+            me.PopularityUpdated = DateTime.UtcNow;
         }
 
 

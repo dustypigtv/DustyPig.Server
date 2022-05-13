@@ -98,6 +98,7 @@ namespace DustyPig.Server.Data.Models
 
         public double? Popularity { get; set; }
 
+        public DateTime? PopularityUpdated { get; set; }
 
         public bool NotificationsCreated { get; set; }
 
