@@ -160,6 +160,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 205.875,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.jpg",
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.backdrop.jpg",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.bif",
                     NotificationsCreated = true
                 },
@@ -181,6 +182,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 490.250,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.jpg",
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.backdrop.jpg",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.bif",
                     NotificationsCreated = true
                 },
@@ -204,6 +206,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 164.083,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.jpg",
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.backdrop.jpg",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.bif",
                     NotificationsCreated = true
                 },
@@ -227,6 +230,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 147.314,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.jpg",
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.backdrop.jpg",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.bif",
                     NotificationsCreated = true
                 },
@@ -248,6 +252,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 427.792,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.jpg",
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.backdrop.jpg",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.bif",
                     NotificationsCreated = true
                 },
@@ -264,6 +269,7 @@ namespace DustyPig.Server.Data
                     Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
                     Genres = (API.v3.MPAA.Genres)1060,
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/show.jpg",
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/backdrop.jpg",
                     NotificationsCreated = true
                 },
                 new MediaEntry
