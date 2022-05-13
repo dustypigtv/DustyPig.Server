@@ -35,65 +35,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.OK)]
         public async Task<ActionResult<HomeScreen>> HomeScreen()
         {
-            var ret = new HomeScreen();
-
-
-            ////Continue Watching
-            //var cwResults = await ContinueWatchingQuery(DB)
-            //    .Take(LIST_SIZE)
-            //    .ToListAsync();
-
-            //if (cwResults.Count > 0)
-            //    ret.Sections.Add(new HomeScreenList
-            //    {
-            //        ListId = ID_CONTINUE_WATCHING,
-            //        Title = "Continue Watching",
-            //        Items = new List<BasicMedia>(cwResults.Select(item => item.ToBasicMedia()))
-            //    });
-
-
-            ////Watchlist
-            //var wlResults = await WatchlistQuery(DB)
-            //    .Take(LIST_SIZE)
-            //    .ToListAsync();
-
-            //if (wlResults.Count > 0)
-            //    ret.Sections.Add(new HomeScreenList
-            //    {
-            //        ListId = ID_WATCHLIST,
-            //        Title = "Watchlist",
-            //        Items = new List<BasicMedia>(wlResults.Select(item => item.ToBasicMedia()))
-            //    });
-
-
-            ////Playlists
-            //var plResults = await PlaylistQuery(DB)
-            //    .Take(LIST_SIZE)
-            //    .ToListAsync();
-            //if (plResults.Count > 0)
-            //    ret.Sections.Add(new HomeScreenList
-            //    {
-            //        ListId = ID_PLAYLISTS,
-            //        Title = "Playlists",
-            //        Items = new List<BasicMedia>(plResults.Select(item => item.ToBasicMedia()))
-            //    });
-
-
-            ////Recently Added
-            //var raResults = await RecentlyAddedQuery(DB)
-            //    .Take(LIST_SIZE)
-            //    .ToListAsync();
-
-            //if (raResults.Count > 0)
-            //    ret.Sections.Add(new HomeScreenList
-            //    {
-            //        ListId = ID_RECENTLY_ADDED,
-            //        Title = "Recently Added",
-            //        Items = new List<BasicMedia>(raResults.Select(item => item.ToBasicMedia()))
-            //    });
-
-
-
+            var ret = new HomeScreen();            
 
             //To speed up, run all queries at once
             var allTasks = new List<Task>();
