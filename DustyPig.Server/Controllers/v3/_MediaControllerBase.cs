@@ -95,19 +95,19 @@ namespace DustyPig.Server.Controllers.v3
 
         internal static List<string> GetSearchTerms(MediaEntry me, List<string> extraSearchTerms)
         {
-            var ret = me.Title.Tokenize();
+            var ret = me.Title.NormalizedQueryString().Tokenize();
 
             //foreach (string name in me.Cast)
-            //    ret.AddRange(name.Tokenize());
+            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
 
             //foreach (string name in me.Directors)
-            //    ret.AddRange(name.Tokenize());
+            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
 
             //foreach (string name in me.Writers)
-            //    ret.AddRange(name.Tokenize());
+            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
 
             //foreach (string name in me.Producers)
-            //    ret.AddRange(name.Tokenize());
+            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
 
             if (extraSearchTerms != null)
                 ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));

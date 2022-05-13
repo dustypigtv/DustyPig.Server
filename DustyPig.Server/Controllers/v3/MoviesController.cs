@@ -195,7 +195,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Extra Search Terms
             var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-            var coreTerms = mediaEntry.Title.Tokenize();
+            var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
             allTerms.RemoveAll(item => coreTerms.Contains(item));
             ret.ExtraSearchTerms = allTerms;
 
