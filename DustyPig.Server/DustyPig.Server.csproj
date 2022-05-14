@@ -18,7 +18,7 @@
 
 
 <ItemGroup>
-    <PackageReference Include="DustyPig.API" Version="3.0.2.49" />
+    <PackageReference Include="DustyPig.API" Version="3.0.2.51" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.4" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.1.4" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
