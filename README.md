@@ -2,3 +2,5 @@
 
 
 Swagger: https://service.dustypig.tv/swagger/index.html
+
+This is still in beta, so only the latest release is kept
