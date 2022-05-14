@@ -16,14 +16,16 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             public NormHash() { }
 
-            public NormHash(string norm, string hash)
+            public NormHash(string norm, string hash, int order)
             {
                 Norm = norm;
                 Hash = hash;
+                Order = order;
             }
 
             public string Norm { get; set; }
             public string Hash { get; set; }
+            public int Order { get; set; }
         }
 
 
@@ -46,20 +48,21 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             var ret = new List<NormHash>();
 
-            foreach (string item in lst)
+            for(int i = 0; i < lst.Count; i++)
             {
-                string norm = item;
+                string norm = lst[i];
                 if (lowerCase)
                     norm = norm.ToLower();
 
                 string hash = Crypto.NormalizedHash(norm);
                 if (!ret.Any(item => item.Hash == hash))
-                    ret.Add(new NormHash(norm, hash));
+                    ret.Add(new NormHash(norm, hash, i));
             }
 
             return ret;
         }
 
+        
 
         public static async Task UpdateSearchTerms(AppDbContext DB, MediaEntry mediaEntry, List<string> searchTerms)
         {
@@ -161,10 +164,17 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 if (!hashes.Contains(bridge.Person.Hash))
                     DB.MediaPersonBridges.Remove(bridge);
 
+            //This fixes the cast sort problem
+            mediaEntry.People.RemoveAll(item => item.Role == Roles.Cast);
+
             AddNewPeople(mediaEntry, cast, normLst, dbPeople, Roles.Cast);
             AddNewPeople(mediaEntry, directors, normLst, dbPeople, Roles.Director);
             AddNewPeople(mediaEntry, producers, normLst, dbPeople, Roles.Producer);
             AddNewPeople(mediaEntry, writers, normLst, dbPeople, Roles.Writer);
+
+            //This fixes the context.update problem
+            mediaEntry.People.ForEach(item => item.Person = null);
+                        
         }
 
         private static void AddNewPeople(MediaEntry mediaEntry, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)
@@ -181,7 +191,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 if (!exists)
                     mediaEntry.People.Add(new MediaPersonBridge
                     {
+                        MediaEntry = mediaEntry,
                         Person = dbPeople.First(item => item.Hash == normItem.Hash),
+                        PersonId = dbPeople.First(item => item.Hash == normItem.Hash).Id,
                         Role = role,
                         SortOrder = sort++
                     });
