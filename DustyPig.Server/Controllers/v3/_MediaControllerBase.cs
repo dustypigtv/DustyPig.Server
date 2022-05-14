@@ -17,9 +17,9 @@ namespace DustyPig.Server.Controllers.v3
         internal const int LIST_SIZE = 100;
 
         //Put these in sort order
-        internal const long ID_CONTINUE_WATCHING = -5;
-        internal const long ID_WATCHLIST = -4;
-        internal const long ID_PLAYLISTS = -3;
+        internal const long ID_CONTINUE_WATCHING = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING;
+        internal const long ID_WATCHLIST = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST;
+        internal const long ID_PLAYLISTS = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS;
         internal const long ID_RECENTLY_ADDED = -2;
         internal const long ID_POPULAR = -1;
 
