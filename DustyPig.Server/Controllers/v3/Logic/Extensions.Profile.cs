@@ -10,7 +10,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             Id = @this.Id,
             Name = @this.Name,
             AvatarUrl = @this.AvatarUrl,
-            HasPin = @this.PinNumber != null && @this.PinNumber >= 1000
+            HasPin = @this.PinNumber != null && @this.PinNumber >= 1000,
+            IsMain = @this.IsMain
         };
     }
 }
