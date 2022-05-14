@@ -82,7 +82,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var newDBTerms = new List<SearchTerm>();
             foreach (var term in normLst)
                 if (!dbSearchTerms.Any(item => item.Hash == term.Hash))
-                    newDBTerms.Add(localCtx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
+                    if(!newDBTerms.Any(item => item.Hash == term.Hash))
+                        newDBTerms.Add(localCtx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
 
             if (newDBTerms.Count > 0)
             {
@@ -133,7 +134,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             normLst.AddRange(CreateNormalizedList(producers, false));
             normLst.AddRange(CreateNormalizedList(writers, false));
 
-            var hashes = normLst.Select(item => item.Hash).ToList();
+            var hashes = normLst.Select(item => item.Hash).Distinct().ToList();
 
             var dbPeople = await localCtx.People
                 .AsNoTracking()
@@ -145,7 +146,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var newDBPeople = new List<Person>();
             foreach (var person in normLst)
                 if (!dbPeople.Any(item => item.Hash == person.Hash))
-                    newDBPeople.Add(localCtx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
+                    if(!newDBPeople.Any(item => item.Hash == person.Hash))
+                        newDBPeople.Add(localCtx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
 
             if (newDBPeople.Count > 0)
             {
@@ -182,7 +184,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             int sort = 0;
             foreach (string person in people)
             {
-                var normItem = normLst.First(item => item.Norm == person);
+                var normItem = normLst.First(item => item.Hash == Crypto.NormalizedHash(person));
                 var exists = mediaEntry.People
                     .Where(item => item.Person.Hash == normItem.Hash)
                     .Where(item => item.Role == role)
