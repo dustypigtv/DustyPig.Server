@@ -101,12 +101,14 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Add any new terms
             foreach (var term in normLst)
             {
-                var exists = mediaEntry.MediaSearchBridges.Any(item => item.SearchTerm.Hash == term.Hash);
+                var dbTerm = dbSearchTerms.First(item => item.Hash == term.Hash);
+
+                var exists = mediaEntry.MediaSearchBridges.Any(item => item.SearchTermId == dbTerm.Id);
                 if (!exists)
                     mediaEntry.MediaSearchBridges.Add(new MediaSearchBridge
                     {
                         MediaEntry = mediaEntry,
-                        SearchTermId = dbSearchTerms.First(item => item.Hash == term.Hash).Id
+                        SearchTermId = dbTerm.Id
                     });
             }
         }
