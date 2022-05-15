@@ -81,7 +81,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Sections.Add(new HomeScreenList
                 {
                     ListId = ID_CONTINUE_WATCHING,
-                    Title = "Continue Watching",
+                    Title = ID_CONTINUE_WATCHING_TITLE,
                     Items = new List<BasicMedia>(cwResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -92,7 +92,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Sections.Add(new HomeScreenList
                 {
                     ListId = ID_WATCHLIST,
-                    Title = "Watchlist",
+                    Title = ID_WATCHLIST_TITLE,
                     Items = new List<BasicMedia>(wlResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -103,7 +103,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Sections.Add(new HomeScreenList
                 {
                     ListId = ID_PLAYLISTS,
-                    Title = "Playlists",
+                    Title = ID_PLAYLISTS_TITLE,
                     Items = new List<BasicMedia>(plResults.Select(item => item.ToBasicMedia()))
                 });
 
