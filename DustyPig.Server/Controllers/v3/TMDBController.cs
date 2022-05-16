@@ -84,7 +84,6 @@ namespace DustyPig.Server.Controllers.v3
 
             ret.Available = (await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
-                .Where(item => item.EntryType == MediaTypes.Movie)
                 .Where(item => item.TMDB_Id == id)
                 .OrderBy(item => item.SortTitle)
                 .ToListAsync())
@@ -125,15 +124,17 @@ namespace DustyPig.Server.Controllers.v3
                 TMDB_ID = series.Data.Id
             };
 
-
+          
+            if (series.Data.FirstAirDate.HasValue)
+                ret.Year = series.Data.FirstAirDate.Value.Year;
+            
             if (series.Data.Genres != null)
                 ret.Genres = string.Join(",", series.Data.Genres.Select(item => item.Name)).ToGenres();
 
             FillCredits(series.Data.Credits, ret);
 
-            ret.Available = (await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+            ret.Available = (await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
-                .Where(item => item.EntryType == MediaTypes.Movie)
                 .Where(item => item.TMDB_Id == id)
                 .OrderBy(item => item.SortTitle)
                 .ToListAsync())
