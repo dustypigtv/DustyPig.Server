@@ -55,7 +55,7 @@ namespace DustyPig.Server
             config.LoggingRules.Add(new LoggingRule("System.*", LogLevel.Trace, LogLevel.Info, nullTarget) { Final = true });
             config.LoggingRules.Add(new LoggingRule("Microsoft.AspNetCore.DataProtection.*", LogLevel.Trace, nullTarget) { Final = true });
 
-            
+
             var dbTarget = new DatabaseTarget("DB")
             {
                 DBProvider = "MySql.Data.MySqlClient.MySqlConnection, MySql.Data",
@@ -78,12 +78,12 @@ namespace DustyPig.Server
             ignoreOpCancelledRule.Filters.Add(new NLog.Filters.ConditionBasedFilter()
             {
                 Action = NLog.Filters.FilterResult.IgnoreFinal,
-                Condition = "contains('${message}'), 'System.OperationCanceledException')"
+                Condition = "contains('${message}', 'System.OperationCanceledException')"
             });
             config.LoggingRules.Add(ignoreOpCancelledRule);
 
             config.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, dbTarget) { Final = true });
-            
+
             LogManager.Configuration = config;
         }
 
