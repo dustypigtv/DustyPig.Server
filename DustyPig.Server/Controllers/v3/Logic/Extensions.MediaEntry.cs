@@ -68,6 +68,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 IntroStartTime = @this.IntroStartTime,
                 Length = @this.Length.Value,
                 LibraryId = @this.LibraryId,
+                CanPlay = playable,
                 Producers = @this.GetPeople(Roles.Producer),
                 Rated = (@this.Rated ?? Ratings.None),
                 Title = @this.Title,
