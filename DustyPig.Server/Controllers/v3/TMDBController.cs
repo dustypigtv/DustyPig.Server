@@ -7,6 +7,7 @@ using DustyPig.Server.Services;
 using DustyPig.TMDB;
 using DustyPig.TMDB.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -62,10 +63,32 @@ namespace DustyPig.Server.Controllers.v3
                 TMDB_ID = movie.Data.Id
             };
 
+            if(movie.Data.ReleaseDate.HasValue)
+            {
+                ret.Year = movie.Data.ReleaseDate.Value.Year;
+            }
+            else
+            {
+                movie.Data.Releases.Countries.Sort((x, y) => -x.ReleaseDate.CompareTo(y.ReleaseDate));
+                foreach(var release in movie.Data.Releases.Countries.Where(item => item.Name == "US"))
+                {
+                    ret.Year = release.ReleaseDate.Year;
+                    break;
+                }
+            }
+                        
             if (movie.Data.Genres != null)
                 ret.Genres = string.Join(",", movie.Data.Genres.Select(item => item.Name)).ToGenres();
 
             FillCredits(movie.Data.Credits, ret);
+
+            ret.Available = (await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => item.TMDB_Id == id)
+                .OrderBy(item => item.SortTitle)
+                .ToListAsync())
+                .Select(item => item.ToBasicMedia()).ToList();
 
             return ret;
         }
@@ -107,6 +130,14 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Genres = string.Join(",", series.Data.Genres.Select(item => item.Name)).ToGenres();
 
             FillCredits(series.Data.Credits, ret);
+
+            ret.Available = (await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => item.TMDB_Id == id)
+                .OrderBy(item => item.SortTitle)
+                .ToListAsync())
+                .Select(item => item.ToBasicMedia()).ToList();
 
             return ret;
         }
