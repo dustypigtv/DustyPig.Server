@@ -138,24 +138,29 @@ namespace DustyPig.Server.Data.Models
         public string ComputeHash()
         {
             if (EntryType == MediaTypes.Episode)
-                return Crypto.HashEpisode(LinkedToId.Value, Season.Value, Episode.Value);
+                Hash = Crypto.HashEpisode(LinkedToId.Value, Season.Value, Episode.Value);
 
             if (EntryType == MediaTypes.Movie)
-                return Crypto.HashMovieTitle(Title, Date.Value.Year);
+                Hash = Crypto.HashMovieTitle(Title, Date.Value.Year);
 
-            //Series
-            return Crypto.NormalizedHash(Title);
+            if(EntryType == MediaTypes.Series)
+                Hash = Crypto.NormalizedHash(Title);
+
+            return Hash;
         }
 
         public long? ComputeXid()
         {
+            Xid = null;
+
             if (EntryType == MediaTypes.Episode)
             {
                 long s = Season ?? 0;
                 long e = Episode ?? 0;
-                return s * int.MaxValue + e;
+                Xid = s * int.MaxValue + e;
             }
-            return null;
+
+            return Xid;
         }
 
         public string FormattedTitle()
