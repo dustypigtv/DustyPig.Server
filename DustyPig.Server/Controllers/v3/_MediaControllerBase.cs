@@ -348,6 +348,9 @@ namespace DustyPig.Server.Controllers.v3
             var prog = data.progress;
             if (prog == null)
             {
+                if (hist.Seconds == 0)
+                    return Ok();
+
                 //Add
                 prog = DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
                 {
@@ -359,10 +362,18 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                //Update
-                prog.Played = hist.Seconds;
-                prog.Timestamp = DateTime.UtcNow;
-                DB.Entry(prog).State = EntityState.Modified;
+                if (hist.Seconds == 0)
+                {
+                    //Reset
+                    DB.Entry(prog).State = EntityState.Deleted;
+                }
+                else
+                {
+                    //Update
+                    prog.Played = hist.Seconds;
+                    prog.Timestamp = DateTime.UtcNow;
+                    DB.Entry(prog).State = EntityState.Modified;
+                }
             }
 
             await DB.SaveChangesAsync();
