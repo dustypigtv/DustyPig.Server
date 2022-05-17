@@ -440,6 +440,9 @@ namespace DustyPig.Server.Controllers.v3
         {
             var (account, profile) = await User.VerifyAsync();
 
+            if (account == null)
+                return Unauthorized();
+
             if (profile == null)
                 return new VerifyTokenResponse { LoginType = LoginResponseType.Account };
             else

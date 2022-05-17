@@ -54,9 +54,9 @@ namespace DustyPig.Server.Data
                 .UseLoggerFactory(MyLoggerFactory)
 
 #if DEBUG
-                        .EnableSensitiveDataLogging(true)
-                        .EnableDetailedErrors(true)
-                        .LogTo(Console.WriteLine)
+                        //.EnableSensitiveDataLogging(true)
+                        //.EnableDetailedErrors(true)
+                        //.LogTo(Console.WriteLine)
 #endif
                         ;
 
