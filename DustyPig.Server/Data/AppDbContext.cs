@@ -49,7 +49,6 @@ namespace DustyPig.Server.Data
         {
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
-                //.UseMySQL(_connectionString)
                 .UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
                 .UseLoggerFactory(MyLoggerFactory)
 
@@ -151,7 +150,7 @@ namespace DustyPig.Server.Data
                     TMDB_Id = 457784,
                     Title = "Agent 327: Operation Barbershop",
                     Hash = Crypto.HashMovieTitle("Agent 327: Operation Barbershop", 2017),
-                    SortTitle = "Agent 327: Operation Barbershop",
+                    SortTitle = "agent 327: operation barbershop",
                     Date = DateTime.Parse("2017-05-12"),
                     Rated = API.v3.MPAA.Ratings.G,
                     Description = "Agent 327 is investigating a clue that leads him to a shady barbershop in Amsterdam. Little does he know that he is being tailed by mercenary Boris Kloris.",
@@ -173,7 +172,7 @@ namespace DustyPig.Server.Data
                     TMDB_Id = 10378,
                     Title = "Big Buck Bunny",
                     Hash = Crypto.HashMovieTitle("Big Buck Bunny", 2008),
-                    SortTitle = "Big Buck Bunny",
+                    SortTitle = "big buck bunny",
                     Date = DateTime.Parse("2008-04-10"),
                     Rated = API.v3.MPAA.Ratings.G,
                     Description = "Follow a day of the life of Big Buck Bunny when he meets three bullying rodents: Frank, Rinky, and Gamera. The rodents amuse themselves by harassing helpless creatures by throwing fruits, nuts and rocks at them. After the deaths of two of Bunny's favorite butterflies, and an offensive attack on Bunny himself, Bunny sets aside his gentle nature and orchestrates a complex plan for revenge.",
@@ -195,7 +194,7 @@ namespace DustyPig.Server.Data
                     TMDB_Id = 717986,
                     Title = "Coffee Run",
                     Hash = Crypto.HashMovieTitle("Coffee Run", 2020),
-                    SortTitle = "Coffee Run",
+                    SortTitle = "coffee run",
                     Date = DateTime.Parse("2020-05-29"),
                     Rated = API.v3.MPAA.Ratings.G,
                     Description = "Fueled by caffeine, a young woman runs through the bittersweet memories of her past relationship.",
@@ -219,7 +218,7 @@ namespace DustyPig.Server.Data
                     TMDB_Id = 615324,
                     Title = "Hero",
                     Hash = Crypto.HashMovieTitle("Hero", 2018),
-                    SortTitle = "Hero",
+                    SortTitle = "hero",
                     Date = DateTime.Parse("2018-04-16"),
                     Rated = API.v3.MPAA.Ratings.G,
                     Description = "Hero is a showcase for the updated Grease Pencil tools in Blender 2.80. Grease Pencil means 2D animation tools within a full 3D pipeline.",
@@ -243,7 +242,7 @@ namespace DustyPig.Server.Data
                     TMDB_Id = 593048,
                     Title = "Spring",
                     Hash = Crypto.HashMovieTitle("Spring", 2019),
-                    SortTitle = "Spring",
+                    SortTitle = "spring",
                     Date = DateTime.Parse("2019-04-04"),
                     Rated = API.v3.MPAA.Ratings.G,
                     Description = "The story of a shepherd girl and her dog who face ancient spirits in order to continue the cycle of life.",
@@ -264,7 +263,7 @@ namespace DustyPig.Server.Data
                     TMDB_Id = 276116,
                     Title = "Caminandes",
                     Hash = Crypto.NormalizedHash("Caminandes"),
-                    SortTitle = "Caminandes",
+                    SortTitle = "caminandes",
                     Rated = API.v3.MPAA.Ratings.TV_G,
                     Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
                     Genres = (API.v3.MPAA.Genres)1060,
