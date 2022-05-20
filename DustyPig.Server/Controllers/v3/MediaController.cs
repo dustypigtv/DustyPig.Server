@@ -497,7 +497,7 @@ namespace DustyPig.Server.Controllers.v3
                 join profileMediaProgress in dbInstance.MediaProgress(UserProfile) on mediaEntry.Id equals profileMediaProgress.MediaEntryId
 
                 where
-                    profileMediaProgress.Played > 1 && profileMediaProgress.Played < (mediaEntry.CreditsStartTime ?? mediaEntry.Length.Value * 0.9)
+                    profileMediaProgress.Played >= 1 && profileMediaProgress.Played < (mediaEntry.CreditsStartTime ?? mediaEntry.Length.Value * 0.9)
 
                 select new { mediaEntry, profileMediaProgress.Timestamp };
 

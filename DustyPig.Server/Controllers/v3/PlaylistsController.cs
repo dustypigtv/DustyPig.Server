@@ -142,7 +142,7 @@ namespace DustyPig.Server.Controllers.v3
                     if (dbPlaylistItem.MediaEntry.CreditsStartTime.HasValue)
                         endTime = dbPlaylistItem.MediaEntry.CreditsStartTime.Value;
 
-                    if (progress.Played > 1000 && progress.Played < endTime)
+                    if (progress.Played >= 1 && progress.Played < endTime)
                         pli.Played = progress.Played;
                 }
 

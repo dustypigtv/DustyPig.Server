@@ -159,7 +159,7 @@ namespace DustyPig.Server.Controllers.v3
             // If playable
             if (playable)
                 if (data.progress != null)
-                    if (data.progress.Played > 1000 && data.progress.Played < (data.mediaEntry.CreditsStartTime ?? data.mediaEntry.Length.Value * 0.9))
+                    if (data.progress.Played >= 1 && data.progress.Played < (data.mediaEntry.CreditsStartTime ?? data.mediaEntry.Length.Value * 0.9))
                         ret.Played = data.progress.Played;
 
             return ret;

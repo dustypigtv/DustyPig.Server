@@ -215,7 +215,7 @@ namespace DustyPig.Server.Controllers.v3
 
                     if (dbEp.progress != null)
                     {
-                        if (dbEp.progress.Played > 1000 && dbEp.progress.Played < (dbEp.mediaEntry.CreditsStartTime ?? dbEp.mediaEntry.Length.Value - 30))
+                        if (dbEp.progress.Played >= 1 && dbEp.progress.Played < (dbEp.mediaEntry.CreditsStartTime ?? dbEp.mediaEntry.Length.Value - 30))
                             ep.Played = dbEp.progress.Played;
 
                         if (dbEp.progress.Timestamp > lastTS)
