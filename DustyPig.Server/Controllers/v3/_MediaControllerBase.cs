@@ -321,72 +321,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task<ActionResult> UpdateMediaPlaybackProgress(PlaybackProgress hist, IQueryable<MediaEntry> q)
-        {
-            if (hist == null)
-                return NotFound();
-
-            if (hist.Id <= 0)
-                return NotFound();
-
-            hist.Seconds = Math.Max(hist.Seconds, 0);
-
-            var query =
-                from mediaEntry in q
-                    .Where(item => item.Id == hist.Id)
-
-                join progress in DB.MediaProgress(UserProfile) on mediaEntry.Id equals progress.MediaEntryId into progressLJ
-                from progress in progressLJ.DefaultIfEmpty()
-
-                select new { mediaEntry, progress };
-
-
-            var data = await query.SingleOrDefaultAsync();
-            if (data == null || data.mediaEntry == null)
-                return NotFound();
-
-            var prog = data.progress;
-            if (prog == null)
-            {
-                if (hist.Seconds == 0)
-                    return Ok();
-
-                //Add
-                prog = DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
-                {
-                    MediaEntryId = hist.Id,
-                    ProfileId = UserProfile.Id,
-                    Played = hist.Seconds,
-                    Timestamp = DateTime.UtcNow
-                }).Entity;
-            }
-            else
-            {
-                if (hist.Seconds == 0)
-                {
-                    //Reset
-                    DB.Entry(prog).State = EntityState.Deleted;
-                }
-                else
-                {
-                    //Update
-                    prog.Played = hist.Seconds;
-                    prog.Timestamp = DateTime.UtcNow;
-                    DB.Entry(prog).State = EntityState.Modified;
-                }
-            }
-
-            await DB.SaveChangesAsync();
-
-            return Ok();
-        }
-
-
-        //internal IQueryable<ProfileMediaProgress> MediaProgress =>
-        //    DB.ProfileMediaProgresses
-        //    .AsNoTracking()
-        //    .Include(item => item.Profile)
-        //    .Where(item => item.ProfileId == UserProfile.Id);
+        
 
 
         internal static IOrderedQueryable<MediaEntry> ApplySortOrder(IQueryable<MediaEntry> q, SortOrder sortOrder)
