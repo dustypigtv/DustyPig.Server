@@ -106,17 +106,9 @@ namespace DustyPig.Server.Controllers.v3
         {
             var ret = me.Title.NormalizedQueryString().Tokenize();
 
-            //foreach (string name in me.Cast)
-            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
+            foreach (string name in me.People.Select(item => item.Person.Name))
+                ret.AddRange(name.NormalizedQueryString().Tokenize());
 
-            //foreach (string name in me.Directors)
-            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
-
-            //foreach (string name in me.Writers)
-            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
-
-            //foreach (string name in me.Producers)
-            //    ret.AddRange(name.NormalizedQueryString().Tokenize());
 
             if (extraSearchTerms != null)
                 ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));

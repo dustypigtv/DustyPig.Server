@@ -276,11 +276,11 @@ namespace DustyPig.Server.Controllers.v3
             DB.MediaEntries.Add(newItem);
 
 
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(DB, newItem, GetSearchTerms(newItem, movieInfo.ExtraSearchTerms));
-
             //People
             await MediaEntryLogic.UpdatePeople(DB, newItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
+
+            //Search Terms
+            await MediaEntryLogic.UpdateSearchTerms(DB, newItem, GetSearchTerms(newItem, movieInfo.ExtraSearchTerms));
 
 
             //Add Subtitles
@@ -384,11 +384,11 @@ namespace DustyPig.Server.Controllers.v3
             if (tmdb_changed)
                 await UpdatePopularity(existingItem);
 
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(DB, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));
-
             //People
             await MediaEntryLogic.UpdatePeople(DB, existingItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
+
+            //Search Terms
+            await MediaEntryLogic.UpdateSearchTerms(DB, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));
 
 
             //Redo Subtitles
