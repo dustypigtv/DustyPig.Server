@@ -130,6 +130,8 @@ namespace DustyPig.Server.Controllers.v3
             {
                 ArtworkUrl = data.ArtworkUrl,
                 BackdropUrl = data.BackdropUrl,
+                CanPlay = playable,
+                CanManage = UserProfile.IsMain,
                 Cast = data.GetPeople(Roles.Cast),
                 Description = data.Description,
                 Directors = data.GetPeople(Roles.Director),
@@ -238,8 +240,6 @@ namespace DustyPig.Server.Controllers.v3
                         ep.UpNext = true;
                     else
                         ep.Played = null;
-
-            ret.CanManage = UserProfile.IsMain;
 
             return ret;
         }
