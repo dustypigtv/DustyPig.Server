@@ -239,6 +239,8 @@ namespace DustyPig.Server.Controllers.v3
                     else
                         ep.Played = null;
 
+            ret.CanManage = UserProfile.IsMain;
+
             return ret;
         }
 
