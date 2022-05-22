@@ -346,51 +346,5 @@ namespace DustyPig.Server.Controllers.v3
         public Task<ActionResult> Delete(int id) => DeleteMedia(id);
 
 
-        /// <summary>
-        /// Level 2
-        /// </summary>
-        [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> UpdatePlaybackProgress(PlaybackProgress hist)// => UpdateMediaPlaybackProgress(hist, DB.EpisodesPlayableByProfile(UserProfile));
-        {
-            if (hist == null)
-                return NotFound();
-
-            if (hist.Id <= 0)
-                return NotFound();
-
-            
-            var mediaEntry = await DB.EpisodesPlayableByProfile(UserProfile)
-                .Where(item => item.Id == hist.Id)
-                .SingleOrDefaultAsync();
-
-            if (mediaEntry == null)
-                return NotFound();
-
-
-            //Delete all other episode/histories
-            var progresses = await DB.MediaProgress(UserProfile)
-                .Include(item => item.MediaEntry)
-                .Where(item => item.MediaEntry.LinkedToId == mediaEntry.Id)
-                .ToListAsync();
-
-            foreach (var progress in progresses)
-                DB.ProfileMediaProgresses.Remove(progress);
-
-            if (hist.Seconds >= 1)
-                DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
-                {
-                    MediaEntryId = hist.Id,
-                    ProfileId = UserProfile.Id,
-                    Played = hist.Seconds,
-                    Timestamp = DateTime.UtcNow
-                });
-            
-            await DB.SaveChangesAsync();
-
-            return Ok();
-        }
-
     }
 }

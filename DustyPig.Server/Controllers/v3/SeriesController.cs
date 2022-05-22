@@ -653,20 +653,87 @@ namespace DustyPig.Server.Controllers.v3
             if (id <= 0)
                 return NotFound();
 
-            var query =
-                from series in DB.SeriesPlayableByProfile(UserProfile)
-                join episode in DB.EpisodesPlayableByProfile(UserProfile) on series.Id equals episode.LinkedToId
-                join progress in DB.MediaProgress(UserProfile) on episode.Id equals progress.MediaEntryId
-                where series.Id == id
-                select progress;
+            var prog = await DB.MediaProgress(UserProfile)
+                .Include(item => item.MediaEntry)
+                .Where(item => item.MediaEntryId == id)
+                .Where(item => item.MediaEntry.EntryType == MediaTypes.Series)
+                .FirstOrDefaultAsync();
 
-            var lst = await query.ToListAsync();
-            lst.ForEach(item => DB.Entry(item).State = EntityState.Deleted);
+            if (prog == null)
+                return NotFound();
+
+            DB.ProfileMediaProgresses.Remove(prog);
 
             await DB.SaveChangesAsync();
 
             return Ok();
         }
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult> MarkSeriesWatched(int id)
+        {
+            if (id <= 0)
+                return NotFound();
+
+            //Get the max Xid for series
+            var maxXidQ =
+               from mediaEntry in DB.EpisodesPlayableByProfile(UserProfile)
+               group mediaEntry by mediaEntry.LinkedToId into g
+               select new
+               {
+                   SeriesId = g.Key,
+                   LastXid = g.Max(item => item.Xid)
+               };
+
+            var maxXid = await maxXidQ
+                .Where(item => item.SeriesId == id)
+                .FirstOrDefaultAsync();
+
+            if (maxXid == null)
+                return NotFound();
+
+            var lastEpisode = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.EntryType == MediaTypes.Episode)
+                .Where(item => item.LinkedToId == id)
+                .Where(item => item.Xid == maxXid.LastXid)
+                .FirstOrDefaultAsync();
+
+            var prog = await DB.ProfileMediaProgresses
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .Where(item => item.MediaEntryId == id)
+                .FirstOrDefaultAsync();
+
+            if (prog == null)
+            {
+                DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
+                {
+                    MediaEntryId = id,
+                    Played = lastEpisode.Length.Value,
+                    ProfileId = UserProfile.Id,
+                    Timestamp = DateTime.UtcNow,
+                    Xid = lastEpisode.Xid
+                });
+            }
+            else
+            {
+                prog.Xid = lastEpisode.Xid;
+                prog.Played = lastEpisode.Length.Value;
+                prog.Timestamp = DateTime.UtcNow;
+            }
+
+
+            await DB.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
 
 
         /// <summary>

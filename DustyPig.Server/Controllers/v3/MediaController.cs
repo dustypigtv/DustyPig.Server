@@ -415,6 +415,75 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpPost]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult> UpdatePlaybackProgress(PlaybackProgress hist)
+        {
+            if (hist == null)
+                return NotFound();
+
+            if (hist.Id <= 0)
+                return NotFound();
+
+            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
+                 .Where(item => item.Id == hist.Id)
+                .SingleOrDefaultAsync();
+
+            if (mediaEntry == null)
+                return NotFound();
+
+            if (mediaEntry.EntryType != MediaTypes.Movie && mediaEntry.EntryType != MediaTypes.Episode)
+                return BadRequest("This method is only for Movies and Episodes");
+
+            int id = mediaEntry.EntryType == MediaTypes.Movie
+                ? mediaEntry.Id
+                : mediaEntry.LinkedToId.Value;
+
+            var prog = DB.MediaProgress(UserProfile).FirstOrDefault(item => item.MediaEntryId == id);
+            if (prog == null)
+            {
+                if (hist.Seconds < 1 && mediaEntry.EntryType == MediaTypes.Movie)
+                    return Ok();
+
+                //Add
+                DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
+                {
+                    MediaEntryId = id,
+                    ProfileId = UserProfile.Id,
+                    Played = Math.Max(0, hist.Seconds),
+                    Timestamp = DateTime.UtcNow,
+                    Xid = mediaEntry.Xid
+                });
+
+                await DB.SaveChangesAsync();
+            }
+            else
+            {
+                if (hist.Seconds < 1 && mediaEntry.EntryType == MediaTypes.Movie)
+                {
+                    //Reset
+                    DB.Entry(prog).State = EntityState.Deleted;
+                }
+                else
+                {
+                    //Update
+                    prog.Played = Math.Max(0, hist.Seconds);
+                    prog.Timestamp = DateTime.UtcNow;
+                    prog.Xid = mediaEntry.Xid;
+                    DB.Entry(prog).State = EntityState.Modified;
+                }
+
+                await DB.SaveChangesAsync();
+            }
+
+            return Ok();
+        }
+
 
 
         private IQueryable<MediaEntry> ContinueWatchingQuery(AppDbContext dbInstance)
@@ -454,21 +523,13 @@ namespace DustyPig.Server.Controllers.v3
             //Get seriesId for watched
             var watchedSeriesQ = dbInstance.MediaProgress(UserProfile)
                 .Include(item => item.MediaEntry)
-                .Where(item => item.MediaEntry.EntryType == MediaTypes.Episode)
-                .Where(item => item.MediaEntry.LinkedToId.HasValue)
-                .Where(item => item.MediaEntry.Xid.HasValue)
-                .Select(item => new
-                {
-                    item.MediaEntry.LinkedToId,
-                    item.MediaEntry.Xid,
-                    item.Played,
-                    item.Timestamp
-                });
+                .Where(item => item.MediaEntry.EntryType == MediaTypes.Series);
+                
 
             //Finalize the series query
             var seriesFinalQ =
                 from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
-                join watchedSeries in watchedSeriesQ on mediaEntry.Id equals watchedSeries.LinkedToId
+                join watchedSeries in watchedSeriesQ on mediaEntry.Id equals watchedSeries.MediaEntryId
                 join lastEpInfo in lastEpInfoQ on mediaEntry.Id equals lastEpInfo.SeriesId
                 where
                     watchedSeries.Xid.HasValue

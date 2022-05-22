@@ -10,6 +10,9 @@ namespace DustyPig.Server.Data.Models
         public int MediaEntryId { get; set; }
         public MediaEntry MediaEntry { get; set; }
 
+        public long? Xid { get; set; }
+
+
         /// <summary>
         /// Seconds
         /// </summary>
