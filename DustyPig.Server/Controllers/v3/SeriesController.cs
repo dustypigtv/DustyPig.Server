@@ -102,6 +102,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.Profiles)
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
+                .Include (item => item.ProfileMediaProgress)
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .SingleOrDefaultAsync();
@@ -166,80 +167,88 @@ namespace DustyPig.Server.Controllers.v3
                     .GetFriendDisplayNameForAccount(UserAccount.Id);
             }
 
+            var progress = data.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
 
             //Get the episodes
-            var epQ =
-                from mediaEntry in DB.MediaEntries
-                    .AsNoTracking()
-                    .Include(item => item.Subtitles)
-                    .Include(item => item.People)
-                    .ThenInclude(item => item.Person)
+            var dbEps = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Subtitles)
+                .Include(item => item.People)
+                .ThenInclude(item => item.Person)
+                .Where(item => item.LinkedToId == id)
+                .OrderBy(item => item.Xid)
+                .ToListAsync();
 
-                join progress in DB.MediaProgress(UserProfile) on mediaEntry.Id equals progress.MediaEntryId into progressLJ
-                from progress in progressLJ.DefaultIfEmpty()
-
-                where mediaEntry.LinkedToId == id
-
-                orderby mediaEntry.Xid
-
-                select new { mediaEntry, progress };
-
-            var dbEps = await epQ.ToListAsync();
-
-            DetailedEpisode upnext = null;
-            var lastTS = DateTime.MinValue;
-
+            
             foreach (var dbEp in dbEps)
             {
                 var ep = new DetailedEpisode
                 {
-                    ArtworkUrl = dbEp.mediaEntry.ArtworkUrl,
-                    BifUrl = playable ? dbEp.mediaEntry.BifUrl : null,
-                    CreditsStartTime = dbEp.mediaEntry.CreditsStartTime,
-                    Date = dbEp.mediaEntry.Date.Value,
-                    Description = dbEp.mediaEntry.Description,
-                    EpisodeNumber = (ushort)dbEp.mediaEntry.Episode.Value,
-                    Id = dbEp.mediaEntry.Id,
-                    IntroEndTime = dbEp.mediaEntry.IntroEndTime,
-                    IntroStartTime = dbEp.mediaEntry.IntroStartTime,
-                    Length = dbEp.mediaEntry.Length.Value,
-                    SeasonNumber = (ushort)dbEp.mediaEntry.Season.Value,
+                    ArtworkUrl = dbEp.ArtworkUrl,
+                    BifUrl = playable ? dbEp.BifUrl : null,
+                    CreditsStartTime = dbEp.CreditsStartTime,
+                    Date = dbEp.Date.Value,
+                    Description = dbEp.Description,
+                    EpisodeNumber = (ushort)dbEp.Episode.Value,
+                    ExternalSubtitles = playable ? dbEp.Subtitles.ToExternalSubtitleList() : null,
+                    Id = dbEp.Id,
+                    IntroEndTime = dbEp.IntroEndTime,
+                    IntroStartTime = dbEp.IntroStartTime,
+                    Length = dbEp.Length.Value,
+                    SeasonNumber = (ushort)dbEp.Season.Value,
                     SeriesId = id,
-                    Title = dbEp.mediaEntry.Title,
-                    TMDB_Id = dbEp.mediaEntry.TMDB_Id,
-                    VideoUrl = playable ? dbEp.mediaEntry.VideoUrl : null
+                    Title = dbEp.Title,
+                    TMDB_Id = dbEp.TMDB_Id,
+                    VideoUrl = playable ? dbEp.VideoUrl : null
                 };
-
-                if (playable)
-                {
-                    if (upnext == null)
-                        upnext = ep;
-
-                    if (dbEp.progress != null)
-                    {
-                        if (dbEp.progress.Played >= 1 && dbEp.progress.Played < (dbEp.mediaEntry.CreditsStartTime ?? dbEp.mediaEntry.Length.Value - 30))
-                            ep.Played = dbEp.progress.Played;
-
-                        if (dbEp.progress.Timestamp > lastTS)
-                        {
-                            upnext = ep;
-                            lastTS = dbEp.progress.Timestamp;
-                        }
-                    }
-
-                    ep.ExternalSubtitles = dbEp.mediaEntry.Subtitles.ToExternalSubtitleList();
-                }
-
 
                 ret.Episodes.Add(ep);
             }
 
-            if (playable && upnext != null)
-                foreach (var ep in ret.Episodes)
-                    if (ep.Id == upnext.Id)
-                        ep.UpNext = true;
+
+            if (playable && ret.Episodes.Count > 0)
+            {
+                if (progress == null)
+                {
+                    ret.Episodes[0].UpNext = true;
+                }
+                else
+                {
+                    var dbEp = dbEps.FirstOrDefault(item => item.Xid == progress.Xid);
+                    if(dbEp == null)
+                    {
+                        //No DB ep, so first episode
+                        ret.Episodes[0].UpNext = true;
+                    }
                     else
-                        ep.Played = null;
+                    {
+                        var upNextEp = ret.Episodes.First(item => item.Id == dbEp.Id);
+                        if (progress.Played < (upNextEp.CreditsStartTime ?? dbEp.Length.Value - 30))
+                        {
+                            //Partially played episode
+                            upNextEp.UpNext = true;
+                            upNextEp.Played = progress.Played;
+                        }
+                        else
+                        {
+                            //Fully played episode, find the next one
+                            var nextDBEp = dbEps.FirstOrDefault(item => item.Xid > dbEp.Xid);
+                            if (nextDBEp == null)
+                            {
+                                //Progress was on last episode
+                                upNextEp.UpNext = true;
+                                upNextEp.Played = progress.Played;
+                            }
+                            else
+                            {
+                                //Next episode after progress
+                                upNextEp = ret.Episodes.First(item => item.Id == nextDBEp.Id);
+                                upNextEp.UpNext = true;
+                            }
+                        }
+                    }
+                }
+            }
 
             return ret;
         }
