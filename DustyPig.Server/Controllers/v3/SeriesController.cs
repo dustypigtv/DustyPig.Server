@@ -102,7 +102,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.Profiles)
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
-                .Include (item => item.ProfileMediaProgress)
+                .Include(item => item.ProfileMediaProgress)
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .SingleOrDefaultAsync();
@@ -179,7 +179,7 @@ namespace DustyPig.Server.Controllers.v3
                 .OrderBy(item => item.Xid)
                 .ToListAsync();
 
-            
+
             foreach (var dbEp in dbEps)
             {
                 var ep = new DetailedEpisode
@@ -208,19 +208,10 @@ namespace DustyPig.Server.Controllers.v3
 
             if (playable && ret.Episodes.Count > 0)
             {
-                if (progress == null)
-                {
-                    ret.Episodes[0].UpNext = true;
-                }
-                else
+                if (progress != null)
                 {
                     var dbEp = dbEps.FirstOrDefault(item => item.Xid == progress.Xid);
-                    if(dbEp == null)
-                    {
-                        //No DB ep, so first episode
-                        ret.Episodes[0].UpNext = true;
-                    }
-                    else
+                    if(dbEp != null)
                     {
                         var upNextEp = ret.Episodes.First(item => item.Id == dbEp.Id);
                         if (progress.Played < (upNextEp.CreditsStartTime ?? dbEp.Length.Value - 30))
