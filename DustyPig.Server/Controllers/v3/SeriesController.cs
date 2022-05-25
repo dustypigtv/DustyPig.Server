@@ -85,36 +85,44 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedSeries>> Details(int id)
         {
-            var media = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.MediaEntries
                 .AsNoTracking()
-                
+
                 .Include(Item => Item.Library)
                 .ThenInclude(item => item.Account)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares)
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account1)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares)
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account2)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
-                
+
                 .Include(item => item.WatchlistItems)
                 .Include(item => item.ProfileMediaProgress)
-                
+
                 .Where(item => item.Id == id)
+                .Where(item => item.EntryType == MediaTypes.Series)
                 
                 .FirstOrDefaultAsync();
 
             if(media == null)
+                return NotFound();
+
+            bool searchable = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
+                .Where(item => item.Id == id)
+                .AnyAsync();
+
+            if (!searchable)
                 return NotFound();
 
             bool playable = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)

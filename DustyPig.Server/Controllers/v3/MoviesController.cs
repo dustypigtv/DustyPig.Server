@@ -78,7 +78,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedMovie>> Details(int id)
         {
-            var media = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.MediaEntries
                 .AsNoTracking()
                 
                 .Include(item => item.Subtitles)
@@ -105,12 +105,19 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(item => item.ProfileMediaProgress)
                 
                 .Where(item => item.Id == id)
+                .Where(item => item.EntryType == MediaTypes.Movie)
+
                 .FirstOrDefaultAsync();
 
             if (media == null)
                 return NotFound();
 
+            bool searchable = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+                .Where(item => item.Id == id)
+                .AnyAsync();
 
+            if (!searchable)
+                return NotFound();
             
             bool playable = await DB.MoviesPlayableByProfile(UserAccount, UserProfile)
                 .Where(item => item.Id == id)
