@@ -85,7 +85,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedSeries>> Details(int id)
         {
-            var media = await DB.MediaEntries
+            var media = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
 
                 .Include(Item => Item.Library)
@@ -107,6 +107,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
 
+                .Include(item => item.TitleOverrides)
                 .Include(item => item.WatchlistItems)
                 .Include(item => item.ProfileMediaProgress)
 
@@ -118,16 +119,11 @@ namespace DustyPig.Server.Controllers.v3
             if(media == null)
                 return NotFound();
 
-            bool searchable = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
-                .Where(item => item.Id == id)
-                .AnyAsync();
 
-            if (!searchable)
-                return NotFound();
-
-            bool playable = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
-                .Where(item => item.Id == id)
-                .AnyAsync();
+            bool playable = UserProfile.IsMain
+                || UserProfile.AllowedRatings == API.v3.MPAA.Ratings.All
+                || (media.Rated.HasValue && (UserProfile.AllowedRatings & media.Rated) == media.Rated)
+                || media.TitleOverrides.Where(item => item.State == OverrideState.Allow).Any(item => item.ProfileId == UserProfile.Id);
 
 
 

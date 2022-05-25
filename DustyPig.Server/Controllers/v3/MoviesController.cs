@@ -78,7 +78,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedMovie>> Details(int id)
         {
-            var media = await DB.MediaEntries
+            var media = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 
                 .Include(item => item.Subtitles)
@@ -101,8 +101,12 @@ namespace DustyPig.Server.Controllers.v3
                 
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
+
+                .Include(item => item.TitleOverrides)
                 
                 .Include(item => item.ProfileMediaProgress)
+
+                .Include(item => item.WatchlistItems)
                 
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
@@ -112,29 +116,18 @@ namespace DustyPig.Server.Controllers.v3
             if (media == null)
                 return NotFound();
 
-            bool searchable = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
-                .Where(item => item.Id == id)
-                .AnyAsync();
 
-            if (!searchable)
-                return NotFound();
-            
-            bool playable = await DB.MoviesPlayableByProfile(UserAccount, UserProfile)
-                .Where(item => item.Id == id)
-                .AnyAsync();
-
-
+            bool playable = UserProfile.IsMain
+                || UserProfile.AllowedRatings == API.v3.MPAA.Ratings.All
+                || (media.Rated.HasValue && (UserProfile.AllowedRatings & media.Rated) == media.Rated)
+                || media.TitleOverrides.Where(item => item.State == OverrideState.Allow).Any(item => item.ProfileId == UserProfile.Id);
 
 
             //Build the response
             var ret = media.ToDetailedMovie(playable);
 
             if (playable)
-                ret.InWatchlist = await DB.WatchListItems
-                    .AsNoTracking()
-                    .Where(item => item.MediaEntryId == id)
-                    .Where(item => item.ProfileId == UserProfile.Id)
-                    .AnyAsync();
+                ret.InWatchlist = media.WatchlistItems.Any(item => item.ProfileId == UserProfile.Id);
 
             //Get the media owner
             if (media.Library.AccountId == UserAccount.Id)

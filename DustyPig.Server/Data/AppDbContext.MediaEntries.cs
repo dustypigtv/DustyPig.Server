@@ -70,14 +70,22 @@ namespace DustyPig.Server.Data
 
 
             if (profile.IsMain || profile.TitleRequestPermission != TitleRequestPermissions.Disabled)
-            {        
-                var libs = LibrariesForAccount(account)
-                    .Union(FriendLibrariesSharedWithProfile(account, profile));
+            {
+                var libs =
+                    from library in Libraries
+                    join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
+                    from share in LJ.DefaultIfEmpty()
+                    where library.AccountId == account.Id ||
+                    (
+                        share.Library.AccountId != account.Id &&
+                        share.ProfileId == profile.Id
+                    )
+                    select library.Id;
 
                 return
                     from mediaEntry in MediaEntries
 
-                    join library in libs on mediaEntry.LibraryId equals library.Id
+                    join libid in libs on mediaEntry.LibraryId equals libid
 
                     join titleOverride in TitleOverridesForProfile(profile)
                         on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLeftJoin
@@ -146,12 +154,20 @@ namespace DustyPig.Server.Data
 
             if (profile.IsMain)
             {
-                var libs = LibrariesForAccount(account)
-                    .Union(FriendLibrariesSharedWithProfile(account, profile));
+                var libs = 
+                    from library in Libraries
+                    join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
+                    from share in LJ.DefaultIfEmpty()
+                    where library.AccountId == account.Id || 
+                    (
+                        share.Library.AccountId != account.Id &&
+                        share.ProfileId == profile.Id
+                    )
+                    select library.Id;
 
                 return
                     from mediaEntry in MediaEntries
-                    join library in libs on mediaEntry.LibraryId equals library.Id
+                    join libid in libs on mediaEntry.LibraryId equals libid
                     select mediaEntry;
             }
             else
