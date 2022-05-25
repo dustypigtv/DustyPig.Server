@@ -19,8 +19,7 @@ namespace DustyPig.Server.Data
         public IQueryable<Library> LibrariesForAccount(Account account) =>
             Libraries
             .AsNoTracking()
-            .Where(item => item.AccountId == account.Id)
-            .Distinct();
+            .Where(item => item.AccountId == account.Id);
 
 
         /// <summary>
@@ -30,8 +29,7 @@ namespace DustyPig.Server.Data
             FriendLibraryShares
             .AsNoTracking()
             .Include(item => item.Friendship)
-            .Where(item => item.Friendship.Account1Id == account.Id || item.Friendship.Account2Id == account.Id)
-            .Distinct();
+            .Where(item => item.Friendship.Account1Id == account.Id || item.Friendship.Account2Id == account.Id);
 
 
 
@@ -42,8 +40,7 @@ namespace DustyPig.Server.Data
             ProfileLibraryShares
             .AsNoTracking()
             .Include(item => item.Profile)
-            .Where(item => item.ProfileId == profile.Id)
-            .Distinct();
+            .Where(item => item.ProfileId == profile.Id);
 
 
 
@@ -53,8 +50,7 @@ namespace DustyPig.Server.Data
         public IQueryable<Models.TitleOverride> TitleOverrideForProfile(Profile profile) =>
             TitleOverrides
             .AsNoTracking()
-            .Where(item => item.ProfileId == profile.Id)
-            .Distinct();
+            .Where(item => item.ProfileId == profile.Id);
 
 
 
@@ -76,8 +72,7 @@ namespace DustyPig.Server.Data
 
 
             var mediaEntriesQ = MediaEntries
-                .AsNoTracking()
-                .Distinct();
+                .AsNoTracking();
 
 
             if (profile.IsMain || profile.TitleRequestPermission != TitleRequestPermissions.Disabled)
@@ -142,13 +137,11 @@ namespace DustyPig.Server.Data
 
         public IQueryable<MediaEntry> MoviesSearchableByProfile(Account account, Profile profile) =>
             MediaEntriesSearchableByProfile(account, profile)
-            .Where(item => item.EntryType == MediaTypes.Movie)
-            .Distinct();
+            .Where(item => item.EntryType == MediaTypes.Movie);
 
         public IQueryable<MediaEntry> SeriesSearchableByProfile(Account account, Profile profile) =>
             MediaEntriesSearchableByProfile(account, profile)
-            .Where(item => item.EntryType == MediaTypes.Series)
-            .Distinct();
+            .Where(item => item.EntryType == MediaTypes.Series);
 
 
 
@@ -212,18 +205,15 @@ namespace DustyPig.Server.Data
 
         public IQueryable<MediaEntry> MoviesAndSeriesPlayableByProfile(Profile profile) =>
             MediaEntriesPlayableByProfile(profile)
-            .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType))
-            .Distinct();
+            .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType));
 
         public IQueryable<MediaEntry> MoviesPlayableByProfile(Profile profile) =>
             MediaEntriesPlayableByProfile(profile)
-            .Where(item => item.EntryType == MediaTypes.Movie)
-            .Distinct();
+            .Where(item => item.EntryType == MediaTypes.Movie);
 
         public IQueryable<MediaEntry> SeriesPlayableByProfile(Profile profile) =>
             MediaEntriesPlayableByProfile(profile)
-            .Where(item => item.EntryType == MediaTypes.Series)
-            .Distinct();
+            .Where(item => item.EntryType == MediaTypes.Series);
 
         public IQueryable<MediaEntry> EpisodesPlayableByProfile(Profile profile) =>
             MediaEntriesPlayableByProfile(profile)
@@ -232,15 +222,13 @@ namespace DustyPig.Server.Data
             .Where(item => item.Xid.HasValue)
             .Where(item => item.EntryType == MediaTypes.Episode)
             .Where(item => item.Season.HasValue)
-            .Where(item => item.Episode.HasValue)
-            .Distinct();
+            .Where(item => item.Episode.HasValue);
 
         public IQueryable<ProfileMediaProgress> MediaProgress(Profile profile) =>
             ProfileMediaProgresses
             .AsNoTracking()
             .Include(item => item.Profile)
-            .Where(item => item.ProfileId == profile.Id)
-            .Distinct();
+            .Where(item => item.ProfileId == profile.Id);
 
     }
 }
