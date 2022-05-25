@@ -72,7 +72,7 @@ namespace DustyPig.Server.Data
             if (profile.IsMain || profile.TitleRequestPermission != TitleRequestPermissions.Disabled)
             {
                 var libs =
-                    from library in Libraries
+                    (from library in Libraries
                     join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
                     from share in LJ.DefaultIfEmpty()
                     where library.AccountId == account.Id ||
@@ -80,7 +80,7 @@ namespace DustyPig.Server.Data
                         share.Library.AccountId != account.Id &&
                         share.ProfileId == profile.Id
                     )
-                    select library.Id;
+                    select library.Id).Distinct();
 
                 return
                     from mediaEntry in MediaEntries
@@ -155,7 +155,7 @@ namespace DustyPig.Server.Data
             if (profile.IsMain)
             {
                 var libs = 
-                    from library in Libraries
+                    (from library in Libraries
                     join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
                     from share in LJ.DefaultIfEmpty()
                     where library.AccountId == account.Id || 
@@ -163,7 +163,7 @@ namespace DustyPig.Server.Data
                         share.Library.AccountId != account.Id &&
                         share.ProfileId == profile.Id
                     )
-                    select library.Id;
+                    select library.Id).Distinct();
 
                 return
                     from mediaEntry in MediaEntries
