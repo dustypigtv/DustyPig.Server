@@ -39,12 +39,13 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
             var seriesQ =
-                from mediaEntry in DB.SeriesPlayableByProfile(UserProfile)
+                from mediaEntry in DB.SeriesPlayableByProfile(UserAccount, UserProfile)
                 select mediaEntry;
 
             var sortedQ = ApplySortOrder(seriesQ, request.Sort);
 
             var series = await sortedQ
+                .AsNoTracking()
                 .Skip(request.Start)
                 .Take(LIST_SIZE)
                 .ToListAsync();
@@ -84,90 +85,82 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedSeries>> Details(int id)
         {
-            //Get the media entry
-            var data = await DB.MediaEntries
+            var media = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
+                
                 .Include(Item => Item.Library)
                 .ThenInclude(item => item.Account)
                 .ThenInclude(item => item.Profiles)
+                
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares)
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account1)
                 .ThenInclude(item => item.Profiles)
+                
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares)
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account2)
                 .ThenInclude(item => item.Profiles)
+                
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
+                
+                .Include(item => item.WatchlistItems)
                 .Include(item => item.ProfileMediaProgress)
+                
                 .Where(item => item.Id == id)
-                .Where(item => item.EntryType == MediaTypes.Series)
-                .SingleOrDefaultAsync();
+                
+                .FirstOrDefaultAsync();
 
-            if (data == null)
+            if(media == null)
                 return NotFound();
 
-
-            //See if the series is searchable and playable by profile
-            bool searchable = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
+            bool playable = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
                 .Where(item => item.Id == id)
                 .AnyAsync();
-
-            if (!searchable)
-                return NotFound();
-
-            bool playable = await DB.SeriesPlayableByProfile(UserProfile)
-                .Where(item => item.Id == id)
-                .AnyAsync();
-
 
 
 
             //Build the response
             var ret = new DetailedSeries
             {
-                ArtworkUrl = data.ArtworkUrl,
-                BackdropUrl = data.BackdropUrl,
+                ArtworkUrl = media.ArtworkUrl,
+                BackdropUrl = media.BackdropUrl,
                 CanPlay = playable,
                 CanManage = UserProfile.IsMain,
-                Cast = data.GetPeople(Roles.Cast),
-                Description = data.Description,
-                Directors = data.GetPeople(Roles.Director),
-                Genres = data.Genres.Value,
+                Cast = media.GetPeople(Roles.Cast),
+                Description = media.Description,
+                Directors = media.GetPeople(Roles.Director),
+                Genres = media.Genres ?? Genres.Unknown,
                 Id = id,
-                LibraryId = data.LibraryId,
-                Producers = data.GetPeople(Roles.Producer),
-                Rated = data.Rated ?? Ratings.None,
-                Title = data.Title,
-                TMDB_Id = data.TMDB_Id,
-                Writers = data.GetPeople(Roles.Writer)
+                LibraryId = media.LibraryId,
+                Producers = media.GetPeople(Roles.Producer),
+                Rated = media.Rated ?? Ratings.None,
+                Title = media.Title,
+                TMDB_Id = media.TMDB_Id,
+                Writers = media.GetPeople(Roles.Writer)
             };
 
             if (playable)
-                ret.InWatchlist = await DB.WatchListItems
-                    .AsNoTracking()
-                    .Where(item => item.MediaEntryId == id)
-                    .Where(item => item.ProfileId == UserProfile.Id)
-                    .AnyAsync();
+                ret.InWatchlist = media.WatchlistItems.Any(item => item.ProfileId == UserProfile.Id);
 
             //Get the media owner
-            if (data.Library.AccountId == UserAccount.Id)
+            if (media.Library.AccountId == UserAccount.Id)
             {
-                ret.Owner = data.Library.Account.Profiles.Single(item => item.IsMain).Name;
+                ret.Owner = UserAccount.Profiles.Single(item => item.IsMain).Name;
             }
             else
             {
-                ret.Owner = data.Library.FriendLibraryShares
+                ret.Owner = media.Library.FriendLibraryShares
                     .Select(item => item.Friendship)
                     .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
                     .First()
                     .GetFriendDisplayNameForAccount(UserAccount.Id);
             }
 
-            var progress = data.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+            var progress = media.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
 
             //Get the episodes
             var dbEps = await DB.MediaEntries
@@ -278,7 +271,7 @@ namespace DustyPig.Server.Controllers.v3
                 Cast = mediaEntry.GetPeople(Roles.Cast),
                 Description = mediaEntry.Description,
                 Directors = mediaEntry.GetPeople(Roles.Director),
-                Genres = mediaEntry.Genres.Value,
+                Genres = mediaEntry.Genres ?? Genres.Unknown,
                 Id = id,
                 LibraryId = mediaEntry.LibraryId,
                 Producers = mediaEntry.GetPeople(Roles.Producer),
@@ -351,7 +344,6 @@ namespace DustyPig.Server.Controllers.v3
             // ***** Tons of validation *****
             try { seriesInfo.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
-
 
 
 
@@ -546,13 +538,15 @@ namespace DustyPig.Server.Controllers.v3
                 from sub in DB.Subscriptions
                     .Include(item => item.MediaEntry)
 
-                join allowed in DB.SeriesPlayableByProfile(UserProfile) on sub.MediaEntryId equals allowed.Id
+                join allowed in DB.SeriesPlayableByProfile(UserAccount, UserProfile) on sub.MediaEntryId equals allowed.Id
 
                 orderby sub.MediaEntry.SortTitle
 
                 select sub;
 
-            var subs = await subsQ.ToListAsync();
+            var subs = await subsQ
+                .AsNoTracking()
+                .ToListAsync();
 
             return subs.Select(item => item.MediaEntry.ToBasicMedia()).ToList();
         }
@@ -571,48 +565,25 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ActionResult> Subscribe(int id)
         {
             //Get the series
-            var series = await DB.MediaEntries
+            var series = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
-                .Include(item => item.Library)
-                .ThenInclude(item => item.ProfileLibraryShares)
-                .Include(item => item.TitleOverrides)
+                .Include(item => item.Subscriptions)
                 .Where(item => item.Id == id)
                 .FirstOrDefaultAsync();
 
             if (series == null)
-                return NotFound();
+                return BadRequest();
 
-            //Check if this user has access to the lib
-            if (!series.Library.ProfileLibraryShares.Select(item => item.ProfileId).Contains(UserProfile.Id))
-                return NotFound();
-
-            //Check ratings
-            if (!UserProfile.IsMain)
+            if (!series.Subscriptions.Any(item => item.ProfileId == UserProfile.Id))
             {
-                bool allowed = series.Rated.HasValue ? (UserProfile.AllowedRatings & series.Rated) == series.Rated : UserProfile.AllowedRatings == Ratings.All;
-                if (!allowed)
-                    allowed = series
-                        .TitleOverrides
-                        .Where(item => item.ProfileId == UserProfile.Id)
-                        .Where(item => item.State == OverrideState.Allow)
-                        .Any();
+                DB.Subscriptions.Add(new Subscription
+                {
+                    MediaEntryId = id,
+                    ProfileId = UserProfile.Id
+                });
 
-                if (!allowed)
-                    return CommonResponses.Forbid;
+                await DB.SaveChangesAsync();
             }
-
-            //Make sure this is a series
-            if (series.EntryType != MediaTypes.Series)
-                return BadRequest("The specified id is not a series");
-
-
-            var newItem = DB.Subscriptions.Add(new Subscription
-            {
-                MediaEntryId = id,
-                ProfileId = UserProfile.Id
-            }).Entity;
-
-            await DB.SaveChangesAsync();
 
             return Ok();
         }
@@ -660,7 +631,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (prog == null)
-                return NotFound();
+                return Ok();
 
             DB.ProfileMediaProgresses.Remove(prog);
 
@@ -682,7 +653,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Get the max Xid for series
             var maxXidQ =
-               from mediaEntry in DB.EpisodesPlayableByProfile(UserProfile)
+               from mediaEntry in DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
                group mediaEntry by mediaEntry.LinkedToId into g
                select new
                {
@@ -691,6 +662,7 @@ namespace DustyPig.Server.Controllers.v3
                };
 
             var maxXid = await maxXidQ
+                .AsNoTracking()
                 .Where(item => item.SeriesId == id)
                 .FirstOrDefaultAsync();
 
@@ -744,7 +716,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> RequestAccessOverride(int id) => RequestAccessOverride(id, MediaTypes.Series);
+        public Task<ActionResult> RequestAccessOverride(int id) => InternalRequestAccessOverride(id);
 
 
         /// <summary>
@@ -757,7 +729,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info) => SetAccessOverride(info, MediaTypes.Series);
+        public Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info) => InternalSetAccessOverride(info);
 
     }
 }

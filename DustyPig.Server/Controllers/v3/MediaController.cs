@@ -219,13 +219,14 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
             var q =
-                from mediaEntry in DB.MoviesAndSeriesPlayableByProfile(UserProfile)
+                from mediaEntry in DB.MoviesAndSeriesPlayableByProfile(UserAccount, UserProfile)
                 where request.LibraryId == mediaEntry.LibraryId
                 select mediaEntry;
 
             var sortedQ = ApplySortOrder(q, request.Sort);
 
             var entries = await sortedQ
+                .AsNoTracking()
                 .Skip(request.Start)
                 .Take(LIST_SIZE)
                 .ToListAsync();
@@ -314,7 +315,9 @@ namespace DustyPig.Server.Controllers.v3
                 join dummy in DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile) on mediaEntry.Id equals dummy.Id
                 select mediaEntry;
 
-            mediaEntries = await mediaEntriesQ.Distinct().ToListAsync(cancellationToken);
+            mediaEntries = await mediaEntriesQ
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
 
 
             //Search sort
@@ -362,8 +365,9 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult> AddToWatchlist(int id)
         {
-            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
+            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
+                .Include(item => item.WatchlistItems)
                 .Where(item => item.Id == id)
                 .FirstOrDefaultAsync();
 
@@ -371,11 +375,7 @@ namespace DustyPig.Server.Controllers.v3
                 return NotFound("Media not found");
 
 
-            var alreadyAdded = await DB.WatchListItems
-                .AsNoTracking()
-                .Where(item => item.ProfileId == UserProfile.Id)
-                .Where(item => item.MediaEntryId == id)
-                .AnyAsync();
+            var alreadyAdded = mediaEntry.WatchlistItems.Any(item => item.ProfileId == UserProfile.Id);
 
             if (!alreadyAdded)
             {
@@ -430,8 +430,8 @@ namespace DustyPig.Server.Controllers.v3
             if (hist.Id <= 0)
                 return NotFound();
 
-            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
-                 .Where(item => item.Id == hist.Id)
+            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .Where(item => item.Id == hist.Id)
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null)
@@ -444,7 +444,9 @@ namespace DustyPig.Server.Controllers.v3
                 ? mediaEntry.Id
                 : mediaEntry.LinkedToId.Value;
 
-            var prog = DB.MediaProgress(UserProfile).FirstOrDefault(item => item.MediaEntryId == id);
+            var prog = await DB.MediaProgress(UserProfile)
+                .FirstOrDefaultAsync(item => item.MediaEntryId == id);
+            
             if (prog == null)
             {
                 if (hist.Seconds < 1 && mediaEntry.EntryType == MediaTypes.Movie)
@@ -467,7 +469,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (hist.Seconds < 1 && mediaEntry.EntryType == MediaTypes.Movie)
                 {
                     //Reset
-                    DB.Entry(prog).State = EntityState.Deleted;
+                    DB.ProfileMediaProgresses.Remove(prog);
                 }
                 else
                 {
@@ -475,7 +477,6 @@ namespace DustyPig.Server.Controllers.v3
                     prog.Played = Math.Max(0, hist.Seconds);
                     prog.Timestamp = DateTime.UtcNow;
                     prog.Xid = mediaEntry.Xid;
-                    DB.Entry(prog).State = EntityState.Modified;
                 }
 
                 await DB.SaveChangesAsync();
@@ -490,7 +491,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             //Get the max Xid for series
             var maxXidQ =
-               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserAccount, UserProfile)
                group mediaEntry by mediaEntry.LinkedToId into g
                select new
                {
@@ -501,13 +502,11 @@ namespace DustyPig.Server.Controllers.v3
             //Get the timings for last Xid in series
             var lastEpInfoQ =
                 from maxXid in maxXidQ
-                join mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+                join mediaEntry in dbInstance.EpisodesPlayableByProfile(UserAccount, UserProfile)
                     on new { maxXid.SeriesId, maxXid.LastXid } equals new { SeriesId = mediaEntry.LinkedToId, LastXid = mediaEntry.Xid }
 
                 where
-                    mediaEntry.LinkedToId.HasValue
-                    && mediaEntry.Xid.HasValue
-                    && mediaEntry.Length.HasValue
+                    mediaEntry.EntryType == MediaTypes.Episode
                     && maxXid.SeriesId.HasValue
                     && maxXid.LastXid.HasValue
                 select new
@@ -528,7 +527,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Finalize the series query
             var seriesFinalQ =
-                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserAccount, UserProfile)
                 join watchedSeries in watchedSeriesQ on mediaEntry.Id equals watchedSeries.MediaEntryId
                 join lastEpInfo in lastEpInfoQ on mediaEntry.Id equals lastEpInfo.SeriesId
                 where
@@ -554,7 +553,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //The movie query is pretty simple compared to the series
             var movieQ =
-                from mediaEntry in dbInstance.MoviesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.MoviesPlayableByProfile(UserAccount, UserProfile)
                 join profileMediaProgress in dbInstance.MediaProgress(UserProfile) on mediaEntry.Id equals profileMediaProgress.MediaEntryId
 
                 where
@@ -578,7 +577,7 @@ namespace DustyPig.Server.Controllers.v3
         private IQueryable<MediaEntry> RecentlyAddedQuery(AppDbContext dbInstance)
         {
             var maxAddedForSeriesQ =
-               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserAccount, UserProfile)
                group mediaEntry by mediaEntry.LinkedToId into g
                select new
                {
@@ -587,7 +586,7 @@ namespace DustyPig.Server.Controllers.v3
                };
 
             var seriesQ =
-                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserAccount, UserProfile)
                 join maxAddedForSeries in maxAddedForSeriesQ on mediaEntry.Id equals maxAddedForSeries.Id
                 select new
                 {
@@ -597,7 +596,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var movieQ =
-               from mediaEntry in dbInstance.MoviesPlayableByProfile(UserProfile)
+               from mediaEntry in dbInstance.MoviesPlayableByProfile(UserAccount, UserProfile)
                select new
                {
                    MediaEntry = mediaEntry,
@@ -617,18 +616,18 @@ namespace DustyPig.Server.Controllers.v3
         private IQueryable<MediaEntry> PopularQuery(AppDbContext dbInstance)
         {
             var maxAddedForSeriesQ =
-               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserProfile)
+               from mediaEntry in dbInstance.EpisodesPlayableByProfile(UserAccount, UserProfile)
                group mediaEntry by mediaEntry.LinkedToId into g
                select g.Key;
 
             var seriesQ =
-                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.SeriesPlayableByProfile(UserAccount, UserProfile)
                 join maxAddedForSeries in maxAddedForSeriesQ on mediaEntry.Id equals maxAddedForSeries
                 select mediaEntry;
 
 
             var movieQ =
-               from mediaEntry in dbInstance.MoviesPlayableByProfile(UserProfile)
+               from mediaEntry in dbInstance.MoviesPlayableByProfile(UserAccount, UserProfile)
                select mediaEntry;
 
 
@@ -645,7 +644,7 @@ namespace DustyPig.Server.Controllers.v3
         private IQueryable<GenreListDTO> GenresQuery(Genres genre, AppDbContext dbInstance)
         {
             var genreQ =
-                from mediaEntry in dbInstance.MoviesAndSeriesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.MoviesAndSeriesPlayableByProfile(UserAccount, UserProfile)
                 where (mediaEntry.Genres & genre) == genre
                 orderby
                     mediaEntry.Popularity descending,
@@ -667,7 +666,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.ProfileId == UserProfile.Id);
 
             var ret =
-                from mediaEntry in dbInstance.MoviesAndSeriesPlayableByProfile(UserProfile)
+                from mediaEntry in dbInstance.MoviesAndSeriesPlayableByProfile(UserAccount, UserProfile)
                 join watchListItem in watchlistQ on mediaEntry.Id equals watchListItem.MediaEntryId
                 orderby watchListItem.Added
                 select mediaEntry;

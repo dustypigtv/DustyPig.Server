@@ -36,14 +36,8 @@ namespace DustyPig.Server.Controllers.v3
             try { request.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-
-            var movieQ =
-                from mediaEntry in DB.MoviesPlayableByProfile(UserProfile)
-                select mediaEntry;
-
-            var sortedQ = ApplySortOrder(movieQ, request.Sort);
-
-            var movies = await sortedQ
+            var movies = await ApplySortOrder(DB.MoviesPlayableByProfile(UserAccount, UserProfile), request.Sort)
+                .AsNoTracking()
                 .Skip(request.Start)
                 .Take(LIST_SIZE)
                 .ToListAsync();
@@ -84,47 +78,41 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedMovie>> Details(int id)
         {
-            //Get the media entry
-            var meQ =
-                from mediaEntry in DB.MediaEntries
-                    .AsNoTracking()
-                    .Include(item => item.Subtitles)
-                    .Include(Item => Item.Library)
-                    .ThenInclude(item => item.Account)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.FriendLibraryShares)
-                    .ThenInclude(item => item.Friendship)
-                    .ThenInclude(item => item.Account1)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.FriendLibraryShares)
-                    .ThenInclude(item => item.Friendship)
-                    .ThenInclude(item => item.Account2)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.People)
-                    .ThenInclude(item => item.Person)
-
-                join progress in DB.MediaProgress(UserProfile) on mediaEntry.Id equals progress.MediaEntryId into progressLJ
-                from progress in progressLJ.DefaultIfEmpty()
-
-                where mediaEntry.Id == id && mediaEntry.EntryType == MediaTypes.Movie
-                select new { mediaEntry, progress };
-
-            var data = await meQ.SingleOrDefaultAsync();
-            if (data == null || data.mediaEntry == null)
-                return NotFound();
-
-
-            //See if the movie is searchable and playable by profile
-            bool searchable = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                
+                .Include(item => item.Subtitles)
+                
+                .Include(Item => Item.Library)
+                .ThenInclude(item => item.Account)
+                .ThenInclude(item => item.Profiles)
+                
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account1)
+                .ThenInclude(item => item.Profiles)
+                
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account2)
+                .ThenInclude(item => item.Profiles)
+                
+                .Include(item => item.People)
+                .ThenInclude(item => item.Person)
+                
+                .Include(item => item.ProfileMediaProgress)
+                
                 .Where(item => item.Id == id)
-                .AnyAsync();
+                .FirstOrDefaultAsync();
 
-            if (!searchable)
+            if (media == null)
                 return NotFound();
 
-            bool playable = await DB.MoviesPlayableByProfile(UserProfile)
+
+            
+            bool playable = await DB.MoviesPlayableByProfile(UserAccount, UserProfile)
                 .Where(item => item.Id == id)
                 .AnyAsync();
 
@@ -132,7 +120,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Build the response
-            var ret = data.mediaEntry.ToDetailedMovie(playable);
+            var ret = media.ToDetailedMovie(playable);
 
             if (playable)
                 ret.InWatchlist = await DB.WatchListItems
@@ -142,13 +130,13 @@ namespace DustyPig.Server.Controllers.v3
                     .AnyAsync();
 
             //Get the media owner
-            if (data.mediaEntry.Library.AccountId == UserAccount.Id)
+            if (media.Library.AccountId == UserAccount.Id)
             {
-                ret.Owner = data.mediaEntry.Library.Account.Profiles.Single(item => item.IsMain).Name;
+                ret.Owner = UserAccount.Profiles.Single(item => item.IsMain).Name;
             }
             else
             {
-                ret.Owner = data.mediaEntry.Library.FriendLibraryShares
+                ret.Owner = media.Library.FriendLibraryShares
                     .Select(item => item.Friendship)
                     .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
                     .First()
@@ -159,9 +147,12 @@ namespace DustyPig.Server.Controllers.v3
 
             // If playable
             if (playable)
-                if (data.progress != null)
-                    if (data.progress.Played >= 1 && data.progress.Played < (data.mediaEntry.CreditsStartTime ?? data.mediaEntry.Length.Value * 0.9))
-                        ret.Played = data.progress.Played;
+            {
+                var progress = media.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+                if (progress != null)
+                    if (progress.Played >= 1 && progress.Played < (media.CreditsStartTime ?? media.Length.Value * 0.9))
+                        ret.Played = progress.Played;
+            }
 
             return ret;
         }
@@ -436,7 +427,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> RequestAccessOverride(int id) => RequestAccessOverride(id, MediaTypes.Movie);
+        public Task<ActionResult> RequestAccessOverride(int id) => InternalRequestAccessOverride(id);
 
 
         /// <summary>
@@ -449,7 +440,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info) => SetAccessOverride(info, MediaTypes.Movie);
+        public Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info) => InternalSetAccessOverride(info);
 
 
     }

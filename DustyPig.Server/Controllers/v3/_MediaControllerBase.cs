@@ -119,63 +119,36 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task<ActionResult> RequestAccessOverride(int id, MediaTypes mediaType)
+        internal async Task<ActionResult> InternalRequestAccessOverride(int id)
         {
-            if (!UserProfile.IsMain)
-                if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                    return CommonResponses.Forbid;
+            if (UserProfile.IsMain)
+                return BadRequest("Main profile cannot requst overrids");
 
-
-            //Get the media entry
-            var meQ =
-                from mediaEntry in DB.MediaEntries
-                    .AsNoTracking()
-                    .Include(Item => Item.Library)
-                    .ThenInclude(item => item.Account)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.FriendLibraryShares)
-                    .ThenInclude(item => item.Friendship)
-                    .ThenInclude(item => item.Account1)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.FriendLibraryShares)
-                    .ThenInclude(item => item.Friendship)
-                    .ThenInclude(item => item.Account2)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.OverrideRequests)
-
-                where mediaEntry.Id == id && mediaEntry.EntryType == mediaType
-                select mediaEntry;
-
-            var data = await meQ.SingleOrDefaultAsync();
-            if (data == null)
-                return NotFound();
-
-
-            //See if the media searchable and playable by profile
-            bool searchable = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
-                .Where(item => item.Id == id)
-                .Where(item => item.EntryType == mediaType)
-                .AnyAsync();
-
-            if (!searchable)
-                return NotFound();
-
+            if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
+                return CommonResponses.Forbid;
 
             //Check if already playable
-            bool playable = await DB.MediaEntriesPlayableByProfile(UserProfile)
+            var playable = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
                 .Where(item => item.Id == id)
-                .Where(item => item.EntryType == mediaType)
-                .AnyAsync();
+                .FirstOrDefaultAsync();
 
-            if (playable)
-                return BadRequest($"You already have access to this {mediaType.ToString().ToLower()}");
+            if (playable != null)
+                return BadRequest($"You already have access to this {playable.EntryType.ToString().ToLower()}");
 
 
+            var media = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Include(item => item.OverrideRequests)
+                .Where(item => item.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (media == null)
+                return NotFound();
+                        
             //Check if already requested
-            if (data.OverrideRequests.Any(item => item.ProfileId == UserProfile.Id))
-                return BadRequest($"You have already requested access to this {mediaType.ToString().ToLower()}");
+            if (media.OverrideRequests.Any(item => item.ProfileId == UserProfile.Id))
+                return BadRequest($"You have already requested access to this {media.EntryType.ToString().ToLower()}");
 
 
             var request = DB.OverrideRequests.Add(new OverrideRequest
@@ -192,81 +165,53 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info, MediaTypes mediaType)
+        internal async Task<ActionResult> InternalSetAccessOverride(API.v3.Models.TitleOverride info)
         {
             // Check the profile
             if (!UserAccount.Profiles.Any(item => item.Id == info.ProfileId))
                 return NotFound("Profile not found");
 
             //Get the media entry
-            var meQ =
-                from mediaEntry in DB.MediaEntries
-                    .AsNoTracking()
-                    .Include(Item => Item.Library)
-                    .ThenInclude(item => item.Account)
-                    .ThenInclude(item => item.Profiles)
-
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.FriendLibraryShares)
-                    .ThenInclude(item => item.Friendship)
-                    .ThenInclude(item => item.Account1)
-                    .ThenInclude(item => item.Profiles)
-
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.FriendLibraryShares)
-                    .ThenInclude(item => item.Friendship)
-                    .ThenInclude(item => item.Account2)
-                    .ThenInclude(item => item.Profiles)
-
-                    .Include(item => item.Library)
-                    .ThenInclude(item => item.ProfileLibraryShares)
-                    .ThenInclude(item => item.Profile)
-
-                    .Include(item => item.OverrideRequests)
-
-                where mediaEntry.Id == info.MediaEntryId && mediaEntry.EntryType == mediaType
-                select mediaEntry;
-
-            var data = await meQ.SingleOrDefaultAsync();
-            if (data == null)
-                return NotFound($"{mediaType} not found");
-
-            //Make sure media is accessable to the account
-            if (data.Library.AccountId != UserAccount.Id)
-                if (!data.Library.FriendLibraryShares.Any(item => item.Friendship.Account1Id == data.Library.AccountId))
-                    if (!data.Library.FriendLibraryShares.Any(item => item.Friendship.Account2Id == data.Library.AccountId))
-                        return NotFound($"{mediaType} not found");
-
-            var existingOverride = await DB.TitleOverrides
-                .Where(item => item.MediaEntryId == info.MediaEntryId)
-                .Where(item => item.ProfileId == info.ProfileId)
+            var media = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .Include(item => item.TitleOverrides)
+                .Include(item => item.OverrideRequests)
+                .Where(item => item.Id == info.MediaEntryId)
                 .FirstOrDefaultAsync();
+
+            if (media == null)
+                return NotFound();
+
+            
+            var overrideEntity = media.TitleOverrides
+                .Where(item => item.ProfileId == info.ProfileId)
+                .FirstOrDefault();
 
             if (info.State == OverrideState.Default)
             {
                 //Delete override if exists
-                if (existingOverride != null)
-                    DB.TitleOverrides.Remove(existingOverride);
+                if (overrideEntity != null)
+                    media.TitleOverrides.Remove(overrideEntity);
             }
             else
             {
                 //Add or update
-                if (existingOverride == null)
-                    existingOverride = DB.TitleOverrides.Add(new Data.Models.TitleOverride
+                if (overrideEntity == null)
+                {
+                    overrideEntity = new Data.Models.TitleOverride
                     {
                         ProfileId = info.ProfileId,
                         MediaEntryId = info.MediaEntryId
-                    }).Entity;
-
-                existingOverride.State = info.State;
+                    };
+                    media.TitleOverrides.Add(overrideEntity);
+                }
+                overrideEntity.State = info.State;
             }
 
 
             // Update any requests
-            var overrideRequest = await DB.OverrideRequests
-                .Where(item => item.MediaEntryId == info.MediaEntryId)
+            var overrideRequest = media.OverrideRequests
                 .Where(item => item.ProfileId == info.ProfileId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefault();
 
             if (overrideRequest != null)
             {
@@ -282,25 +227,14 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     //Default
                     var profile = UserAccount.Profiles.Single(item => item.Id == info.ProfileId);
-                    if (profile.IsMain)
-                    {
+                    if (profile.AllowedRatings == Ratings.All)
                         overrideRequest.Status = RequestStatus.Fufilled;
-                    }
-                    else if (data.Library.ProfileLibraryShares.Any(item => item.ProfileId == profile.Id))
-                    {
-                        if (profile.AllowedRatings == Ratings.All)
-                            overrideRequest.Status = RequestStatus.Fufilled;
 
-                        else if (data.Rated.HasValue && ((profile.AllowedRatings & data.Rated) == data.Rated))
-                            overrideRequest.Status = RequestStatus.Fufilled;
+                    else if (media.Rated.HasValue && ((profile.AllowedRatings & media.Rated) == media.Rated))
+                        overrideRequest.Status = RequestStatus.Fufilled;
 
-                        else
-                            overrideRequest.Status = RequestStatus.Denied;
-                    }
                     else
-                    {
                         overrideRequest.Status = RequestStatus.Denied;
-                    }
                 }
 
                 overrideRequest.NotificationCreated = false;

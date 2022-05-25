@@ -85,7 +85,6 @@ namespace DustyPig.Server.Controllers.v3
             ret.Available = (await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.TMDB_Id == id)
-                .Distinct()
                 .OrderBy(item => item.SortTitle)
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
@@ -137,7 +136,6 @@ namespace DustyPig.Server.Controllers.v3
             ret.Available = (await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.TMDB_Id == id)
-                .Distinct()
                 .OrderBy(item => item.SortTitle)
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();

@@ -52,7 +52,9 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedPlaylist>> Details(int id)
         {
-            var playableIds = DB.MediaEntriesPlayableByProfile(UserProfile).Select(item => item.Id);
+            var playableIds = DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Select(item => item.Id);
 
             var playlistItems = await DB.PlaylistItems
                 .Include(item => item.Playlist)
@@ -92,12 +94,8 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            playlistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
-
-            int idx = 0;
-            foreach (var item in playlistItems)
-                item.Index = ++idx;
-            await DB.SaveChangesAsync();
+            if (SortPlaylist(playlistItems))
+                await DB.SaveChangesAsync();
 
 
             var ret = new DetailedPlaylist
@@ -233,10 +231,7 @@ namespace DustyPig.Server.Controllers.v3
             playlist.ArtworkUrl = info.ArtworkUrl;
             playlist.Name = info.Name;
 
-            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
-            int idx = 0;
-            foreach (var item in playlist.PlaylistItems)
-                item.Index = ++idx;
+            SortPlaylist(playlist.PlaylistItems);
 
             await DB.SaveChangesAsync();
 
@@ -258,10 +253,10 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (playlist == null)
-                return NotFound();
-
-            DB.Playlists.Remove(playlist);
-            await DB.SaveChangesAsync();
+            {
+                DB.Playlists.Remove(playlist);
+                await DB.SaveChangesAsync();
+            }
 
             return Ok();
         }
@@ -291,9 +286,7 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound();
 
-            int idx = 0;
-            foreach (var item in playlist.PlaylistItems.OrderBy(item => item.Index))
-                item.Index = ++idx;
+            SortPlaylist(playlist.PlaylistItems);
 
             playlist.CurrentIndex = Math.Min(info.CurrentIndex, playlist.PlaylistItems.Max(item => item.Index));
 
@@ -326,7 +319,7 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound("Playlist not found");
 
-            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
+            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.Id == info.MediaId)
                 .Where(item => new MediaTypes[] { MediaTypes.Movie, MediaTypes.Episode }.Contains(item.EntryType))
@@ -335,15 +328,11 @@ namespace DustyPig.Server.Controllers.v3
             if (mediaEntry == null)
                 return NotFound("Media not found");
 
-            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
-
-            int idx = 0;
-            foreach (var item in playlist.PlaylistItems)
-                item.Index = ++idx;
+            SortPlaylist(playlist.PlaylistItems);
 
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
-                Index = ++idx,
+                Index = playlist.PlaylistItems.Count,
                 MediaEntryId = info.MediaId,
                 PlaylistId = info.PlaylistId
             }).Entity;
@@ -376,7 +365,7 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound("Playlist not found");
 
-            var seriesAllowed = await DB.SeriesPlayableByProfile(UserProfile)
+            var seriesAllowed = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.Id == info.MediaId)
                 .AnyAsync();
@@ -384,18 +373,15 @@ namespace DustyPig.Server.Controllers.v3
             if (!seriesAllowed)
                 return NotFound("Series not found");
 
-            var mediaEntries = await DB.EpisodesPlayableByProfile(UserProfile)
+            var mediaEntries = await DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.LinkedToId == info.MediaId)
                 .ToListAsync();
 
 
-            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
+            SortPlaylist(playlist.PlaylistItems);
 
-            int idx = 0;
-            foreach (var item in playlist.PlaylistItems)
-                item.Index = ++idx;
-
+            int idx = playlist.PlaylistItems.Count - 1;
             foreach (var episode in mediaEntries.OrderBy(item => item.Xid))
             {
                 DB.PlaylistItems.Add(new Data.Models.PlaylistItem
@@ -429,18 +415,7 @@ namespace DustyPig.Server.Controllers.v3
                 int playlistId = data.PlaylistId;
 
                 DB.PlaylistItems.Remove(data);
-                await DB.SaveChangesAsync();
-
-                var playlistItems = await DB.PlaylistItems
-                    .Where(item => item.PlaylistId == playlistId)
-                    .OrderBy(item => item.Index)
-                    .ToListAsync();
-
-                int idx = 0;
-                foreach (var item in playlistItems)
-                    item.Index = ++idx;
-
-                await DB.SaveChangesAsync();
+                await DB.SaveChangesAsync();                
             }
 
             return Ok();
@@ -475,16 +450,30 @@ namespace DustyPig.Server.Controllers.v3
                     item.Index++;
 
             playlist.PlaylistItems.First(item => item.Id == info.MediaId).Index = info.Index;
-            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
-            int idx = 0;
-            foreach (var item in playlist.PlaylistItems)
-                item.Index = ++idx;
+            SortPlaylist(playlist.PlaylistItems);
 
             await DB.SaveChangesAsync();
 
             return Ok();
         }
+    
+    
+        private static bool SortPlaylist(List<Data.Models.PlaylistItem> playlistItems)
+        {
+            bool changed = false;
+
+            playlistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
+            for (int i = 0; i < playlistItems.Count; i++)
+                if (playlistItems[i].Index != i)
+                {
+                    playlistItems[i].Index = i;
+                    changed = true;
+                }
+            
+            return changed;
+        }
+    
     }
 }
 
