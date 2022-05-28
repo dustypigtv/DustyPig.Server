@@ -321,6 +321,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
+                .Include(item => item.LinkedTo)
                 .Where(item => item.Id == info.MediaId)
                 .Where(item => new MediaTypes[] { MediaTypes.Movie, MediaTypes.Episode }.Contains(item.EntryType))
                 .FirstOrDefaultAsync();
@@ -329,6 +330,14 @@ namespace DustyPig.Server.Controllers.v3
                 return NotFound("Media not found");
 
             SortPlaylist(playlist.PlaylistItems);
+
+            if (playlist.PlaylistItems.Count == 0)
+            {
+                if (Constants.TOP_LEVEL_MEDIA_TYPES.Contains(mediaEntry.EntryType))
+                    playlist.ArtworkUrl = mediaEntry.ArtworkUrl;
+                else
+                    playlist.ArtworkUrl = mediaEntry.LinkedTo.ArtworkUrl;
+            }
 
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
