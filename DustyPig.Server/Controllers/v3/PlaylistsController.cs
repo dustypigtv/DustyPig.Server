@@ -124,7 +124,7 @@ namespace DustyPig.Server.Controllers.v3
                 switch (dbPlaylistItem.MediaEntry.EntryType)
                 {
                     case MediaTypes.Episode:
-                        pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.LinkedTo.Season:00}e{dbPlaylistItem.MediaEntry.LinkedTo.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
+                        pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.Season:00}e{dbPlaylistItem.MediaEntry.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
                         break;
 
