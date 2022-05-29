@@ -374,12 +374,13 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound("Playlist not found");
 
-            var seriesAllowed = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
+
+            var series = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.Id == info.MediaId)
-                .AnyAsync();
+                .FirstOrDefaultAsync();
 
-            if (!seriesAllowed)
+            if (series == null)
                 return NotFound("Series not found");
 
             var mediaEntries = await DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
@@ -389,6 +390,10 @@ namespace DustyPig.Server.Controllers.v3
 
 
             SortPlaylist(playlist.PlaylistItems);
+
+            if (playlist.PlaylistItems.Count == 0)
+                playlist.ArtworkUrl = series.ArtworkUrl;
+           
 
             int idx = playlist.PlaylistItems.Count - 1;
             foreach (var episode in mediaEntries.OrderBy(item => item.Xid))
