@@ -676,12 +676,20 @@ namespace DustyPig.Server.Controllers.v3
 
         private IQueryable<Data.Models.Playlist> PlaylistQuery(AppDbContext dbInstance)
         {
+            var playableIds = dbInstance.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .Select(item => item.Id);
+
             var ret = dbInstance.Playlists
+                .Include(item => item.PlaylistItems.Where(item2 => playableIds.Contains(item2.MediaEntryId)))
+                .ThenInclude(item => item.MediaEntry)
+                .ThenInclude(item => item.LinkedTo)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Name);
 
             return ret.AsNoTracking();
         }
+
+       
 
 
         private static IOrderedQueryable<GenreListDTO> ApplySortOrder(IQueryable<GenreListDTO> q, SortOrder sortOrder)
@@ -720,5 +728,6 @@ namespace DustyPig.Server.Controllers.v3
             public MediaEntry MediaEntry { get; set; }
         }
 
+        
     }
 }

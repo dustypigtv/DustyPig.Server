@@ -16,12 +16,7 @@ namespace DustyPig.Server.Data.Models
         [Required]
         [MaxLength(Constants.MAX_NAME_LENGTH)]
         public string Name { get; set; }
-
-        [Required]
-        [MaxLength(Constants.MAX_URL_LENGTH)]
-        public string ArtworkUrl { get; set; }
-
-
+        
         /// <summary>
         /// Current Item Index
         /// </summary>

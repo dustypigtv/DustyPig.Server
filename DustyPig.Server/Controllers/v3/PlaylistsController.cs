@@ -29,18 +29,35 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.OK)]
         public async Task<ActionResult<List<BasicPlaylist>>> List()
         {
-            var ret = await DB.Playlists
-                .AsNoTracking()
+            var ret = new List<BasicPlaylist>();
+
+            var playableIds = DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+               .Select(item => item.Id);
+
+
+            var playlists = await DB.Playlists
+                .AsNoTracking()              
+                .Include(item => item.PlaylistItems.Where(item2 => playableIds.Contains(item2.MediaEntryId)))
+                .ThenInclude(item => item.MediaEntry)
+                .ThenInclude(item => item.LinkedTo)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Name)
                 .ToListAsync();
 
-            return ret.Select(item => new BasicPlaylist
+            foreach(var pl in playlists)
             {
-                Id = item.Id,
-                Name = item.Name,
-                ArtworkUrl = item.ArtworkUrl
-            }).ToList();
+                var bpl = new BasicPlaylist
+                {
+                    Id = pl.Id,
+                    Name = pl.Name
+                };
+
+                SortPlaylist(pl.PlaylistItems);
+                GetArtwork(bpl, pl);
+                ret.Add(bpl);
+            }
+
+            return ret;
         }
 
 
@@ -88,7 +105,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new DetailedPlaylist
                 {
                     Id = id,
-                    ArtworkUrl = playlist.ArtworkUrl,
+                    ArtworkUrl1 = Constants.DEFAULT_PLAYLIST_IMAGE,
                     Name = playlist.Name
                 };
             }
@@ -100,7 +117,6 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = new DetailedPlaylist
             {
-                ArtworkUrl = playlistItems[0].Playlist.ArtworkUrl,
                 Id = playlistItems[0].Playlist.Id,
                 Name = playlistItems[0].Playlist.Name,
                 CurrentIndex = playlistItems[0].Playlist.CurrentIndex
@@ -126,10 +142,32 @@ namespace DustyPig.Server.Controllers.v3
                     case MediaTypes.Episode:
                         pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.Season:00}e{dbPlaylistItem.MediaEntry.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
+
+                        if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                            ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
+                            ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
+                            ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
+                            ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        
                         break;
+
+
 
                     case MediaTypes.Movie:
                         pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
+
+                        if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                            ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
+                            ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
+                            ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
+                            ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+
                         break;
                 }
 
@@ -148,6 +186,9 @@ namespace DustyPig.Server.Controllers.v3
 
                 ret.Items.Add(pli);
             }
+
+            if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                ret.ArtworkUrl1 = Constants.DEFAULT_PLAYLIST_IMAGE;
 
             return ret;
         }
@@ -177,7 +218,6 @@ namespace DustyPig.Server.Controllers.v3
 
             playlist = new Data.Models.Playlist
             {
-                ArtworkUrl = info.ArtworkUrl,
                 Name = info.Name,
                 ProfileId = UserProfile.Id
             };
@@ -202,7 +242,7 @@ namespace DustyPig.Server.Controllers.v3
             //Validate object
             try { info.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
-
+            
 
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
@@ -228,7 +268,6 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            playlist.ArtworkUrl = info.ArtworkUrl;
             playlist.Name = info.Name;
 
             SortPlaylist(playlist.PlaylistItems);
@@ -330,15 +369,7 @@ namespace DustyPig.Server.Controllers.v3
                 return NotFound("Media not found");
 
             SortPlaylist(playlist.PlaylistItems);
-
-            if (playlist.PlaylistItems.Count == 0)
-            {
-                if (Constants.TOP_LEVEL_MEDIA_TYPES.Contains(mediaEntry.EntryType))
-                    playlist.ArtworkUrl = mediaEntry.ArtworkUrl;
-                else
-                    playlist.ArtworkUrl = mediaEntry.LinkedTo.ArtworkUrl;
-            }
-
+            
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
                 Index = playlist.PlaylistItems.Count,
@@ -390,11 +421,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             SortPlaylist(playlist.PlaylistItems);
-
-            if (playlist.PlaylistItems.Count == 0)
-                playlist.ArtworkUrl = series.ArtworkUrl;
-           
-
+            
             int idx = playlist.PlaylistItems.Count - 1;
             foreach (var episode in mediaEntries.OrderBy(item => item.Xid))
             {
@@ -487,7 +514,72 @@ namespace DustyPig.Server.Controllers.v3
             
             return changed;
         }
-    
+
+        private void GetArtwork(BasicPlaylist ret, Data.Models.Playlist pl)
+        {
+            //pl must have:
+            /*
+                .Include(item => item.PlaylistItems.Where(item2 => playableIds.Contains(item2.MediaEntryId)))
+                .ThenInclude(item => item.MediaEntry)
+                .ThenInclude(item => item.LinkedTo) 
+            */
+
+
+            List<string> art = new List<string>();
+
+            for (int i = 0; i < pl.PlaylistItems.Count; i++)
+            {
+                if (pl.PlaylistItems[i].MediaEntry.EntryType == MediaTypes.Movie)
+                {
+                    if (!art.Contains(pl.PlaylistItems[i].MediaEntry.ArtworkUrl))
+                    {
+                        art.Add(pl.PlaylistItems[i].MediaEntry.ArtworkUrl);
+                        if (art.Count > 3)
+                            break;
+                    }
+                }
+                else if (pl.PlaylistItems[i].MediaEntry.EntryType == MediaTypes.Episode)
+                {
+                    if (!art.Contains(pl.PlaylistItems[i].MediaEntry.LinkedTo.ArtworkUrl))
+                    {
+                        art.Add(pl.PlaylistItems[i].MediaEntry.LinkedTo.ArtworkUrl);
+                        if (art.Count > 3)
+                            break;
+                    }
+                }
+            }
+
+            if (art.Count == 0)
+                art.Add(Constants.DEFAULT_PLAYLIST_IMAGE);
+
+            /*
+                Clint Grid:
+                    1   2
+                    3   4
+             */
+            ret.ArtworkUrl1 = art[0];
+
+            if (art.Count == 2)
+            {
+                ret.ArtworkUrl2 = art[1];
+                ret.ArtworkUrl3 = art[0];
+                ret.ArtworkUrl4 = art[1];
+            }
+
+            if (art.Count == 3)
+            {
+                ret.ArtworkUrl2 = art[1];
+                ret.ArtworkUrl3 = art[2];
+                ret.ArtworkUrl4 = art[1];
+            }
+
+            if (art.Count == 4)
+            {
+                ret.ArtworkUrl2 = art[1];
+                ret.ArtworkUrl3 = art[2];
+                ret.ArtworkUrl4 = art[3];
+            }
+        }
     }
 }
 
