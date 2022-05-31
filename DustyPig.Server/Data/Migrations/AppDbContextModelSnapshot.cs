@@ -816,11 +816,6 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("ArtworkUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
                     b.Property<int>("CurrentIndex")
                         .HasColumnType("int");
 
