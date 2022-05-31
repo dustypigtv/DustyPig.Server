@@ -61,15 +61,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if(art.Count == 2)
             {
                 ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[0];
-                ret.ArtworkUrl4 = art[1];
+                ret.ArtworkUrl3 = art[1];
+                ret.ArtworkUrl4 = art[0];
             }
 
             if(art.Count== 3)
             {
                 ret.ArtworkUrl2 = art[1];
                 ret.ArtworkUrl3 = art[2];
-                ret.ArtworkUrl4 = art[1];
+                ret.ArtworkUrl4 = art[0];
             }
 
             if(art.Count == 4)
