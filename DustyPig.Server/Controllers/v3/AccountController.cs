@@ -98,7 +98,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             var profile = account.Profiles.First();
                             var token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, info.DeviceToken);
-                            return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.Profile });
+                            return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.MainProfile });
                         }
                         else
                         {

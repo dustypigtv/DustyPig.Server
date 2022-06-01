@@ -73,7 +73,7 @@ namespace DustyPig.Server.Controllers.v3
             if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
                 return new LoginResponse
                 {
-                    LoginType = LoginResponseType.Profile,
+                    LoginType = LoginResponseType.MainProfile,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.DeviceToken)
                 };
             else
@@ -159,7 +159,7 @@ namespace DustyPig.Server.Controllers.v3
             if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
                 return new LoginResponse
                 {
-                    LoginType = LoginResponseType.Profile,
+                    LoginType = LoginResponseType.MainProfile,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.DeviceToken)
                 };
             else
@@ -238,7 +238,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber != null)
                 {
                     ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, account.Profiles[0].Id, null);
-                    ret.LoginType = LoginResponseType.Profile;
+                    ret.LoginType = LoginResponseType.MainProfile;
                 }
                 else
                 {
@@ -340,12 +340,12 @@ namespace DustyPig.Server.Controllers.v3
                     return BadRequest("Invalid pin");
             }
 
-            if (profile.Locked)
+            if (!profile.IsMain && profile.Locked)
                 return CommonResponses.ProfileIsLocked;
 
             return new LoginResponse
             {
-                LoginType = LoginResponseType.Profile,
+                LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile,
                 Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
             };
         }
@@ -446,7 +446,10 @@ namespace DustyPig.Server.Controllers.v3
             if (profile == null)
                 return new VerifyTokenResponse { LoginType = LoginResponseType.Account };
             else
-                return new VerifyTokenResponse { LoginType = LoginResponseType.Profile };
+                return new VerifyTokenResponse
+                {
+                    LoginType = UserProfile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile 
+                };
         }
 
 
