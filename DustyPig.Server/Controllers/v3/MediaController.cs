@@ -487,6 +487,172 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<SimpleValue<Ratings>>> GetAllAvailableRatings()
+        {
+            var available = await DB.MoviesAndSeriesPlayableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Where(item => item.Rated.HasValue)
+                .Select(item => item.Rated.Value)
+                .Distinct()
+                .ToListAsync();
+
+            var strings = available.Select(item => item.ToString());
+
+            return new SimpleValue<Ratings>(strings.ToRatings());
+        }
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<SimpleValue<Genres>>> GetAllAvailableGenres()
+        {
+            var available = await DB.MoviesAndSeriesPlayableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Where(item => item.Genres.HasValue)
+                .Where(item => item.Genres != Genres.Unknown)
+                .Select(item => item.Genres.Value)
+                .Distinct()
+                .ToListAsync();
+
+            var ret = Genres.Unknown;
+            foreach(var item in available)
+                foreach(Genres g in Enum.GetValues(typeof(Genres)))
+                    if (g != Genres.Unknown)
+                        if (item.HasFlag(g))
+                            ret |= g;
+
+            return new SimpleValue<Genres>(ret);
+        }
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpPost]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<List<BasicMedia>>> Explore(ExploreRequest request)
+        {
+            //Validate
+            try { request.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
+            var maxAddedForSeriesQ =
+              from mediaEntry in DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
+              group mediaEntry by mediaEntry.LinkedToId into g
+              select new
+              {
+                  Id = g.Key,
+                  Timestamp = g.Max(item => item.Added),
+                  Released = g.Min(item => item.Date)
+              };
+
+            var seriesQ =
+                from mediaEntry in DB.SeriesPlayableByProfile(UserAccount, UserProfile)
+                join maxAddedForSeries in maxAddedForSeriesQ on mediaEntry.Id equals maxAddedForSeries.Id
+                select new
+                {
+                    MediaEntry = mediaEntry,
+                    maxAddedForSeries.Timestamp,
+                    maxAddedForSeries.Released
+                };
+
+
+            var movieQ =
+               from mediaEntry in DB.MoviesPlayableByProfile(UserAccount, UserProfile)
+               select new
+               {
+                   MediaEntry = mediaEntry,
+                   Timestamp = mediaEntry.Added,
+                   Released = mediaEntry.Date
+               };
+
+
+            var mediaQ =
+                request.ReturnMovies && request.ReturnSeries
+                ? movieQ.Union(seriesQ)
+                : request.ReturnMovies
+                ? movieQ
+                : seriesQ;
+
+
+            if(request.FilterOnGenres != null)
+            {
+                if (request.IncludeUnknownGenres)
+                    mediaQ = mediaQ.Where(item => item.MediaEntry.Genres == null || item.MediaEntry.Genres == Genres.Unknown || (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
+                else
+                    mediaQ = mediaQ.Where(item => (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
+            }
+
+            if(request.FilterOnRatings != null)
+            {
+                if(request.IncludeNoneRatings)
+                    mediaQ = mediaQ.Where(item => item.MediaEntry.Rated == null || item.MediaEntry.Rated == Ratings.None || (request.FilterOnRatings & item.MediaEntry.Rated) == item.MediaEntry.Rated);
+                else
+                    mediaQ = mediaQ.Where(item => (request.FilterOnRatings & item.MediaEntry.Rated) == item.MediaEntry.Rated);
+            }
+
+                
+            if(request.LibraryIds != null && request.LibraryIds.Count > 0)
+                mediaQ = mediaQ.Where(item => request.LibraryIds.Contains(item.MediaEntry.LibraryId));
+            
+
+            switch (request.SortBy)
+            {
+                case SortOrder.Added:
+                    mediaQ = mediaQ.OrderBy(item => item.Timestamp);
+                    break;
+
+                case SortOrder.Added_Descending:
+                    mediaQ = mediaQ.OrderByDescending(item => item.Timestamp);
+                    break;
+
+                case SortOrder.Alphabetical:
+                    mediaQ = mediaQ.OrderBy(item => item.MediaEntry.SortTitle);
+                    break;
+
+                case SortOrder.Alphabetical_Descending:
+                    mediaQ = mediaQ.OrderByDescending(item => item.MediaEntry.SortTitle);
+                    break;
+
+                case SortOrder.Popularity:
+                    mediaQ = mediaQ.OrderBy(item => item.MediaEntry.Popularity).ThenBy(item => item.MediaEntry.SortTitle);
+                    break;
+
+                case SortOrder.Released:
+                    mediaQ = mediaQ.OrderBy(item => item.Released).ThenBy(item => item.MediaEntry.SortTitle);
+                    break;
+
+                case SortOrder.Released_Descending:
+                    mediaQ = mediaQ.OrderByDescending(item => item.Released).ThenBy(item => item.MediaEntry.SortTitle);
+                    break;
+
+
+                default: // SortOrder.Popularity_Descending
+                    mediaQ = mediaQ.OrderByDescending(item => item.MediaEntry.Popularity).ThenBy(item => item.MediaEntry.SortTitle);
+                    break;
+            }
+
+
+            var ret = await mediaQ
+                .AsNoTracking()
+                .Skip(request.Start)
+                .Take(LIST_SIZE)
+                .ToListAsync();
+
+            return ret.Select(item => item.MediaEntry.ToBasicMedia()).ToList();
+        }
+
+
         private IQueryable<MediaEntry> ContinueWatchingQuery(AppDbContext dbInstance)
         {
             //Get the max Xid for series
