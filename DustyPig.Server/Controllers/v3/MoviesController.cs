@@ -143,8 +143,6 @@ namespace DustyPig.Server.Controllers.v3
                     .GetFriendDisplayNameForAccount(UserAccount.Id);
             }
 
-            ret.CanManage = UserProfile.IsMain;
-
             // If playable
             if (playable)
             {

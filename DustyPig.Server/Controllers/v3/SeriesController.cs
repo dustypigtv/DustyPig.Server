@@ -133,7 +133,6 @@ namespace DustyPig.Server.Controllers.v3
                 ArtworkUrl = media.ArtworkUrl,
                 BackdropUrl = media.BackdropUrl,
                 CanPlay = playable,
-                CanManage = UserProfile.IsMain,
                 Cast = media.GetPeople(Roles.Cast),
                 Description = media.Description,
                 Directors = media.GetPeople(Roles.Director),
