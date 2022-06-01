@@ -448,7 +448,7 @@ namespace DustyPig.Server.Controllers.v3
             else
                 return new VerifyTokenResponse
                 {
-                    LoginType = UserProfile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile 
+                    LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile 
                 };
         }
 
