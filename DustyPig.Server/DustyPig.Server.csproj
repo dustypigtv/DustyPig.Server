@@ -13,6 +13,10 @@
 </PropertyGroup>
 
  <ItemGroup>
+   <Content Include="wwwroot\.well-known\apple-app-site-association" />
+ </ItemGroup>
+
+ <ItemGroup>
    <None Include="..\.editorconfig" Link=".editorconfig" />
  </ItemGroup>
 
