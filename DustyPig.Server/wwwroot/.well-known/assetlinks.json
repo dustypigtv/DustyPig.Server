@@ -1,0 +1,20 @@
+[
+  {
+    "relation": [ "delegate_permission/common.get_login_creds" ],
+    "target": {
+      "namespace": "web",
+      "site": "https://service.dustypig.tv"
+    }
+  },
+  {
+    "relation": [ "delegate_permission/common.get_login_creds" ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "tv.dustypig.dustypig",
+      "sha256_cert_fingerprints": [
+        "0B:B0:95:4C:26:C8:F7:77:3A:81:40:A2:AB:3E:1D:A5:88:05:29:89:18:38:8E:A9:3B:99:71:19:F2:BC:ED:8A",
+        "F3:86:6A:BB:39:CF:65:7B:DA:E9:77:0B:30:AA:A8:AD:09:16:ED:22:A9:BF:82:F0:AF:65:BA:E1:C5:BA:96:ED"
+      ]
+    }
+  }
+]

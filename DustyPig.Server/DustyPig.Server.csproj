@@ -14,6 +14,7 @@
 
  <ItemGroup>
    <Content Include="wwwroot\.well-known\apple-app-site-association" />
+   <Content Include="wwwroot\.well-known\assetlinks.json" />
  </ItemGroup>
 
  <ItemGroup>
