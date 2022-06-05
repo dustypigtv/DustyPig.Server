@@ -237,6 +237,8 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
+            ret.CanManage = UserProfile.IsMain && UserAccount.Profiles.Count > 1;
+
             return ret;
         }
 
@@ -327,6 +329,7 @@ namespace DustyPig.Server.Controllers.v3
             var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
             allTerms.RemoveAll(item => coreTerms.Contains(item));
             ret.ExtraSearchTerms = allTerms;
+            ret.CanManage = true;
 
             return ret;
         }
