@@ -715,6 +715,158 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult> RequestAccessOverride(int id)
+        {
+            if (UserProfile.IsMain)
+                return BadRequest("Main profile cannot requst overrids");
+
+            if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
+                return CommonResponses.Forbid;
+
+            //Check if already playable
+            var playable = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Where(item => item.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (playable != null)
+                return BadRequest($"You already have access to this {playable.EntryType.ToString().ToLower()}");
+
+
+            var media = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
+                .AsNoTracking()
+                .Include(item => item.OverrideRequests)
+                .Where(item => item.Id == id)
+                .FirstOrDefaultAsync();
+
+            if (media == null)
+                return NotFound();
+
+            //Check if already requested
+            if (media.OverrideRequests.Any(item => item.ProfileId == UserProfile.Id))
+                return BadRequest($"You have already requested access to this {media.EntryType.ToString().ToLower()}");
+
+
+            var request = DB.OverrideRequests.Add(new OverrideRequest
+            {
+                MediaEntryId = id,
+                ProfileId = UserProfile.Id,
+                Status = RequestStatus.Requested,
+                Timestamp = DateTime.UtcNow
+            }).Entity;
+
+            await DB.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
+
+        /// <summary>
+        /// Level 3
+        /// </summary>
+        /// <remarks>Set access override for a specific movie</remarks>
+        [HttpPost]
+        [RequireMainProfile]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info)
+        {
+            // Check the profile
+            if (!UserAccount.Profiles.Any(item => item.Id == info.ProfileId))
+                return NotFound("Profile not found");
+
+            //Get the media entry
+            var media = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+                .Include(item => item.TitleOverrides)
+                .Include(item => item.OverrideRequests)
+                .Where(item => item.Id == info.MediaEntryId)
+                .FirstOrDefaultAsync();
+
+            if (media == null)
+                return NotFound();
+
+
+            var overrideEntity = media.TitleOverrides
+                .Where(item => item.ProfileId == info.ProfileId)
+                .FirstOrDefault();
+
+            if (info.State == OverrideState.Default)
+            {
+                //Delete override if exists
+                if (overrideEntity != null)
+                    media.TitleOverrides.Remove(overrideEntity);
+            }
+            else
+            {
+                //Add or update
+                if (overrideEntity == null)
+                {
+                    overrideEntity = new Data.Models.TitleOverride
+                    {
+                        ProfileId = info.ProfileId,
+                        MediaEntryId = info.MediaEntryId
+                    };
+                    media.TitleOverrides.Add(overrideEntity);
+                }
+                overrideEntity.State = info.State;
+            }
+
+
+            // Update any requests
+            var overrideRequest = media.OverrideRequests
+                .Where(item => item.ProfileId == info.ProfileId)
+                .FirstOrDefault();
+
+            if (overrideRequest != null)
+            {
+                if (info.State == OverrideState.Allow)
+                {
+                    overrideRequest.Status = RequestStatus.Fufilled;
+                }
+                else if (info.State == OverrideState.Block)
+                {
+                    overrideRequest.Status = RequestStatus.Denied;
+                }
+                else
+                {
+                    //Default
+                    var profile = UserAccount.Profiles.Single(item => item.Id == info.ProfileId);
+                    if (profile.AllowedRatings == Ratings.All)
+                        overrideRequest.Status = RequestStatus.Fufilled;
+
+                    else if (media.Rated.HasValue && ((profile.AllowedRatings & media.Rated) == media.Rated))
+                        overrideRequest.Status = RequestStatus.Fufilled;
+
+                    else
+                        overrideRequest.Status = RequestStatus.Denied;
+                }
+
+                overrideRequest.NotificationCreated = false;
+                overrideRequest.Timestamp = DateTime.UtcNow;
+            }
+
+            await DB.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
+
+
         private IQueryable<MediaEntry> ContinueWatchingQuery(AppDbContext dbInstance)
         {
             //Get the max Xid for series

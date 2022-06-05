@@ -418,32 +418,5 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.Forbidden)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public Task<ActionResult> Delete(int id) => DeleteMedia(id);
-
-
-        /// <summary>
-        /// Level 2
-        /// </summary>
-        /// <remarks>Request override access to an existing movie</remarks>
-        [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> RequestAccessOverride(int id) => InternalRequestAccessOverride(id);
-
-
-        /// <summary>
-        /// Level 3
-        /// </summary>
-        /// <remarks>Set access override for a specific movie</remarks>
-        [HttpPost]
-        [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info) => InternalSetAccessOverride(info);
-
-
     }
 }
