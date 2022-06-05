@@ -534,6 +534,68 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
+        /// Level 3
+        /// </summary>
+        [HttpGet("{id}")]
+        [RequireMainProfile]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        public async Task<ActionResult<TitlePermissionInfo>> GetTitlePermissions(int id)
+        {
+            if (!UserProfile.IsMain)
+                return Forbid();
+
+            var mediaEntry = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.Id == id)
+                .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType))
+                .SingleOrDefaultAsync();
+
+            if (mediaEntry == null)
+                return CommonResponses.NotFoundObject("Media not found");
+
+            var ret = new TitlePermissionInfo { TitlId = id };
+
+            var profiles = await DB.Profiles
+                .AsNoTracking()
+                .Include(item => item.ProfileLibraryShares)
+                .Include(item => item.TitleOverrides)
+                .Where(item => item.AccountId == UserAccount.Id)
+                .Where(item => !item.IsMain)
+                .OrderBy(item => item.Name)
+                .ToListAsync();
+            
+
+            foreach(var profile in profiles)
+            {
+                var profInfo = new ProfileTilePermissionInfo
+                {
+                    AvatarUrl = profile.AvatarUrl,
+                    HasPin = profile.PinNumber != null && profile.PinNumber > 999,
+                    Id = profile.Id,
+                    IsMain = profile.IsMain,
+                    Name = profile.Name
+                };
+
+                profInfo.HasLibraryAccess = profile.ProfileLibraryShares.Any(item => item.LibraryId == mediaEntry.LibraryId);
+                if(profInfo.HasLibraryAccess)
+                {
+                    profInfo.CanWatchByDefault = profile.AllowedRatings == Ratings.All || (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated;
+                    var ovrride = profile.TitleOverrides.FirstOrDefault(item => item.MediaEntryId == mediaEntry.Id);
+                    if (ovrride != null)
+                        profInfo.Override = ovrride.State;
+                }
+
+                ret.Profiles.Add(profInfo);
+            }
+
+            return ret;
+        }
+
+
+
+        /// <summary>
         /// Level 2
         /// </summary>
         [HttpPost]
