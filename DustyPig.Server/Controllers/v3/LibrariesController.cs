@@ -67,6 +67,45 @@ namespace DustyPig.Server.Controllers.v3
             return ret;
         }
 
+        [HttpGet("{id}")]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult<BasicLibrary>> GetBasic(int id)
+        {
+            //Libs owned by the account
+            var lib = await DB.Libraries
+                .AsNoTracking()
+                .Where(item => item.AccountId == UserAccount.Id)
+                .Where(item => item.Id == id)
+                .SingleOrDefaultAsync();
+
+            if (lib != null)
+                return lib.ToBasicLibraryInfo();
+
+            var sharedLibs = await DB.FriendLibraryShares
+                .AsNoTracking()
+
+                .Include(item => item.Friendship)
+                .ThenInclude(item => item.Account1)
+                .ThenInclude(item => item.Profiles)
+
+                .Include(item => item.Friendship)
+                .ThenInclude(item => item.Account2)
+                .ThenInclude(item => item.Profiles)
+
+                .Include(item => item.Library)
+
+                .Where(item => item.Friendship.Account1Id == UserAccount.Id || item.Friendship.Account2Id == UserAccount.Id)
+                .Where(item => item.Friendship.Accepted)
+
+                .ToListAsync();
+
+            var share = sharedLibs.FirstOrDefault(item => item.LibraryId == id);
+            if (share != null)
+                return share.ToBasicLibraryInfo(UserAccount.Id);
+
+            return NotFound("Library not found");
+        }
 
         /// <summary>
         /// Level 3
