@@ -131,6 +131,7 @@ namespace DustyPig.Server.Controllers.v3
                     Description = dbPlaylistItem.MediaEntry.Description,
                     Id = dbPlaylistItem.Id,
                     Index = dbPlaylistItem.Index,
+                    Length = dbPlaylistItem.MediaEntry.Length ?? 0,
                     MediaId = dbPlaylistItem.MediaEntryId,
                     MediaType = dbPlaylistItem.MediaEntry.EntryType,
                     BifUrl = dbPlaylistItem.MediaEntry.BifUrl,
