@@ -735,7 +735,7 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.Forbid;
 
             //Check if already playable
-            var playable = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+            var playable = await DB.MoviesAndSeriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 .Where(item => item.Id == id)
                 .FirstOrDefaultAsync();
