@@ -284,7 +284,6 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpDelete("{id}")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult> Delete(int id)
         {
             var playlist = await DB.Playlists
@@ -292,7 +291,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
 
-            if (playlist == null)
+            if (playlist != null)
             {
                 DB.Playlists.Remove(playlist);
                 await DB.SaveChangesAsync();
