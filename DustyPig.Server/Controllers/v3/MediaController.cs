@@ -785,9 +785,15 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info)
         {
-            // Check the profile
-            if (!UserAccount.Profiles.Any(item => item.Id == info.ProfileId))
-                return NotFound("Profile not found");
+            //Validate
+            try { info.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+
+            // Check the profiles
+            foreach (var ptoi in info.Overrides)
+                if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
+                    return NotFound("Profile not found");
 
             //Get the media entry
             var media = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
@@ -799,64 +805,66 @@ namespace DustyPig.Server.Controllers.v3
             if (media == null)
                 return NotFound();
 
-
-            var overrideEntity = media.TitleOverrides
-                .Where(item => item.ProfileId == info.ProfileId)
-                .FirstOrDefault();
-
-            if (info.State == OverrideState.Default)
+            foreach (var ptoi in info.Overrides)
             {
-                //Delete override if exists
-                if (overrideEntity != null)
-                    media.TitleOverrides.Remove(overrideEntity);
-            }
-            else
-            {
-                //Add or update
-                if (overrideEntity == null)
-                {
-                    overrideEntity = new Data.Models.TitleOverride
-                    {
-                        ProfileId = info.ProfileId,
-                        MediaEntryId = info.MediaEntryId
-                    };
-                    media.TitleOverrides.Add(overrideEntity);
-                }
-                overrideEntity.State = info.State;
-            }
+                var overrideEntity = media.TitleOverrides
+                    .Where(item => item.ProfileId == ptoi.ProfileId)
+                    .FirstOrDefault();
 
-
-            // Update any requests
-            var overrideRequest = media.OverrideRequests
-                .Where(item => item.ProfileId == info.ProfileId)
-                .FirstOrDefault();
-
-            if (overrideRequest != null)
-            {
-                if (info.State == OverrideState.Allow)
+                if (ptoi.NewState == OverrideState.Default)
                 {
-                    overrideRequest.Status = RequestStatus.Fufilled;
-                }
-                else if (info.State == OverrideState.Block)
-                {
-                    overrideRequest.Status = RequestStatus.Denied;
+                    //Delete override if exists
+                    if (overrideEntity != null)
+                        media.TitleOverrides.Remove(overrideEntity);
                 }
                 else
                 {
-                    //Default
-                    var profile = UserAccount.Profiles.Single(item => item.Id == info.ProfileId);
-                    if (profile.AllowedRatings == Ratings.All)
-                        overrideRequest.Status = RequestStatus.Fufilled;
-
-                    else if (media.Rated.HasValue && ((profile.AllowedRatings & media.Rated) == media.Rated))
-                        overrideRequest.Status = RequestStatus.Fufilled;
-
-                    else
-                        overrideRequest.Status = RequestStatus.Denied;
+                    //Add or update
+                    if (overrideEntity == null)
+                    {
+                        overrideEntity = new Data.Models.TitleOverride
+                        {
+                            ProfileId = ptoi.ProfileId,
+                            MediaEntryId = info.MediaEntryId
+                        };
+                        media.TitleOverrides.Add(overrideEntity);
+                    }
+                    overrideEntity.State = ptoi.NewState;
                 }
 
-                overrideRequest.NotificationCreated = false;
-                overrideRequest.Timestamp = DateTime.UtcNow;
+
+                // Update any requests
+                var overrideRequest = media.OverrideRequests
+                    .Where(item => item.ProfileId == ptoi.ProfileId)
+                    .FirstOrDefault();
+
+                if (overrideRequest != null)
+                {
+                    if (ptoi.NewState == OverrideState.Allow)
+                    {
+                        overrideRequest.Status = RequestStatus.Fufilled;
+                    }
+                    else if (ptoi.NewState == OverrideState.Block)
+                    {
+                        overrideRequest.Status = RequestStatus.Denied;
+                    }
+                    else
+                    {
+                        //Default
+                        var profile = UserAccount.Profiles.Single(item => item.Id == ptoi.ProfileId);
+                        if (profile.AllowedRatings == Ratings.All)
+                            overrideRequest.Status = RequestStatus.Fufilled;
+
+                        else if (media.Rated.HasValue && ((profile.AllowedRatings & media.Rated) == media.Rated))
+                            overrideRequest.Status = RequestStatus.Fufilled;
+
+                        else
+                            overrideRequest.Status = RequestStatus.Denied;
+                    }
+
+                    overrideRequest.NotificationCreated = false;
+                    overrideRequest.Timestamp = DateTime.UtcNow;
+                }
             }
 
             await DB.SaveChangesAsync();
