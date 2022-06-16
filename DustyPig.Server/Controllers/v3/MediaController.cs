@@ -555,7 +555,7 @@ namespace DustyPig.Server.Controllers.v3
             if (mediaEntry == null)
                 return CommonResponses.NotFoundObject("Media not found");
 
-            var ret = new TitlePermissionInfo { TitlId = id };
+            var ret = new TitlePermissionInfo { TitleId = id };
 
             var profiles = await DB.Profiles
                 .AsNoTracking()
@@ -569,7 +569,7 @@ namespace DustyPig.Server.Controllers.v3
 
             foreach(var profile in profiles)
             {
-                var profInfo = new ProfileTilePermissionInfo
+                var profInfo = new ProfileTitlePermissionInfo
                 {
                     AvatarUrl = profile.AvatarUrl,
                     HasPin = profile.PinNumber != null && profile.PinNumber > 999,
