@@ -498,8 +498,64 @@ namespace DustyPig.Server.Controllers.v3
 
             return Ok();
         }
-    
-    
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpPost]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult> UpdatePlaylistItems(UpdatePlaylistItemsData data)
+        {
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+            var playlist = await DB.Playlists
+                .Include(item => item.PlaylistItems)
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .Where(item => item.Id == data.Id)
+                .FirstOrDefaultAsync();
+
+            if (playlist == null)
+                return NotFound("Playlist not found");
+
+            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
+            
+            while(playlist.PlaylistItems.Count > data.MediaIds.Count)
+            {
+                playlist.PlaylistItems.RemoveAt(playlist.PlaylistItems.Count - 1);
+            }
+
+            for (int i = 0; i < data.MediaIds.Count; i++)
+            {
+                if (playlist.PlaylistItems.Count > i)
+                {
+                    playlist.PlaylistItems[i].MediaEntryId = data.MediaIds[i];
+                    playlist.PlaylistItems[i].Index = i;
+                }
+                else
+                {
+                    playlist.PlaylistItems.Add(new Data.Models.PlaylistItem
+                    {
+                        MediaEntryId = data.MediaIds[i],
+                        Index = i,
+                        PlaylistId = playlist.Id
+                    });
+                }
+            }
+
+
+            await DB.SaveChangesAsync();
+
+            return Ok();
+        }
+
+
+
+
         private static bool SortPlaylist(List<Data.Models.PlaylistItem> playlistItems)
         {
             bool changed = false;
