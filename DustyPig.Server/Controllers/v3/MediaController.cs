@@ -652,7 +652,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (request.IncludeUnknownGenres)
                     mediaQ = mediaQ.Where(item => item.MediaEntry.Genres == null || item.MediaEntry.Genres == Genres.Unknown || (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
                 else
-                    mediaQ = mediaQ.Where(item => (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
+                    mediaQ = mediaQ.Where(item => item.MediaEntry.Genres != null && item.MediaEntry.Genres != Genres.Unknown && (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
             }
 
             if(request.FilterOnRatings != null)
@@ -660,7 +660,7 @@ namespace DustyPig.Server.Controllers.v3
                 if(request.IncludeNoneRatings)
                     mediaQ = mediaQ.Where(item => item.MediaEntry.Rated == null || item.MediaEntry.Rated == Ratings.None || (request.FilterOnRatings & item.MediaEntry.Rated) == item.MediaEntry.Rated);
                 else
-                    mediaQ = mediaQ.Where(item => (request.FilterOnRatings & item.MediaEntry.Rated) == item.MediaEntry.Rated);
+                    mediaQ = mediaQ.Where(item => item.MediaEntry.Rated != null && item.MediaEntry.Rated != Ratings.None && (request.FilterOnRatings & item.MediaEntry.Rated) == item.MediaEntry.Rated);
             }
 
                 
