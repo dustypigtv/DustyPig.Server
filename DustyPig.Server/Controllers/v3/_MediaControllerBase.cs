@@ -106,9 +106,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             var ret = me.Title.NormalizedQueryString().Tokenize();
 
-            foreach (string name in me.People.Select(item => item.Person.Name))
-                ret.AddRange(name.NormalizedQueryString().Tokenize());
-
+            
 
             if (extraSearchTerms != null)
                 ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));
