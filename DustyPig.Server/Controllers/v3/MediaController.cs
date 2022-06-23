@@ -650,9 +650,9 @@ namespace DustyPig.Server.Controllers.v3
             if(request.FilterOnGenres != null)
             {
                 if (request.IncludeUnknownGenres)
-                    mediaQ = mediaQ.Where(item => item.MediaEntry.Genres == null || item.MediaEntry.Genres == Genres.Unknown || (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
+                    mediaQ = mediaQ.Where(item => item.MediaEntry.Genres == null || item.MediaEntry.Genres == Genres.Unknown || (request.FilterOnGenres & item.MediaEntry.Genres) == request.FilterOnGenres);
                 else
-                    mediaQ = mediaQ.Where(item => item.MediaEntry.Genres != null && item.MediaEntry.Genres != Genres.Unknown && (request.FilterOnGenres & item.MediaEntry.Genres) == item.MediaEntry.Genres);
+                    mediaQ = mediaQ.Where(item => item.MediaEntry.Genres != null && item.MediaEntry.Genres != Genres.Unknown && (request.FilterOnGenres & item.MediaEntry.Genres) == request.FilterOnGenres);
             }
 
             if(request.FilterOnRatings != null)
