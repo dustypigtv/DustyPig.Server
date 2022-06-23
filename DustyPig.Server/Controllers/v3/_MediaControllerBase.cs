@@ -110,6 +110,11 @@ namespace DustyPig.Server.Controllers.v3
             var squished = me.Title.Replace("-", null).Replace(".", null).NormalizedQueryString().Tokenize();
             ret.AddRange(squished);
 
+            //Add genres
+            if (me.Genres.HasValue)
+                ret.AddRange(me.Genres.Value.AsString().NormalizedQueryString().Tokenize());
+            
+
             if (extraSearchTerms != null)
                 ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));
 
