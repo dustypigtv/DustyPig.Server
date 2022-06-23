@@ -106,7 +106,9 @@ namespace DustyPig.Server.Controllers.v3
         {
             var ret = me.Title.NormalizedQueryString().Tokenize();
 
-            
+            //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
+            var squished = me.Title.Replace("-", null).Replace(".", null).NormalizedQueryString().Tokenize();
+            ret.AddRange(squished);
 
             if (extraSearchTerms != null)
                 ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));
