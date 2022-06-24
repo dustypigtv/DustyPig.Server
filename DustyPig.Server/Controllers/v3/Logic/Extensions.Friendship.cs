@@ -18,7 +18,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static BasicFriend ToBasicFriendInfo(this Friendship @this, int accountId) => new BasicFriend
         {
             Id = @this.Id,
-            DisplayName = @this.GetFriendDisplayNameForAccount(accountId)
+            DisplayName = @this.GetFriendDisplayNameForAccount(accountId),
+            AvatarUrl = @this.GetFriendAvatar(accountId)
         };
 
 
@@ -39,6 +40,22 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             return Utils.Coalesce(displayName, acctName);
         }
+
+        /// <summary>
+        /// Make sure friend was called with:
+        ///     .Include(item => item.Account1)
+        ///     .ThenInclude(item => item.Profiles)
+        ///     .Include(item => item.Account2)
+        ///     .ThenInclude(item => item.Profiles)
+        /// </summary>
+        public static string GetFriendAvatar(this Friendship friend, int accountId)
+        {
+            return friend.Account1Id == accountId
+                ? friend.Account2.Profiles.Where(item => item.IsMain).Single().AvatarUrl
+                : friend.Account1.Profiles.Where(item => item.IsMain).Single().AvatarUrl;
+        }
+
+
 
     }
 }
