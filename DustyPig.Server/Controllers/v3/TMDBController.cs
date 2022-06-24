@@ -171,9 +171,131 @@ namespace DustyPig.Server.Controllers.v3
             try { data.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            
+            if (data.AccountId == UserAccount.Id)
+                return BadRequest("You cannot request a title from yourself");
 
-            throw new NotImplementedException();
+            if (UserProfile.IsMain)
+            {
+                if (data.AccountId == null)
+                    return BadRequest("You cannot request a title from yourself");
+
+                if (data.AccountId.Value <= 0)
+                    return BadRequest($"Invalid {nameof(data.AccountId)}");
+
+                var friends = await DB.Friendships
+                    .AsNoTracking()
+                    .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                    .ToListAsync();
+
+                if (friends.Count == 0)
+                    return BadRequest("You cannot request a title from yourself");
+
+                bool validFriend = friends.Any(item => item.Account1Id == UserAccount.Id && item.Account2Id == data.AccountId);
+                if (!validFriend)
+                    validFriend = friends.Any(item => item.Account2Id == UserAccount.Id && item.Account1Id == data.AccountId);
+
+                if (!validFriend)
+                    return BadRequest("Friend not found");
+            }
+            else
+            {
+                if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
+                    return BadRequest("You are not authorized to request titles");
+
+
+                if (data.AccountId == null)
+                    data.AccountId = UserAccount.Id;
+
+
+                if (UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
+                {
+                    if (data.AccountId != UserAccount.Id)
+                    {
+                        if (data.AccountId.Value <= 0)
+                            return BadRequest($"Invalid {nameof(data.AccountId)}");
+
+                        var friends = await DB.Friendships
+                            .AsNoTracking()
+                            .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                            .ToListAsync();
+
+                        bool validFriend = friends.Any(item => item.Account1Id == UserAccount.Id && item.Account2Id == data.AccountId);
+                        if (!validFriend)
+                            validFriend = friends.Any(item => item.Account2Id == UserAccount.Id && item.Account1Id == data.AccountId);
+
+                        if (!validFriend)
+                            return BadRequest("Friend not found");
+                    }
+                }
+            }
+
+
+
+            //Check for existing request
+            var existingRequest = await DB.GetRequests
+                .AsNoTracking()
+                .Include(item => item.Profile)
+                .Where(item => item.Profile.AccountId == UserAccount.Id)
+                .Where(item => item.TMDB_Id == data.TMDB_Id)
+                .Where(item => item.EntryType == data.MediaType)
+                .FirstOrDefaultAsync();
+
+            if (existingRequest != null)
+            {
+                if (existingRequest.ProfileId == UserProfile.Id)
+                {
+                    return BadRequest("You have already requested this title");
+                }
+                else
+                {
+                    //Add get request for this profile, so they are notified when available
+                    DB.GetRequests.Add(new Data.Models.GetRequest
+                    {
+                        AccountId = existingRequest.AccountId,
+                        EntryType = existingRequest.EntryType,
+                        ParentalStatus = existingRequest.ParentalStatus,
+                        ProfileId = UserProfile.Id,
+                        Status = existingRequest.Status,
+                        Timestamp = DateTime.UtcNow,
+                        TMDB_Id = data.TMDB_Id
+                    });
+
+                    await DB.SaveChangesAsync();
+
+                    return Ok();
+                }
+            }
+
+            //Validate TMDB Id
+            if (data.MediaType == TMDB_MediaTypes.Movie)
+            {
+                var response = await _client.GetMovieAsync(data.TMDB_Id);
+                if (!response.Success)
+                    return BadRequest("Movie not found");
+            }
+            else
+            {
+                var response = await _client.GetSeriesAsync(data.TMDB_Id);
+                if (!response.Success)
+                    return BadRequest("Series not found");
+            }
+
+
+            //Create the request
+            DB.GetRequests.Add(new Data.Models.GetRequest
+            {
+                AccountId = data.AccountId.Value,
+                EntryType = data.MediaType,
+                ParentalStatus = RequestStatus.Requested,
+                ProfileId = UserProfile.Id,
+                Status = RequestStatus.Requested,
+                Timestamp = DateTime.UtcNow,
+                TMDB_Id = data.TMDB_Id
+            });
+
+            await DB.SaveChangesAsync();
+
+            return Ok();
         }
 
 
