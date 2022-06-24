@@ -48,7 +48,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Select(item => item.ToBasicFriendInfo(UserAccount.Id))
                 .ToList();
 
-            ret.Sort();
+            ret.Sort((x, y) => x.DisplayName.CompareTo(y.DisplayName));
             return ret;
         }
 
