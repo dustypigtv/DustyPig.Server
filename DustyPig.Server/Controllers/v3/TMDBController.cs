@@ -63,20 +63,20 @@ namespace DustyPig.Server.Controllers.v3
                 TMDB_ID = movie.Data.Id
             };
 
-            if(movie.Data.ReleaseDate.HasValue)
+            if (movie.Data.ReleaseDate.HasValue)
             {
                 ret.Year = movie.Data.ReleaseDate.Value.Year;
             }
             else
             {
                 movie.Data.Releases.Countries.Sort((x, y) => -x.ReleaseDate.CompareTo(y.ReleaseDate));
-                foreach(var release in movie.Data.Releases.Countries.Where(item => item.Name == "US"))
+                foreach (var release in movie.Data.Releases.Countries.Where(item => item.Name == "US"))
                 {
                     ret.Year = release.ReleaseDate.Year;
                     break;
                 }
             }
-                        
+
             if (movie.Data.Genres != null)
                 ret.Genres = string.Join(",", movie.Data.Genres.Select(item => item.Name)).ToGenres();
 
@@ -124,10 +124,10 @@ namespace DustyPig.Server.Controllers.v3
                 TMDB_ID = series.Data.Id
             };
 
-          
+
             if (series.Data.FirstAirDate.HasValue)
                 ret.Year = series.Data.FirstAirDate.Value.Year;
-            
+
             if (series.Data.Genres != null)
                 ret.Genres = string.Join(",", series.Data.Genres.Select(item => item.Name)).ToGenres();
 
@@ -142,6 +142,30 @@ namespace DustyPig.Server.Controllers.v3
 
             return ret;
         }
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<SimpleValue<TitleRequestPermissions>>> GetRequestTitlePermission()
+        {
+            if (UserProfile.IsMain)
+            {
+                var hasFriends = await DB.Friendships
+                    .AsNoTracking()
+                    .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                    .AnyAsync();
+
+                return new SimpleValue<TitleRequestPermissions>(hasFriends ? TitleRequestPermissions.Enabled : TitleRequestPermissions.Disabled);
+            }
+            else
+            {
+                return new SimpleValue<TitleRequestPermissions>(UserProfile.TitleRequestPermission);
+            }
+        }
+
+
 
 
         private static void FillCredits(Credits credits, DetailedTMDB ret)
