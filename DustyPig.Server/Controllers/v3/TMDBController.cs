@@ -90,9 +90,9 @@ namespace DustyPig.Server.Controllers.v3
                 .Select(item => item.ToBasicMedia()).ToList();
 
 
-            var permissions = await CalculateTitleRequestPermissions();
-            ret.CanRequest = permissions != TitleRequestPermissions.Disabled;
-            
+            ret.RequestPermission = await CalculateTitleRequestPermissions();
+
+
             return ret;
         }
 
@@ -144,8 +144,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
 
-            var permissions = await CalculateTitleRequestPermissions();
-            ret.CanRequest = permissions != TitleRequestPermissions.Disabled;
+            ret.RequestPermission = await CalculateTitleRequestPermissions();
 
             return ret;
         }
