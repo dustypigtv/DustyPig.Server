@@ -89,6 +89,10 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
 
+
+            var permissions = await CalculateTitleRequestPermissions();
+            ret.CanRequest = permissions != TitleRequestPermissions.Disabled;
+            
             return ret;
         }
 
@@ -140,6 +144,9 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
 
+            var permissions = await CalculateTitleRequestPermissions();
+            ret.CanRequest = permissions != TitleRequestPermissions.Disabled;
+
             return ret;
         }
 
@@ -150,6 +157,14 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet]
         public async Task<ActionResult<SimpleValue<TitleRequestPermissions>>> GetRequestTitlePermission()
         {
+            var ret = await CalculateTitleRequestPermissions();
+            return new SimpleValue<TitleRequestPermissions>(ret);
+        }
+
+
+
+        private async Task<TitleRequestPermissions> CalculateTitleRequestPermissions()
+        {
             if (UserProfile.IsMain)
             {
                 var hasFriends = await DB.Friendships
@@ -157,11 +172,11 @@ namespace DustyPig.Server.Controllers.v3
                     .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
                     .AnyAsync();
 
-                return new SimpleValue<TitleRequestPermissions>(hasFriends ? TitleRequestPermissions.Enabled : TitleRequestPermissions.Disabled);
+                return hasFriends ? TitleRequestPermissions.Enabled : TitleRequestPermissions.Disabled;
             }
             else
             {
-                return new SimpleValue<TitleRequestPermissions>(UserProfile.TitleRequestPermission);
+                return UserProfile.TitleRequestPermission;
             }
         }
 
