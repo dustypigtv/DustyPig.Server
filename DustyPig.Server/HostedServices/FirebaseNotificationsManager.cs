@@ -120,7 +120,7 @@ namespace DustyPig.Server.HostedServices
                     var getRequests = await db.GetRequests
                         .Include(item => item.Profile)
                         .Where(item => item.TMDB_Id == movie.TMDB_Id)
-                        .Where(item => item.EntryType == API.v3.Models.MediaTypes.Movie)
+                        .Where(item => item.EntryType == API.v3.Models.TMDB_MediaTypes.Movie)
                         .Where(item => profileIds.Contains(item.ProfileId))
                         .Where(item => item.Status == API.v3.Models.RequestStatus.Pending)
                         .ToListAsync(_cancellationToken);
@@ -191,7 +191,7 @@ namespace DustyPig.Server.HostedServices
                     var getRequests = await db.GetRequests
                         .Include(item => item.Profile)
                         .Where(item => item.TMDB_Id == series.TMDB_Id)
-                        .Where(item => item.EntryType == API.v3.Models.MediaTypes.Series)
+                        .Where(item => item.EntryType == API.v3.Models.TMDB_MediaTypes.Series)
                         .Where(item => profileIds.Contains(item.ProfileId))
                         .Where(item => item.Status == API.v3.Models.RequestStatus.Pending)
                         .ToListAsync(_cancellationToken);

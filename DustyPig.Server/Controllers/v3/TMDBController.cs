@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3;
+using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -57,7 +58,7 @@ namespace DustyPig.Server.Controllers.v3
                 ArtworkUrl = TMDB.Utils.GetFullImagePath(movie.Data.PosterPath, true),
                 BackdropUrl = TMDB.Utils.GetFullImagePath(movie.Data.BackdropPath, true),
                 Description = movie.Data.Overview,
-                MediaType = MediaTypes.Movie,
+                MediaType = TMDB_MediaTypes.Movie,
                 Rated = MapRatings(movie.Data.Releases),
                 Title = movie.Data.Title,
                 TMDB_ID = movie.Data.Id
@@ -122,7 +123,7 @@ namespace DustyPig.Server.Controllers.v3
                 ArtworkUrl = TMDB.Utils.GetFullImagePath(series.Data.PosterPath, true),
                 BackdropUrl = TMDB.Utils.GetFullImagePath(series.Data.BackdropPath, true),
                 Description = series.Data.Overview,
-                MediaType = MediaTypes.Movie,
+                MediaType = TMDB_MediaTypes.Movie,
                 Rated = MapRatings(series.Data.ContentRatings),
                 Title = series.Data.Title,
                 TMDB_ID = series.Data.Id
@@ -160,6 +161,20 @@ namespace DustyPig.Server.Controllers.v3
             return new SimpleValue<TitleRequestPermissions>(ret);
         }
 
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpPost]
+        public async Task<ActionResult> RequestTitle(TitleRequest data)
+        {
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+            
+
+            throw new NotImplementedException();
+        }
 
 
         private async Task<TitleRequestPermissions> CalculateTitleRequestPermissions()

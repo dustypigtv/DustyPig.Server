@@ -22,7 +22,7 @@ namespace DustyPig.Server.Data.Models
         public int AccountId { get; set; }
         public Account Account { get; set; }
 
-        public MediaTypes EntryType { get; set; }
+        public TMDB_MediaTypes EntryType { get; set; }
 
         public int TMDB_Id { get; set; }
 

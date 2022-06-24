@@ -8,7 +8,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             TMDB_ID = @this.Id,
             ArtworkUrl = TMDB.Utils.GetFullImagePath(@this.PosterPath, false),
-            MediaType = @this.IsMovie ? MediaTypes.Movie : MediaTypes.Series,
+            MediaType = @this.IsMovie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
             Title = @this.Title
         };
     }
