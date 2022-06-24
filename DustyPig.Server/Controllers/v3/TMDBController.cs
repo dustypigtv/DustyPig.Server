@@ -171,61 +171,49 @@ namespace DustyPig.Server.Controllers.v3
             try { data.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            if (data.AccountId == UserAccount.Id)
-                return BadRequest("You cannot request a title from yourself");
+            int accountId = UserAccount.Id;
 
             if (UserProfile.IsMain)
             {
-                if (data.AccountId == null)
+                if (data.FriendId == null)
                     return BadRequest("You cannot request a title from yourself");
 
-                if (data.AccountId.Value <= 0)
-                    return BadRequest($"Invalid {nameof(data.AccountId)}");
+                if (data.FriendId.Value <= 0)
+                    return BadRequest($"Invalid {nameof(data.FriendId)}");
 
-                var friends = await DB.Friendships
+                var friend = await DB.Friendships
                     .AsNoTracking()
-                    .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
-                    .ToListAsync();
+                    .Where(item => item.Id == data.FriendId)
+                    .FirstOrDefaultAsync();
 
-                if (friends.Count == 0)
-                    return BadRequest("You cannot request a title from yourself");
-
-                bool validFriend = friends.Any(item => item.Account1Id == UserAccount.Id && item.Account2Id == data.AccountId);
-                if (!validFriend)
-                    validFriend = friends.Any(item => item.Account2Id == UserAccount.Id && item.Account1Id == data.AccountId);
-
-                if (!validFriend)
+                if (friend == null)
                     return BadRequest("Friend not found");
+            
+                accountId = friend.Account1Id == UserAccount.Id
+                    ? friend.Account2Id
+                    : friend.Account1Id;
             }
             else
             {
                 if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
                     return BadRequest("You are not authorized to request titles");
 
-
-                if (data.AccountId == null)
-                    data.AccountId = UserAccount.Id;
-
-
                 if (UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
                 {
-                    if (data.AccountId != UserAccount.Id)
-                    {
-                        if (data.AccountId.Value <= 0)
-                            return BadRequest($"Invalid {nameof(data.AccountId)}");
+                    if (data.FriendId == null || data.FriendId.Value <= 0)
+                        return BadRequest($"Invalid {nameof(data.FriendId)}");
 
-                        var friends = await DB.Friendships
-                            .AsNoTracking()
-                            .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
-                            .ToListAsync();
+                    var friend = await DB.Friendships
+                    .AsNoTracking()
+                    .Where(item => item.Id == data.FriendId)
+                    .FirstOrDefaultAsync();
 
-                        bool validFriend = friends.Any(item => item.Account1Id == UserAccount.Id && item.Account2Id == data.AccountId);
-                        if (!validFriend)
-                            validFriend = friends.Any(item => item.Account2Id == UserAccount.Id && item.Account1Id == data.AccountId);
+                    if (friend == null)
+                        return BadRequest("Friend not found");
 
-                        if (!validFriend)
-                            return BadRequest("Friend not found");
-                    }
+                    accountId = friend.Account1Id == UserAccount.Id
+                        ? friend.Account2Id
+                        : friend.Account1Id;
                 }
             }
 
@@ -284,7 +272,7 @@ namespace DustyPig.Server.Controllers.v3
             //Create the request
             DB.GetRequests.Add(new Data.Models.GetRequest
             {
-                AccountId = data.AccountId.Value,
+                AccountId = accountId,
                 EntryType = data.MediaType,
                 ParentalStatus = RequestStatus.Requested,
                 ProfileId = UserProfile.Id,
