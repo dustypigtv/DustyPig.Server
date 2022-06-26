@@ -26,9 +26,9 @@ namespace DustyPig.Server.Data.Models
 
         public int TMDB_Id { get; set; }
 
-        public RequestStatus ParentalStatus { get; set; }
+        public RequestStatus ParentalStatus { get; set; } = RequestStatus.NotRequested;
 
-        public RequestStatus Status { get; set; }
+        public RequestStatus Status { get; set; } = RequestStatus.NotRequested;
 
         public DateTime Timestamp { get; set; }
     }

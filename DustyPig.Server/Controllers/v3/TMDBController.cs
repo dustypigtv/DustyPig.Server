@@ -93,6 +93,29 @@ namespace DustyPig.Server.Controllers.v3
 
             ret.RequestPermission = await CalculateTitleRequestPermissions();
 
+            //Get request status
+            var status = await DB.GetRequests
+                .AsNoTracking()
+                .Include(item => item.Profile)
+                .Where(item => item.Profile.AccountId == UserAccount.Id)
+                .Where(item => item.TMDB_Id == id)
+                .Where(item => item.EntryType == TMDB_MediaTypes.Movie)
+                .FirstOrDefaultAsync();
+
+            if (status == null)
+            {
+                ret.RequestStatus = RequestStatus.NotRequested;
+            }
+            else
+            {
+                if (status.ParentalStatus == RequestStatus.NotRequested && status.Status == RequestStatus.NotRequested)
+                    ret.RequestStatus = RequestStatus.NotRequested;
+                else if (status.ParentalStatus != RequestStatus.NotRequested)
+                    ret.RequestStatus = status.ParentalStatus;
+                else
+                    ret.RequestStatus = status.Status;
+            }
+
 
             return ret;
         }
@@ -147,6 +170,29 @@ namespace DustyPig.Server.Controllers.v3
 
             ret.RequestPermission = await CalculateTitleRequestPermissions();
 
+            //Get request status
+            var status = await DB.GetRequests
+                .AsNoTracking()
+                .Include(item => item.Profile)
+                .Where(item => item.Profile.AccountId == UserAccount.Id)
+                .Where(item => item.TMDB_Id == id)
+                .Where(item => item.EntryType == TMDB_MediaTypes.Series)
+                .FirstOrDefaultAsync();
+
+            if (status == null)
+            {
+                ret.RequestStatus = RequestStatus.NotRequested;
+            }
+            else
+            {
+                if(status.ParentalStatus == RequestStatus.NotRequested && status.Status == RequestStatus.NotRequested)
+                    ret.RequestStatus = RequestStatus.NotRequested;
+                else if(status.ParentalStatus != RequestStatus.NotRequested)
+                    ret.RequestStatus = status.ParentalStatus;
+                else
+                    ret.RequestStatus = status.Status;
+            }
+
             return ret;
         }
 
@@ -200,20 +246,24 @@ namespace DustyPig.Server.Controllers.v3
 
                 if (UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
                 {
-                    if (data.FriendId == null || data.FriendId.Value <= 0)
-                        return BadRequest($"Invalid {nameof(data.FriendId)}");
+                    //data.FriendId == null means requesting from main profile
+                    if (data.FriendId != null)
+                    {
+                        if (data.FriendId.Value <= 0)
+                            return BadRequest($"Invalid {nameof(data.FriendId)}");
 
-                    var friend = await DB.Friendships
-                    .AsNoTracking()
-                    .Where(item => item.Id == data.FriendId)
-                    .FirstOrDefaultAsync();
+                        var friend = await DB.Friendships
+                            .AsNoTracking()
+                            .Where(item => item.Id == data.FriendId)
+                            .FirstOrDefaultAsync();
 
-                    if (friend == null)
-                        return BadRequest("Friend not found");
+                        if (friend == null)
+                            return BadRequest("Friend not found");
 
-                    accountId = friend.Account1Id == UserAccount.Id
-                        ? friend.Account2Id
-                        : friend.Account1Id;
+                        accountId = friend.Account1Id == UserAccount.Id
+                            ? friend.Account2Id
+                            : friend.Account1Id;
+                    }
                 }
             }
 
@@ -270,17 +320,21 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Create the request
-            DB.GetRequests.Add(new Data.Models.GetRequest
+            var newReq = new Data.Models.GetRequest
             {
                 AccountId = accountId,
                 EntryType = data.MediaType,
-                ParentalStatus = RequestStatus.Requested,
                 ProfileId = UserProfile.Id,
-                Status = RequestStatus.Requested,
                 Timestamp = DateTime.UtcNow,
                 TMDB_Id = data.TMDB_Id
-            });
+            };
 
+            if (accountId == UserAccount.Id)
+                newReq.ParentalStatus = RequestStatus.Requested;
+            else
+                newReq.Status = RequestStatus.Requested;
+
+            DB.GetRequests.Add(newReq);
             await DB.SaveChangesAsync();
 
             return Ok();
