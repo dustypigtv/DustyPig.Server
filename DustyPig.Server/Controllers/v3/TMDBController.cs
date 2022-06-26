@@ -114,6 +114,9 @@ namespace DustyPig.Server.Controllers.v3
                     ret.RequestStatus = status.ParentalStatus;
                 else
                     ret.RequestStatus = status.Status;
+
+                if (status.ProfileId == UserProfile.Id)
+                    ret.RequestPermission = TitleRequestPermissions.Disabled;
             }
 
 
@@ -191,6 +194,9 @@ namespace DustyPig.Server.Controllers.v3
                     ret.RequestStatus = status.ParentalStatus;
                 else
                     ret.RequestStatus = status.Status;
+
+                if (status.ProfileId == UserProfile.Id)
+                    ret.RequestPermission = TitleRequestPermissions.Disabled;
             }
 
             return ret;
