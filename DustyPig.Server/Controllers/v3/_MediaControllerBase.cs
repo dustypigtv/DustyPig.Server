@@ -14,7 +14,7 @@ namespace DustyPig.Server.Controllers.v3
 {
     public abstract class _MediaControllerBase : _BaseProfileController
     {
-        internal const int LIST_SIZE = 100;
+        internal const int LIST_SIZE = 1000;
 
         //Put these in sort order
         internal const long ID_CONTINUE_WATCHING = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING;
