@@ -42,31 +42,31 @@ namespace DustyPig.Server.Controllers.v3
 
             //Continue Watching
             var cwTask = ContinueWatchingQuery(new AppDbContext())
-                .Take(25)
+                .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(cwTask);
 
             //Watchlist
             var wlTask = WatchlistQuery(new AppDbContext())
-                .Take(25)
+                .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(wlTask);
 
             //Playlists
             var plTask = PlaylistQuery(new AppDbContext())
-                .Take(25)
+                .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(plTask);
 
             //Recently Added
             var raTask = RecentlyAddedQuery(new AppDbContext())
-                .Take(25)
+                .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(raTask);
 
             //Popular
             var popTask = PopularQuery(new AppDbContext())
-                .Take(25)
+                .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(popTask);
 
