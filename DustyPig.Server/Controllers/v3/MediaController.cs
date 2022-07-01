@@ -762,7 +762,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 MediaEntryId = id,
                 ProfileId = UserProfile.Id,
-                Status = RequestStatus.Requested,
+                Status = RequestStatus.RequestSentToMain,
                 Timestamp = DateTime.UtcNow
             }).Entity;
 

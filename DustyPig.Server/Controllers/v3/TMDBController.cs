@@ -90,35 +90,17 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
 
-
-            ret.RequestPermission = await CalculateTitleRequestPermissions();
-
-            //Get request status
-            var status = await DB.GetRequests
-                .AsNoTracking()
-                .Include(item => item.Profile)
-                .Where(item => item.Profile.AccountId == UserAccount.Id)
-                .Where(item => item.TMDB_Id == id)
-                .Where(item => item.EntryType == TMDB_MediaTypes.Movie)
-                .FirstOrDefaultAsync();
-
-            if (status == null)
+            if (ret.Available.Count > 0)
             {
+                ret.RequestPermission = TitleRequestPermissions.Disabled;
                 ret.RequestStatus = RequestStatus.NotRequested;
             }
             else
             {
-                if (status.ParentalStatus == RequestStatus.NotRequested && status.Status == RequestStatus.NotRequested)
-                    ret.RequestStatus = RequestStatus.NotRequested;
-                else if (status.ParentalStatus != RequestStatus.NotRequested)
-                    ret.RequestStatus = status.ParentalStatus;
-                else
-                    ret.RequestStatus = status.Status;
-
-                if (status.ProfileId == UserProfile.Id)
-                    ret.RequestPermission = TitleRequestPermissions.Disabled;
+                var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Movie);
+                ret.RequestPermission = reqPerm.Permission;
+                ret.RequestStatus = reqPerm.Status;
             }
-
 
             return ret;
         }
@@ -171,33 +153,19 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
 
-            ret.RequestPermission = await CalculateTitleRequestPermissions();
 
-            //Get request status
-            var status = await DB.GetRequests
-                .AsNoTracking()
-                .Include(item => item.Profile)
-                .Where(item => item.Profile.AccountId == UserAccount.Id)
-                .Where(item => item.TMDB_Id == id)
-                .Where(item => item.EntryType == TMDB_MediaTypes.Series)
-                .FirstOrDefaultAsync();
-
-            if (status == null)
+            if (ret.Available.Count > 0)
             {
+                ret.RequestPermission = TitleRequestPermissions.Disabled;
                 ret.RequestStatus = RequestStatus.NotRequested;
             }
             else
             {
-                if(status.ParentalStatus == RequestStatus.NotRequested && status.Status == RequestStatus.NotRequested)
-                    ret.RequestStatus = RequestStatus.NotRequested;
-                else if(status.ParentalStatus != RequestStatus.NotRequested)
-                    ret.RequestStatus = status.ParentalStatus;
-                else
-                    ret.RequestStatus = status.Status;
-
-                if (status.ProfileId == UserProfile.Id)
-                    ret.RequestPermission = TitleRequestPermissions.Disabled;
+                var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Series);
+                ret.RequestPermission = reqPerm.Permission;
+                ret.RequestStatus = reqPerm.Status;
             }
+
 
             return ret;
         }
@@ -209,7 +177,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet]
         public async Task<ActionResult<SimpleValue<TitleRequestPermissions>>> GetRequestTitlePermission()
         {
-            var ret = await CalculateTitleRequestPermissions();
+            var ret = await CalculateTitleRequestPermissionsAsync();
             return new SimpleValue<TitleRequestPermissions>(ret);
         }
 
@@ -276,30 +244,34 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Check for existing request
-            var existingRequest = await DB.GetRequests
+            var existingRequests = await DB.GetRequests
                 .AsNoTracking()
                 .Include(item => item.Profile)
-                .Where(item => item.Profile.AccountId == UserAccount.Id)
+                .Where(item => item.AccountId == accountId)
                 .Where(item => item.TMDB_Id == data.TMDB_Id)
                 .Where(item => item.EntryType == data.MediaType)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (existingRequest != null)
+            if(existingRequests.Count > 0)
             {
-                if (existingRequest.ProfileId == UserProfile.Id)
+                if(existingRequests.Any(item => item.ProfileId == UserProfile.Id))
                 {
                     return BadRequest("You have already requested this title");
                 }
                 else
                 {
+                    var status = (RequestStatus)existingRequests.Select(item => (long)item.Status).Max();
+
+                    if(status == RequestStatus.Denied || status == RequestStatus.Fufilled)
+                        return BadRequest("This title has already been requested, and the request completed");
+                    
                     //Add get request for this profile, so they are notified when available
                     DB.GetRequests.Add(new Data.Models.GetRequest
                     {
-                        AccountId = existingRequest.AccountId,
-                        EntryType = existingRequest.EntryType,
-                        ParentalStatus = existingRequest.ParentalStatus,
+                        AccountId = accountId,
+                        EntryType = data.MediaType,
                         ProfileId = UserProfile.Id,
-                        Status = existingRequest.Status,
+                        Status = status,
                         Timestamp = DateTime.UtcNow,
                         TMDB_Id = data.TMDB_Id
                     });
@@ -309,6 +281,8 @@ namespace DustyPig.Server.Controllers.v3
                     return Ok();
                 }
             }
+
+
 
             //Validate TMDB Id
             if (data.MediaType == TMDB_MediaTypes.Movie)
@@ -336,9 +310,9 @@ namespace DustyPig.Server.Controllers.v3
             };
 
             if (accountId == UserAccount.Id)
-                newReq.ParentalStatus = RequestStatus.Requested;
+                newReq.Status = RequestStatus.RequestSentToMain;
             else
-                newReq.Status = RequestStatus.Requested;
+                newReq.Status = RequestStatus.RequestSentToAccount;
 
             DB.GetRequests.Add(newReq);
             await DB.SaveChangesAsync();
@@ -347,7 +321,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        private async Task<TitleRequestPermissions> CalculateTitleRequestPermissions()
+        private async Task<TitleRequestPermissions> CalculateTitleRequestPermissionsAsync()
         {
             
             if (UserProfile.IsMain)
@@ -378,7 +352,50 @@ namespace DustyPig.Server.Controllers.v3
             }
         }
 
+        private async Task<(RequestStatus Status, TitleRequestPermissions Permission)> CalculateTitleRequestStatusAsync(int id, TMDB_MediaTypes mediaType)
+        {
+            RequestStatus status = RequestStatus.NotRequested;
+            TitleRequestPermissions permission = TitleRequestPermissions.Disabled;
 
+            //Get request status
+            var getRequests = await DB.GetRequests
+                .AsNoTracking()
+                .Include(item => item.Profile)
+                .Where(item => item.TMDB_Id == id)
+                .Where(item => item.EntryType == mediaType)
+                .Where(item => item.AccountId == UserAccount.Id || item.Profile.AccountId == UserAccount.Id)
+                .ToListAsync();
+
+
+            if (getRequests.Count == 0)
+            {
+                status = RequestStatus.NotRequested;
+                permission = await CalculateTitleRequestPermissionsAsync();
+            }
+            else
+            {
+                //Get status. If multiple request exists, get the most advanced status
+                status = (RequestStatus)getRequests.Select(item => (long)item.Status).Max();
+
+                var profReq = getRequests.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+                if (profReq == null)
+                {
+                    //This profile has not requested the title
+                    if (status == RequestStatus.Denied || status == RequestStatus.Fufilled)
+                        permission = TitleRequestPermissions.Disabled;
+                    else
+                        permission = await CalculateTitleRequestPermissionsAsync();
+                }
+                else
+                {    //This profile has requested the title
+                    permission = TitleRequestPermissions.Disabled;
+                }
+            }
+
+            
+
+            return (status, permission);
+        }
 
 
         private static void FillCredits(Credits credits, DetailedTMDB ret)

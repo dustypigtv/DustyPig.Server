@@ -310,19 +310,19 @@ namespace DustyPig.Server.HostedServices
                 {
                     var mainProfile = overrideRequest.Profile.Account.Profiles.Single(item => item.IsMain);
 
-                    if (overrideRequest.Status == API.v3.Models.RequestStatus.Requested)
-                    {
-                        db.Notifications.Add(new Data.Models.Notification
-                        {
-                            OverrideRequestId = overrideRequest.Id,
-                            MediaEntryId = overrideRequest.MediaEntryId,
-                            Message = $"{overrideRequest.Profile.Name} is requesting access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
-                            NotificationType = NotificationType.OverrideRequest,
-                            ProfileId = mainProfile.Id,
-                            Title = "Access Request",
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
+                    //if (overrideRequest.Status == API.v3.Models.RequestStatus.Requested)
+                    //{
+                    //    db.Notifications.Add(new Data.Models.Notification
+                    //    {
+                    //        OverrideRequestId = overrideRequest.Id,
+                    //        MediaEntryId = overrideRequest.MediaEntryId,
+                    //        Message = $"{overrideRequest.Profile.Name} is requesting access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
+                    //        NotificationType = NotificationType.OverrideRequest,
+                    //        ProfileId = mainProfile.Id,
+                    //        Title = "Access Request",
+                    //        Timestamp = DateTime.UtcNow
+                    //    });
+                    //}
 
                     if (overrideRequest.Status == API.v3.Models.RequestStatus.Fufilled)
                     {
