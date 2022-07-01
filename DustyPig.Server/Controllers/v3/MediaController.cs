@@ -729,7 +729,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ActionResult> RequestAccessOverride(int id)
         {
             if (UserProfile.IsMain)
-                return BadRequest("Main profile cannot requst overrids");
+                return BadRequest("Main profile cannot requst overrides");
 
             if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
                 return CommonResponses.Forbid;
