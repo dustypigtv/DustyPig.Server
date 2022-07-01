@@ -88,6 +88,8 @@ namespace DustyPig.Server.Controllers.v3
             var media = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
 
+                .Include(item => item.OverrideRequests.Where(subItem => subItem.ProfileId == UserProfile.Id))
+
                 .Include(Item => Item.Library)
                 .ThenInclude(item => item.Account)
                 .ThenInclude(item => item.Profiles)
@@ -202,39 +204,48 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            if (playable && ret.Episodes.Count > 0)
+            if (playable)
             {
-                if (progress != null)
+                if (ret.Episodes.Count > 0)
                 {
-                    var dbEp = dbEps.FirstOrDefault(item => item.Xid == progress.Xid);
-                    if(dbEp != null)
+                    if (progress != null)
                     {
-                        var upNextEp = ret.Episodes.First(item => item.Id == dbEp.Id);
-                        if (progress.Played < (upNextEp.CreditsStartTime ?? dbEp.Length.Value - 30))
+                        var dbEp = dbEps.FirstOrDefault(item => item.Xid == progress.Xid);
+                        if (dbEp != null)
                         {
-                            //Partially played episode
-                            upNextEp.UpNext = true;
-                            upNextEp.Played = progress.Played;
-                        }
-                        else
-                        {
-                            //Fully played episode, find the next one
-                            var nextDBEp = dbEps.FirstOrDefault(item => item.Xid > dbEp.Xid);
-                            if (nextDBEp == null)
+                            var upNextEp = ret.Episodes.First(item => item.Id == dbEp.Id);
+                            if (progress.Played < (upNextEp.CreditsStartTime ?? dbEp.Length.Value - 30))
                             {
-                                //Progress was on last episode
+                                //Partially played episode
                                 upNextEp.UpNext = true;
                                 upNextEp.Played = progress.Played;
                             }
                             else
                             {
-                                //Next episode after progress
-                                upNextEp = ret.Episodes.First(item => item.Id == nextDBEp.Id);
-                                upNextEp.UpNext = true;
+                                //Fully played episode, find the next one
+                                var nextDBEp = dbEps.FirstOrDefault(item => item.Xid > dbEp.Xid);
+                                if (nextDBEp == null)
+                                {
+                                    //Progress was on last episode
+                                    upNextEp.UpNext = true;
+                                    upNextEp.Played = progress.Played;
+                                }
+                                else
+                                {
+                                    //Next episode after progress
+                                    upNextEp = ret.Episodes.First(item => item.Id == nextDBEp.Id);
+                                    upNextEp.UpNext = true;
+                                }
                             }
                         }
                     }
                 }
+            }
+            else
+            {
+                var overrideRequest = media.OverrideRequests.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+                if (overrideRequest != null)
+                    ret.AccessRequested = overrideRequest.Status != RequestStatus.NotRequested;
             }
 
             ret.CanManage = UserProfile.IsMain && UserAccount.Profiles.Count > 1;

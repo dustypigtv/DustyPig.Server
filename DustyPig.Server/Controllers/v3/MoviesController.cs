@@ -81,6 +81,8 @@ namespace DustyPig.Server.Controllers.v3
             var media = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
                 
+                .Include(item => item.OverrideRequests.Where(subItem => subItem.ProfileId == UserProfile.Id))
+
                 .Include(item => item.Subtitles)
                 
                 .Include(Item => Item.Library)
@@ -150,6 +152,12 @@ namespace DustyPig.Server.Controllers.v3
                 if (progress != null)
                     if (progress.Played >= 1 && progress.Played < (media.CreditsStartTime ?? media.Length.Value * 0.9))
                         ret.Played = progress.Played;
+            }
+            else
+            {
+                var overrideRequest = media.OverrideRequests.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+                if (overrideRequest != null)
+                    ret.AccessRequested = overrideRequest.Status != RequestStatus.NotRequested;
             }
 
             ret.CanManage = UserProfile.IsMain && UserAccount.Profiles.Count > 1;
