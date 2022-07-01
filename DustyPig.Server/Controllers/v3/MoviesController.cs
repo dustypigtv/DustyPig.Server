@@ -157,7 +157,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var overrideRequest = media.OverrideRequests.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
                 if (overrideRequest != null)
-                    ret.AccessRequested = overrideRequest.Status != RequestStatus.NotRequested;
+                    ret.AccessRequestedStatus = overrideRequest.Status;
             }
 
             ret.CanManage = UserProfile.IsMain && UserAccount.Profiles.Count > 1;

@@ -762,7 +762,8 @@ namespace DustyPig.Server.Controllers.v3
             {
                 MediaEntryId = id,
                 ProfileId = UserProfile.Id,
-                Status = RequestStatus.RequestSentToMain,
+                State = OverrideState.Default,
+                Status = OverrideRequestStatus.Requested,
                 Timestamp = DateTime.UtcNow
             }).Entity;
 
@@ -840,26 +841,28 @@ namespace DustyPig.Server.Controllers.v3
 
                 if (overrideRequest != null)
                 {
+                    overrideRequest.State = ptoi.NewState;
+
                     if (ptoi.NewState == OverrideState.Allow)
                     {
-                        overrideRequest.Status = RequestStatus.Fufilled;
+                        overrideRequest.Status = OverrideRequestStatus.Granted;
                     }
                     else if (ptoi.NewState == OverrideState.Block)
                     {
-                        overrideRequest.Status = RequestStatus.Denied;
+                        overrideRequest.Status = OverrideRequestStatus.Denied;
                     }
                     else
                     {
                         //Default
                         var profile = UserAccount.Profiles.Single(item => item.Id == ptoi.ProfileId);
                         if (profile.AllowedRatings == Ratings.All)
-                            overrideRequest.Status = RequestStatus.Fufilled;
+                            overrideRequest.Status = OverrideRequestStatus.Granted;
 
                         else if (media.Rated.HasValue && ((profile.AllowedRatings & media.Rated) == media.Rated))
-                            overrideRequest.Status = RequestStatus.Fufilled;
+                            overrideRequest.Status = OverrideRequestStatus.Granted;
 
                         else
-                            overrideRequest.Status = RequestStatus.Denied;
+                            overrideRequest.Status = OverrideRequestStatus.Denied;
                     }
 
                     overrideRequest.NotificationCreated = false;

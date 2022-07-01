@@ -102,53 +102,80 @@ namespace DustyPig.Server.HostedServices
             int start = 0;
             while (true)
             {
-                //Notify of movie requests fulfilled
-                var moviesLst = await db.MediaEntries
-                    .Include(Item => Item.Library)
-                    .ThenInclude(item => item.ProfileLibraryShares)
-                    .Where(item => item.EntryType == API.v3.Models.MediaTypes.Movie)
-                    .Where(item => item.TMDB_Id > 0)
-                    .Where(item => item.NotificationsCreated == false)
-                    .OrderBy(item => item.Id)
+                //New movie requests
+                var movieReqs = await db.GetRequests
+                    .Include(item => item.Profile)
+                    .Where(item => item.EntryType == API.v3.Models.TMDB_MediaTypes.Movie)
+                    .Where(item => item.NotificationCreated == false)
                     .Skip(start)
                     .Take(CHUNK_SIZE)
                     .ToListAsync(_cancellationToken);
 
-                foreach (var movie in moviesLst)
+                foreach(var req in movieReqs)
                 {
-                    var profileIds = movie.Library.ProfileLibraryShares.Select(item => item.ProfileId).ToList();
-                    var getRequests = await db.GetRequests
-                        .Include(item => item.Profile)
-                        .Where(item => item.TMDB_Id == movie.TMDB_Id)
-                        .Where(item => item.EntryType == API.v3.Models.TMDB_MediaTypes.Movie)
-                        .Where(item => profileIds.Contains(item.ProfileId))
-                        .Where(item => item.Status == API.v3.Models.RequestStatus.Pending)
-                        .ToListAsync(_cancellationToken);
-
-
-                    foreach (var request in getRequests)
+                    switch (req.Status)
                     {
-                        request.Status = API.v3.Models.RequestStatus.Fufilled;
-                        request.Timestamp = DateTime.UtcNow;
+                        case API.v3.Models.RequestStatus.Denied:
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                Message = "Your request for \"" + req.Title + "\" was denieed",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Request Denied"
+                            });
+                            break;
 
-                        db.Notifications.Add(new Data.Models.Notification
-                        {
-                            GetRequestId = request.Id,
-                            MediaEntryId = movie.Id,
-                            Message = movie.Title + " is now available!",
-                            NotificationType = NotificationType.Media,
-                            ProfileId = request.ProfileId,
-                            Timestamp = DateTime.UtcNow,
-                            Title = "New movie Available"
-                        });
+                        case API.v3.Models.RequestStatus.Fufilled:
+                            var fufilledMedia = await FindMediaEntry(db, req.AccountId, req.TMDB_Id, API.v3.Models.MediaTypes.Movie);
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                MediaEntryId = fufilledMedia.Id,
+                                Message = "\"" + req.Title + "\" is now available!",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Your Movie Is Now Available"
+                            });
+                            break;
+
+                        case API.v3.Models.RequestStatus.NotRequested:
+                            db.Entry(req).State = EntityState.Deleted;
+                            break;
+
+                        case API.v3.Models.RequestStatus.Pending:
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                Message = "Your request for \"" + req.Title + "\" has been granted and is pending completion",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Request Granted"
+                            });
+                            break;
+
+                        case API.v3.Models.RequestStatus.RequestSentToAccount:
+                        case API.v3.Models.RequestStatus.RequestSentToMain:
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                Message = req.Profile.Name + " has requested the movie \"" + req.Title + "\"",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Movie Requested"
+                            });
+
+                            break;
                     }
-
-                    movie.NotificationsCreated = true;
                 }
 
                 await db.SaveChangesAsync(_cancellationToken);
 
-                if (moviesLst.Count < CHUNK_SIZE)
+                if (movieReqs.Count < CHUNK_SIZE)
                     return;
 
                 start += CHUNK_SIZE;
@@ -160,6 +187,77 @@ namespace DustyPig.Server.HostedServices
             using var db = new AppDbContext();
 
             int start = 0;
+
+            while (true)
+            {
+                //New series requests
+                var seriesReqs = await db.GetRequests
+                    .Include(item => item.Profile)
+                    .Where(item => item.EntryType == API.v3.Models.TMDB_MediaTypes.Series)
+                    .Where(item => item.NotificationCreated == false)
+                    .Where(item => item.Status != API.v3.Models.RequestStatus.Fufilled)
+                    .Skip(start)
+                    .Take(CHUNK_SIZE)
+                    .ToListAsync(_cancellationToken);
+
+                foreach (var req in seriesReqs)
+                {
+                    switch (req.Status)
+                    {
+                        case API.v3.Models.RequestStatus.Denied:
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                Message = "Your request for \"" + req.Title + "\" was denieed",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Request Denied"
+                            });
+                            break;
+
+                        case API.v3.Models.RequestStatus.NotRequested:
+                            db.Entry(req).State = EntityState.Deleted;
+                            break;
+
+                        case API.v3.Models.RequestStatus.Pending:
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                Message = "Your request for \"" + req.Title + "\" has been granted and is pending completion",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Request Granted"
+                            });
+                            break;
+
+                        case API.v3.Models.RequestStatus.RequestSentToAccount:
+                        case API.v3.Models.RequestStatus.RequestSentToMain:
+                            db.Notifications.Add(new Data.Models.Notification
+                            {
+                                GetRequestId = req.Id,
+                                Message = req.Profile.Name + " has requested the series \"" + req.Title + "\"",
+                                NotificationType = NotificationType.GetRequest,
+                                ProfileId = req.ProfileId,
+                                Timestamp = DateTime.UtcNow,
+                                Title = "Series Requested"
+                            });
+
+                            break;
+                    }
+                }
+
+                await db.SaveChangesAsync(_cancellationToken);
+
+                if (seriesReqs.Count < CHUNK_SIZE)
+                    break;
+
+                start += CHUNK_SIZE;
+            }
+
+
+            start = 0;
             while (true)
             {
 
@@ -209,7 +307,7 @@ namespace DustyPig.Server.HostedServices
                             NotificationType = NotificationType.Media,
                             ProfileId = request.ProfileId,
                             Timestamp = DateTime.UtcNow,
-                            Title = "New series available"
+                            Title = "New Series Available"
                         });
                     }
 
@@ -270,7 +368,7 @@ namespace DustyPig.Server.HostedServices
                                 NotificationType = NotificationType.Media,
                                 ProfileId = subscription.ProfileId,
                                 Timestamp = DateTime.UtcNow,
-                                Title = "New episode available"
+                                Title = "New Episode Available"
                             });
                         }
                     }
@@ -310,21 +408,21 @@ namespace DustyPig.Server.HostedServices
                 {
                     var mainProfile = overrideRequest.Profile.Account.Profiles.Single(item => item.IsMain);
 
-                    //if (overrideRequest.Status == API.v3.Models.RequestStatus.Requested)
-                    //{
-                    //    db.Notifications.Add(new Data.Models.Notification
-                    //    {
-                    //        OverrideRequestId = overrideRequest.Id,
-                    //        MediaEntryId = overrideRequest.MediaEntryId,
-                    //        Message = $"{overrideRequest.Profile.Name} is requesting access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
-                    //        NotificationType = NotificationType.OverrideRequest,
-                    //        ProfileId = mainProfile.Id,
-                    //        Title = "Access Request",
-                    //        Timestamp = DateTime.UtcNow
-                    //    });
-                    //}
+                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.Requested)
+                    {
+                        db.Notifications.Add(new Data.Models.Notification
+                        {
+                            OverrideRequestId = overrideRequest.Id,
+                            MediaEntryId = overrideRequest.MediaEntryId,
+                            Message = $"{overrideRequest.Profile.Name} is requesting access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
+                            NotificationType = NotificationType.OverrideRequest,
+                            ProfileId = mainProfile.Id,
+                            Title = "Access Request",
+                            Timestamp = DateTime.UtcNow
+                        });
+                    }
 
-                    if (overrideRequest.Status == API.v3.Models.RequestStatus.Fufilled)
+                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.Granted)
                     {
                         db.Notifications.Add(new Data.Models.Notification
                         {
@@ -338,7 +436,7 @@ namespace DustyPig.Server.HostedServices
                         });
                     }
 
-                    if (overrideRequest.Status == API.v3.Models.RequestStatus.Denied)
+                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.Denied)
                     {
                         db.Notifications.Add(new Data.Models.Notification
                         {
@@ -352,6 +450,8 @@ namespace DustyPig.Server.HostedServices
                         });
                     }
 
+                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.NotRequested)
+                        db.Entry(overrideRequest).State = EntityState.Deleted;
 
                     overrideRequest.NotificationCreated = true;
                 }
@@ -427,6 +527,19 @@ namespace DustyPig.Server.HostedServices
         }
 
 
+
+        private Task<MediaEntry> FindMediaEntry(AppDbContext db, int accountId, int tmdbId, API.v3.Models.MediaTypes mediaType)
+        {
+            return db.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Library)
+                .Where(item => item.TMDB_Id == tmdbId)
+                .Where(item => item.Library.AccountId == accountId)
+                .Where(item => item.EntryType == mediaType)
+                .FirstOrDefaultAsync(_cancellationToken);
+        }
+
+        
 
         private async Task SendNotificationsAsync()
         {

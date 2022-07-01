@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
 {
@@ -26,7 +27,13 @@ namespace DustyPig.Server.Data.Models
 
         public int TMDB_Id { get; set; }
 
+        [Required]
+        [MaxLength(Constants.MAX_NAME_LENGTH)]
+        public string Title { get; set; }
+
         public RequestStatus Status { get; set; } = RequestStatus.NotRequested;
+
+        public bool NotificationCreated { get; set; }
 
         public DateTime Timestamp { get; set; }
     }

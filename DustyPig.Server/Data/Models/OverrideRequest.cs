@@ -13,7 +13,9 @@ namespace DustyPig.Server.Data.Models
         public int MediaEntryId { get; set; }
         public MediaEntry MediaEntry { get; set; }
 
-        public RequestStatus Status { get; set; }
+        public OverrideState State { get; set; }
+
+        public OverrideRequestStatus Status { get; set;}
 
         public bool NotificationCreated { get; set; }
 

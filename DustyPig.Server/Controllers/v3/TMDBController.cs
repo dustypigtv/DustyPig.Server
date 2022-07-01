@@ -270,9 +270,11 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         AccountId = accountId,
                         EntryType = data.MediaType,
+                        NotificationCreated = existingRequests.Any(item => item.NotificationCreated),
                         ProfileId = UserProfile.Id,
                         Status = status,
                         Timestamp = DateTime.UtcNow,
+                        Title = existingRequests.First().Title,
                         TMDB_Id = data.TMDB_Id
                     });
 
@@ -285,17 +287,20 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Validate TMDB Id
+            string title = null;
             if (data.MediaType == TMDB_MediaTypes.Movie)
             {
                 var response = await _client.GetMovieAsync(data.TMDB_Id);
                 if (!response.Success)
                     return BadRequest("Movie not found");
+                title = response.Data.Title;
             }
             else
             {
                 var response = await _client.GetSeriesAsync(data.TMDB_Id);
                 if (!response.Success)
                     return BadRequest("Series not found");
+                title = response.Data.Title;
             }
 
 
@@ -306,6 +311,7 @@ namespace DustyPig.Server.Controllers.v3
                 EntryType = data.MediaType,
                 ProfileId = UserProfile.Id,
                 Timestamp = DateTime.UtcNow,
+                Title = title,
                 TMDB_Id = data.TMDB_Id
             };
 
