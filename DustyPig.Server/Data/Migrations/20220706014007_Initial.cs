@@ -336,8 +336,10 @@ namespace DustyPig.Server.Data.Migrations
                     AccountId = table.Column<int>(type: "int", nullable: false),
                     EntryType = table.Column<int>(type: "int", nullable: false),
                     TMDB_Id = table.Column<int>(type: "int", nullable: false),
-                    ParentalStatus = table.Column<int>(type: "int", nullable: false),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Status = table.Column<int>(type: "int", nullable: false),
+                    NotificationCreated = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
@@ -459,36 +461,6 @@ namespace DustyPig.Server.Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "OverrideRequests",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    ProfileId = table.Column<int>(type: "int", nullable: false),
-                    MediaEntryId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    NotificationCreated = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OverrideRequests", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OverrideRequests_MediaEntries_MediaEntryId",
-                        column: x => x.MediaEntryId,
-                        principalTable: "MediaEntries",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_OverrideRequests_Profiles_ProfileId",
-                        column: x => x.ProfileId,
-                        principalTable: "Profiles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "ProfileMediaProgresses",
                 columns: table => new
                 {
@@ -569,13 +541,16 @@ namespace DustyPig.Server.Data.Migrations
                 name: "TitleOverrides",
                 columns: table => new
                 {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProfileId = table.Column<int>(type: "int", nullable: false),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
-                    State = table.Column<int>(type: "int", nullable: false)
+                    State = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TitleOverrides", x => new { x.ProfileId, x.MediaEntryId });
+                    table.PrimaryKey("PK_TitleOverrides", x => x.Id);
                     table.ForeignKey(
                         name: "FK_TitleOverrides_MediaEntries_MediaEntryId",
                         column: x => x.MediaEntryId,
@@ -659,8 +634,8 @@ namespace DustyPig.Server.Data.Migrations
                     NotificationType = table.Column<int>(type: "int", nullable: false),
                     FriendshipId = table.Column<int>(type: "int", nullable: true),
                     MediaEntryId = table.Column<int>(type: "int", nullable: true),
-                    OverrideRequestId = table.Column<int>(type: "int", nullable: true),
                     GetRequestId = table.Column<int>(type: "int", nullable: true),
+                    TitleOverrideId = table.Column<int>(type: "int", nullable: true),
                     Sent = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Seen = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
@@ -687,17 +662,16 @@ namespace DustyPig.Server.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Notifications_OverrideRequests_OverrideRequestId",
-                        column: x => x.OverrideRequestId,
-                        principalTable: "OverrideRequests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_Notifications_Profiles_ProfileId",
                         column: x => x.ProfileId,
                         principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Notifications_TitleOverrides_TitleOverrideId",
+                        column: x => x.TitleOverrideId,
+                        principalTable: "TitleOverrides",
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -908,24 +882,14 @@ namespace DustyPig.Server.Data.Migrations
                 column: "MediaEntryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Notifications_OverrideRequestId",
-                table: "Notifications",
-                column: "OverrideRequestId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Notifications_ProfileId",
                 table: "Notifications",
                 column: "ProfileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OverrideRequests_MediaEntryId",
-                table: "OverrideRequests",
-                column: "MediaEntryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_OverrideRequests_ProfileId",
-                table: "OverrideRequests",
-                column: "ProfileId");
+                name: "IX_Notifications_TitleOverrideId",
+                table: "Notifications",
+                column: "TitleOverrideId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_People_Hash",
@@ -988,6 +952,12 @@ namespace DustyPig.Server.Data.Migrations
                 column: "MediaEntryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TitleOverrides_ProfileId_MediaEntryId",
+                table: "TitleOverrides",
+                columns: new[] { "ProfileId", "MediaEntryId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WatchListItems_MediaEntryId",
                 table: "WatchListItems",
                 column: "MediaEntryId");
@@ -1035,9 +1005,6 @@ namespace DustyPig.Server.Data.Migrations
                 name: "Subtitles");
 
             migrationBuilder.DropTable(
-                name: "TitleOverrides");
-
-            migrationBuilder.DropTable(
                 name: "WatchListItems");
 
             migrationBuilder.DropTable(
@@ -1053,7 +1020,7 @@ namespace DustyPig.Server.Data.Migrations
                 name: "GetRequests");
 
             migrationBuilder.DropTable(
-                name: "OverrideRequests");
+                name: "TitleOverrides");
 
             migrationBuilder.DropTable(
                 name: "Playlists");

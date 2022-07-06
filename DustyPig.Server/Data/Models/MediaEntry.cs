@@ -102,11 +102,6 @@ namespace DustyPig.Server.Data.Models
 
         public bool NotificationsCreated { get; set; }
 
-
-        //public List<MediaEntry> LinkedItems { get; set; } = new List<MediaEntry>();
-
-        public List<OverrideRequest> OverrideRequests { get; set; } = new List<OverrideRequest>();
-
         public List<PlaylistItem> PlaylistItems { get; set; } = new List<PlaylistItem>();
 
         public List<ProfileMediaProgress> ProfileMediaProgress { get; set; } = new List<ProfileMediaProgress>();

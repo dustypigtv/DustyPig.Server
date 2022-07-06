@@ -46,8 +46,6 @@ namespace DustyPig.Server.Data.Models
 
         public List<GetRequest> GetRequests { get; set; }
 
-        public List<OverrideRequest> OverrideRequests { get; set; }
-
         public List<Notification> Notifications { get; set; }
 
         public List<Playlist> Playlists { get; set; }

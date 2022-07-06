@@ -80,7 +80,6 @@ namespace DustyPig.Server.HostedServices
             await CreateNotificationsForMovieRequestsAsync();
             await CreateNotificationsForSeriesRequestsAsync();
             await CreateNotificiationsForNewEpisodesAsync();
-            await CreateNotificationsForOverrideRequestsAsync();
             await CreateNotificationsForFriendshipsAsync();
 
 
@@ -385,86 +384,7 @@ namespace DustyPig.Server.HostedServices
             }
         }
 
-        private async Task CreateNotificationsForOverrideRequestsAsync()
-        {
-            using var db = new AppDbContext();
-
-            int start = 0;
-            while (true)
-            {
-                //Check for override requests and create notifications
-                var overrideRequests = await db.OverrideRequests
-                    .Include(item => item.Profile)
-                    .ThenInclude(item => item.Account)
-                    .ThenInclude(item => item.Profiles)
-                    .Include(item => item.MediaEntry)
-                    .Where(item => item.NotificationCreated == false)
-                    .OrderBy(item => item.Id)
-                    .Skip(start)
-                    .Take(CHUNK_SIZE)
-                    .ToListAsync();
-
-                foreach (var overrideRequest in overrideRequests)
-                {
-                    var mainProfile = overrideRequest.Profile.Account.Profiles.Single(item => item.IsMain);
-
-                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.Requested)
-                    {
-                        db.Notifications.Add(new Data.Models.Notification
-                        {
-                            OverrideRequestId = overrideRequest.Id,
-                            MediaEntryId = overrideRequest.MediaEntryId,
-                            Message = $"{overrideRequest.Profile.Name} is requesting access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
-                            NotificationType = NotificationType.OverrideRequest,
-                            ProfileId = mainProfile.Id,
-                            Title = "Access Request",
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-
-                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.Granted)
-                    {
-                        db.Notifications.Add(new Data.Models.Notification
-                        {
-                            OverrideRequestId = overrideRequest.Id,
-                            MediaEntryId = overrideRequest.MediaEntryId,
-                            Message = $"{mainProfile.Name} has granted access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
-                            NotificationType = NotificationType.OverrideRequest,
-                            ProfileId = overrideRequest.ProfileId,
-                            Title = "Access Granted",
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-
-                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.Denied)
-                    {
-                        db.Notifications.Add(new Data.Models.Notification
-                        {
-                            OverrideRequestId = overrideRequest.Id,
-                            MediaEntryId = overrideRequest.MediaEntryId,
-                            Message = $"{mainProfile.Name} has denied access to \"{overrideRequest.MediaEntry.FormattedTitle()}\"",
-                            NotificationType = NotificationType.OverrideRequest,
-                            ProfileId = overrideRequest.ProfileId,
-                            Title = "Access Denied",
-                            Timestamp = DateTime.UtcNow
-                        });
-                    }
-
-                    if (overrideRequest.Status == API.v3.Models.OverrideRequestStatus.NotRequested)
-                        db.Entry(overrideRequest).State = EntityState.Deleted;
-
-                    overrideRequest.NotificationCreated = true;
-                }
-
-                await db.SaveChangesAsync(_cancellationToken);
-
-                if (overrideRequests.Count < CHUNK_SIZE)
-                    return;
-
-                start += CHUNK_SIZE;
-            }
-        }
-
+        
         private async Task CreateNotificationsForFriendshipsAsync()
         {
             using var db = new AppDbContext();

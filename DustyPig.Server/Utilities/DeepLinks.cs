@@ -9,14 +9,14 @@ namespace DustyPig.Server.Utilities
             if (notification.MediaEntryId == null)
                 return null;
 
+            if(notification.NotificationType == NotificationType.OverrideRequest)
+                return $"dustypig://overrides/{notification.TitleOverrideId}";
+
             if (notification.NotificationType == NotificationType.Media)
                 return $"dustypig://media/{notification.MediaEntryId}";
 
             if (notification.NotificationType == NotificationType.Friend)
                 return $"dustypig://friendship/{notification.FriendshipId}";
-
-            if (notification.NotificationType == NotificationType.OverrideRequest)
-                return $"dustypig://overrides/{notification.OverrideRequestId}";
 
             if (notification.NotificationType == NotificationType.GetRequest)
                 return $"dustypig://requests/{notification.GetRequestId}";

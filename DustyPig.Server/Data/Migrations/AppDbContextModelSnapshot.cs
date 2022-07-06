@@ -727,9 +727,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("NotificationType")
                         .HasColumnType("int");
 
-                    b.Property<int?>("OverrideRequestId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ProfileId")
                         .HasColumnType("int");
 
@@ -746,6 +743,9 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
+                    b.Property<int?>("TitleOverrideId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("FriendshipId");
@@ -754,44 +754,11 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("MediaEntryId");
 
-                    b.HasIndex("OverrideRequestId");
-
                     b.HasIndex("ProfileId");
+
+                    b.HasIndex("TitleOverrideId");
 
                     b.ToTable("Notifications");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.OverrideRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<int>("MediaEntryId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("NotificationCreated")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("ProfileId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("State")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MediaEntryId");
-
-                    b.HasIndex("ProfileId");
-
-                    b.ToTable("OverrideRequests");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Person", b =>
@@ -1169,18 +1136,28 @@ namespace DustyPig.Server.Data.Migrations
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.TitleOverride", b =>
                 {
-                    b.Property<int>("ProfileId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     b.Property<int>("MediaEntryId")
                         .HasColumnType("int");
 
+                    b.Property<int>("ProfileId")
+                        .HasColumnType("int");
+
                     b.Property<int>("State")
                         .HasColumnType("int");
 
-                    b.HasKey("ProfileId", "MediaEntryId");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("MediaEntryId");
+
+                    b.HasIndex("ProfileId", "MediaEntryId")
+                        .IsUnique();
 
                     b.ToTable("TitleOverrides");
                 });
@@ -1376,16 +1353,15 @@ namespace DustyPig.Server.Data.Migrations
                         .HasForeignKey("MediaEntryId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("DustyPig.Server.Data.Models.OverrideRequest", "OverrideRequest")
-                        .WithMany()
-                        .HasForeignKey("OverrideRequestId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
                         .WithMany("Notifications")
                         .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("DustyPig.Server.Data.Models.TitleOverride", "TitleOverride")
+                        .WithMany()
+                        .HasForeignKey("TitleOverrideId");
 
                     b.Navigation("Friendship");
 
@@ -1393,28 +1369,9 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Navigation("MediaEntry");
 
-                    b.Navigation("OverrideRequest");
-
                     b.Navigation("Profile");
-                });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.OverrideRequest", b =>
-                {
-                    b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
-                        .WithMany("OverrideRequests")
-                        .HasForeignKey("MediaEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
-                        .WithMany("OverrideRequests")
-                        .HasForeignKey("ProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MediaEntry");
-
-                    b.Navigation("Profile");
+                    b.Navigation("TitleOverride");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Playlist", b =>
@@ -1593,8 +1550,6 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     b.Navigation("MediaSearchBridges");
 
-                    b.Navigation("OverrideRequests");
-
                     b.Navigation("People");
 
                     b.Navigation("PlaylistItems");
@@ -1627,8 +1582,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Navigation("GetRequests");
 
                     b.Navigation("Notifications");
-
-                    b.Navigation("OverrideRequests");
 
                     b.Navigation("Playlists");
 

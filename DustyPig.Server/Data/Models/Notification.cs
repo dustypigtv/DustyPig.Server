@@ -32,11 +32,11 @@ namespace DustyPig.Server.Data.Models
         public int? MediaEntryId { get; set; }
         public MediaEntry MediaEntry { get; set; }
 
-        public int? OverrideRequestId { get; set; }
-        public OverrideRequest OverrideRequest { get; set; }
-
         public int? GetRequestId { get; set; }
         public GetRequest GetRequest { get; set; }
+
+        public int? TitleOverrideId { get; set; }
+        public TitleOverride TitleOverride { get; set; }
 
 
         public bool Sent { get; set; }

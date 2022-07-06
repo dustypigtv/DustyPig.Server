@@ -88,7 +88,7 @@ namespace DustyPig.Server.Controllers.v3
             var media = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
 
-                .Include(item => item.OverrideRequests.Where(subItem => subItem.ProfileId == UserProfile.Id))
+                .Include(item => item.TitleOverrides.Where(subItem => subItem.ProfileId == UserProfile.Id))
 
                 .Include(Item => Item.Library)
                 .ThenInclude(item => item.Account)
@@ -243,7 +243,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                var overrideRequest = media.OverrideRequests.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+                var overrideRequest = media.TitleOverrides.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
                 if (overrideRequest != null)
                     ret.AccessRequestedStatus = overrideRequest.Status;
             }

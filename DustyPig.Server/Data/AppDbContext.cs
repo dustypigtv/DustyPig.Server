@@ -32,7 +32,6 @@ namespace DustyPig.Server.Data
         public DbSet<MediaPersonBridge> MediaPersonBridges { get; set; }
         public DbSet<MediaSearchBridge> MediaSearchBridges { get; set; }
         public DbSet<Notification> Notifications { get; set; }
-        public DbSet<OverrideRequest> OverrideRequests { get; set; }
         public DbSet<Person> People { get; set; }
         public DbSet<Playlist> Playlists { get; set; }
         public DbSet<PlaylistItem> PlaylistItems { get; set; }
@@ -74,7 +73,6 @@ namespace DustyPig.Server.Data
             modelBuilder.Entity<ProfileLibraryShare>().HasKey(e => new { e.ProfileId, e.LibraryId });
             modelBuilder.Entity<ProfileMediaProgress>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
             modelBuilder.Entity<Subscription>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
-            modelBuilder.Entity<TitleOverride>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
             modelBuilder.Entity<WatchlistItem>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
 
 
@@ -92,7 +90,6 @@ namespace DustyPig.Server.Data
                 e.HasOne(p => p.Friendship).WithMany().OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(p => p.GetRequest).WithMany().OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.Cascade);
-                e.HasOne(p => p.OverrideRequest).WithMany().OnDelete(DeleteBehavior.Cascade);
             });
 
 
