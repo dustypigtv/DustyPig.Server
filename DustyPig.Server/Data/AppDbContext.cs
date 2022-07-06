@@ -26,6 +26,7 @@ namespace DustyPig.Server.Data
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<FriendLibraryShare> FriendLibraryShares { get; set; }
         public DbSet<GetRequest> GetRequests { get; set; }
+        public DbSet<GetRequestSubscription> GetRequestSubscriptions { get; set; }
         public DbSet<Library> Libraries { get; set; }
         public DbSet<LogEntry> Logs { get; set; }
         public DbSet<MediaEntry> MediaEntries { get; set; }
@@ -68,6 +69,7 @@ namespace DustyPig.Server.Data
 
             //Composite Keys
             modelBuilder.Entity<FriendLibraryShare>().HasKey(e => new { e.FriendshipId, e.LibraryId });
+            modelBuilder.Entity<GetRequestSubscription>().HasKey(e => new { e.GetRequestId, e.ProfileId });
             modelBuilder.Entity<MediaPersonBridge>().HasKey(e => new { e.MediaEntryId, e.PersonId, e.Role });
             modelBuilder.Entity<MediaSearchBridge>().HasKey(e => new { e.MediaEntryId, e.SearchTermId });
             modelBuilder.Entity<ProfileLibraryShare>().HasKey(e => new { e.ProfileId, e.LibraryId });
@@ -78,12 +80,7 @@ namespace DustyPig.Server.Data
 
             //Manually set OnDelete = Cascade for tables with optional links
             modelBuilder.Entity<ActivationCode>().HasOne(p => p.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<MediaEntry>(e =>
-            {
-                e.HasOne(p => p.LinkedTo).WithMany().OnDelete(DeleteBehavior.Cascade);
-            });
-
+            modelBuilder.Entity<MediaEntry>().HasOne(p => p.LinkedTo).WithMany().OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Notification>(e =>
             {

@@ -329,13 +329,11 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    ProfileId = table.Column<int>(type: "int", nullable: false),
                     AccountId = table.Column<int>(type: "int", nullable: false),
                     EntryType = table.Column<int>(type: "int", nullable: false),
                     TMDB_Id = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    ProfileId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -350,8 +348,7 @@ namespace DustyPig.Server.Data.Migrations
                         name: "FK_GetRequests_Profiles_ProfileId",
                         column: x => x.ProfileId,
                         principalTable: "Profiles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -580,6 +577,31 @@ namespace DustyPig.Server.Data.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_WatchListItems_Profiles_ProfileId",
+                        column: x => x.ProfileId,
+                        principalTable: "Profiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "GetRequestSubscriptions",
+                columns: table => new
+                {
+                    GetRequestId = table.Column<int>(type: "int", nullable: false),
+                    ProfileId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GetRequestSubscriptions", x => new { x.GetRequestId, x.ProfileId });
+                    table.ForeignKey(
+                        name: "FK_GetRequestSubscriptions_GetRequests_GetRequestId",
+                        column: x => x.GetRequestId,
+                        principalTable: "GetRequests",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GetRequestSubscriptions_Profiles_ProfileId",
                         column: x => x.ProfileId,
                         principalTable: "Profiles",
                         principalColumn: "Id",
@@ -825,14 +847,20 @@ namespace DustyPig.Server.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_GetRequests_AccountId",
+                name: "IX_GetRequests_AccountId_EntryType_TMDB_Id",
                 table: "GetRequests",
-                column: "AccountId");
+                columns: new[] { "AccountId", "EntryType", "TMDB_Id" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_GetRequests_ProfileId_AccountId_EntryType_TMDB_Id",
+                name: "IX_GetRequests_ProfileId",
                 table: "GetRequests",
-                columns: new[] { "ProfileId", "AccountId", "EntryType", "TMDB_Id" });
+                column: "ProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GetRequestSubscriptions_ProfileId",
+                table: "GetRequestSubscriptions",
+                column: "ProfileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Libraries_AccountId_Name",
@@ -971,6 +999,9 @@ namespace DustyPig.Server.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "FriendLibraryShares");
+
+            migrationBuilder.DropTable(
+                name: "GetRequestSubscriptions");
 
             migrationBuilder.DropTable(
                 name: "Logs");

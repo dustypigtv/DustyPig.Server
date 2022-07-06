@@ -1,21 +1,14 @@
 ﻿using DustyPig.API.v3.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(ProfileId), nameof(AccountId), nameof(EntryType), nameof(TMDB_Id))]
+    [Index(nameof(AccountId), nameof(EntryType), nameof(TMDB_Id), IsUnique = true)]
     public class GetRequest
     {
         public int Id { get; set; }
-
-        /// <summary>
-        /// ProfileId of requestor
-        /// </summary>
-        public int ProfileId { get; set; }
-        public Profile Profile { get; set; }
-
 
         /// <summary>
         /// AccountId that request is sent to
@@ -27,10 +20,8 @@ namespace DustyPig.Server.Data.Models
 
         public int TMDB_Id { get; set; }
 
-        [Required]
-        [MaxLength(Constants.MAX_NAME_LENGTH)]
-        public string Title { get; set; }
-
         public RequestStatus Status { get; set; } = RequestStatus.NotRequested;
+
+        public List<GetRequestSubscription> NotificationSubscriptions { get; set; } = new List<GetRequestSubscription>();
     }
 }

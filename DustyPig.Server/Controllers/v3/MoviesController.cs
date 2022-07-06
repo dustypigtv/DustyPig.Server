@@ -299,26 +299,32 @@ namespace DustyPig.Server.Controllers.v3
             //Notifications
             if(newItem.TMDB_Id > 0)
             {
-                var getRequests = await DB.GetRequests
+                var getRequest = await DB.GetRequests
+                    .Include(item => item.NotificationSubscriptions)
                     .Where(item => item.AccountId == UserAccount.Id)
                     .Where(item => item.TMDB_Id == newItem.TMDB_Id)
-                    .Where(item => item.Status == RequestStatus.Pending)
-                    .ToListAsync();
+                    .Where(item => item.EntryType == TMDB_MediaTypes.Movie)
+                    .Where(item => item.Status != RequestStatus.Fulfilled)
+                    .FirstOrDefaultAsync();
 
-                foreach(var gr in getRequests)
+                if (getRequest != null)
                 {
-                    gr.Status = RequestStatus.Fufilled;
-                    
-                    DB.Notifications.Add(new Data.Models.Notification
+                    getRequest.Status = RequestStatus.Fulfilled;
+
+                    foreach (var sub in getRequest.NotificationSubscriptions)
                     {
-                        GetRequestId = gr.Id,
-                        MediaEntry = newItem,
-                        Message = "\"" + gr.Title + "\" is now availble!",
-                        NotificationType = NotificationType.GetRequest,
-                        ProfileId = gr.ProfileId,
-                        Timestamp = DateTime.UtcNow,
-                        Title = "Your Movie Is Now Available"
-                    });
+                        DB.Notifications.Add(new Data.Models.Notification
+                        {
+                            MediaEntry = newItem,
+                            Message = "\"" + newItem.Title + "\" is now availble!",
+                            NotificationType = NotificationType.GetRequest,
+                            ProfileId = sub.ProfileId,
+                            Timestamp = DateTime.UtcNow,
+                            Title = "Your Movie Is Now Available"
+                        });
+
+                        DB.GetRequestSubscriptions.Remove(sub);
+                    }
                 }
             }
 

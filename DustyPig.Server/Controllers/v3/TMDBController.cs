@@ -91,17 +91,10 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
 
-            if (ret.Available.Count > 0)
-            {
-                ret.RequestPermission = TitleRequestPermissions.Disabled;
-                ret.RequestStatus = RequestStatus.NotRequested;
-            }
-            else
-            {
-                var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Movie);
-                ret.RequestPermission = reqPerm.Permission;
-                ret.RequestStatus = reqPerm.Status;
-            }
+
+            var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Movie);
+            ret.RequestPermission = reqPerm.Permission;
+            ret.RequestStatus = reqPerm.Status;
 
             return ret;
         }
@@ -155,18 +148,9 @@ namespace DustyPig.Server.Controllers.v3
                 .Select(item => item.ToBasicMedia()).ToList();
 
 
-            if (ret.Available.Count > 0)
-            {
-                ret.RequestPermission = TitleRequestPermissions.Disabled;
-                ret.RequestStatus = RequestStatus.NotRequested;
-            }
-            else
-            {
-                var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Series);
-                ret.RequestPermission = reqPerm.Permission;
-                ret.RequestStatus = reqPerm.Status;
-            }
-
+            var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Series);
+            ret.RequestPermission = reqPerm.Permission;
+            ret.RequestStatus = reqPerm.Status;
 
             return ret;
         }
@@ -191,6 +175,20 @@ namespace DustyPig.Server.Controllers.v3
             //Validate
             try { data.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+            //Check for existing request
+            var existingSubscription = await DB.GetRequestSubscriptions
+                .AsNoTracking()
+                .Include(item => item.GetRequest)
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .Where(item => item.GetRequest.TMDB_Id == data.TMDB_Id)
+                .Where(item => item.GetRequest.EntryType == data.MediaType)
+                .AnyAsync();
+
+            if (existingSubscription)
+                return BadRequest("You have already requested this title");
+
+
 
             var targetAcct = UserAccount;
 
@@ -250,49 +248,6 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-
-
-            //Check for existing request
-            var existingRequests = await DB.GetRequests
-                .AsNoTracking()
-                .Include(item => item.Profile)
-                .Where(item => item.AccountId == targetAcct.Id)
-                .Where(item => item.TMDB_Id == data.TMDB_Id)
-                .Where(item => item.EntryType == data.MediaType)
-                .ToListAsync();
-
-            if(existingRequests.Count > 0)
-            {
-                if(existingRequests.Any(item => item.ProfileId == UserProfile.Id))
-                {
-                    return BadRequest("You have already requested this title");
-                }
-                else
-                {
-                    var status = (RequestStatus)existingRequests.Select(item => (long)item.Status).Max();
-
-                    if(status == RequestStatus.Denied || status == RequestStatus.Fufilled)
-                        return BadRequest("This title has already been requested, and the request completed");
-                    
-                    //Add get request for this profile, so they are notified when available
-                    DB.GetRequests.Add(new Data.Models.GetRequest
-                    {
-                        AccountId = targetAcct.Id,
-                        EntryType = data.MediaType,
-                        ProfileId = UserProfile.Id,
-                        Status = status,
-                        Title = existingRequests.First().Title,
-                        TMDB_Id = data.TMDB_Id
-                    });
-
-                    await DB.SaveChangesAsync();
-
-                    return Ok();
-                }
-            }
-
-
-
             //Validate TMDB Id
             string title = null;
             if (data.MediaType == TMDB_MediaTypes.Movie)
@@ -311,37 +266,123 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            //Create the request
-            var newReq = new Data.Models.GetRequest
-            {
-                AccountId = targetAcct.Id,
-                EntryType = data.MediaType,
-                ProfileId = UserProfile.Id,
-                Title = title,
-                TMDB_Id = data.TMDB_Id
-            };
+            //Check if the target account already has a request to subscribe to
+            var existingReq = await DB.GetRequests
+                .AsNoTracking()
+                .Where(item => item.AccountId == targetAcct.Id)
+                .Where(item => item.TMDB_Id == data.TMDB_Id)
+                .Where(item => item.EntryType == data.MediaType)
+                .FirstOrDefaultAsync();
 
-            if (targetAcct.Id == UserAccount.Id)
-                newReq.Status = RequestStatus.RequestSentToMain;
+            if (existingReq != null)
+            {
+                //Subscribe
+                DB.GetRequestSubscriptions.Add(new GetRequestSubscription
+                {
+                    GetRequestId = existingReq.Id,
+                    ProfileId = UserProfile.Id
+                });
+
+                string msg = null;
+                switch (existingReq.Status)
+                {
+                    case RequestStatus.Denied:
+                        msg = "has been denied";
+                        break;
+
+                    case RequestStatus.Fulfilled:
+                        msg = "has been fulfilled";
+                        break;
+
+                    case RequestStatus.Pending:
+                        msg = "has been granted and is pending fulfillment";
+                        break;
+                }
+
+                //Notification
+                if (msg != null)
+                {
+                    DB.Notifications.Add(new Data.Models.Notification
+                    {
+                        GetRequestId = existingReq.Id,
+                        Message = $"Your requested {data.MediaType.ToString().ToLower()} \"" + title + "\" " + msg,
+                        NotificationType = NotificationType.GetRequest,
+                        ProfileId = targetAcct.Profiles.First(item => item.IsMain).Id,
+                        Timestamp = DateTime.UtcNow,
+                        Title = data.MediaType.ToString() + " Requested"
+                    });
+                }
+            }
             else
-                newReq.Status = RequestStatus.RequestSentToAccount;
-
-            //Notification
-            DB.Notifications.Add(new Data.Models.Notification
             {
-                GetRequest = newReq,
-                Message = UserProfile.Name + " has requested the movie \"" + title + "\"",
-                NotificationType = NotificationType.GetRequest,
-                ProfileId = targetAcct.Profiles.First(item => item.IsMain).Id,
-                Timestamp = DateTime.UtcNow,
-                Title = data.MediaType + " Requested"
-            });
+                //Create the request
+                var newReq = new Data.Models.GetRequest
+                {
+                    AccountId = targetAcct.Id,
+                    EntryType = data.MediaType,
+                    TMDB_Id = data.TMDB_Id
+                };
 
-            DB.GetRequests.Add(newReq);
+                if (targetAcct.Id == UserAccount.Id)
+                    newReq.Status = RequestStatus.RequestSentToMain;
+                else
+                    newReq.Status = RequestStatus.RequestSentToAccount;
+
+                //Subscription
+                DB.GetRequestSubscriptions.Add(new GetRequestSubscription
+                {
+                    GetRequest = newReq,
+                    ProfileId = UserProfile.Id
+                });
+
+                //Notification
+                DB.Notifications.Add(new Data.Models.Notification
+                {
+                    GetRequest = newReq,
+                    Message = UserProfile.Name + $" has requested the {data.MediaType.ToString().ToLower()} \"" + title + "\"",
+                    NotificationType = NotificationType.GetRequest,
+                    ProfileId = targetAcct.Profiles.First(item => item.IsMain).Id,
+                    Timestamp = DateTime.UtcNow,
+                    Title = data.MediaType.ToString() + " Requested"
+                });
+
+                DB.GetRequests.Add(newReq);
+            }
+
+
             await DB.SaveChangesAsync();
 
             return Ok();
         }
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpPost]
+        public async Task<ActionResult> CancelTitleRequest(TitleRequest data)
+        {
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+
+            var req = await DB.GetRequestSubscriptions
+                .AsNoTracking()
+                .Include(item => item.GetRequest)
+                .Where(item => item.GetRequest.TMDB_Id == data.TMDB_Id)
+                .Where(item => item.GetRequest.EntryType == data.MediaType)
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .FirstOrDefaultAsync();
+
+            if (req != null)
+            {
+                DB.GetRequestSubscriptions.Remove(req);
+                await DB.SaveChangesAsync();
+            }
+
+            return Ok();
+        }
+
 
 
         private async Task<TitleRequestPermissions> CalculateTitleRequestPermissionsAsync()
@@ -381,41 +422,25 @@ namespace DustyPig.Server.Controllers.v3
             TitleRequestPermissions permission = TitleRequestPermissions.Disabled;
 
             //Get request status
-            var getRequests = await DB.GetRequests
+            var existingRequest = await DB.GetRequestSubscriptions
                 .AsNoTracking()
-                .Include(item => item.Profile)
-                .Where(item => item.TMDB_Id == id)
-                .Where(item => item.EntryType == mediaType)
-                .Where(item => item.AccountId == UserAccount.Id || item.Profile.AccountId == UserAccount.Id)
-                .ToListAsync();
+                .Include(item => item.GetRequest)
+                .Where(item => item.GetRequest.TMDB_Id == id)
+                .Where(item => item.GetRequest.EntryType == mediaType)
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .FirstOrDefaultAsync();
 
 
-            if (getRequests.Count == 0)
+            if (existingRequest == null)
             {
                 status = RequestStatus.NotRequested;
                 permission = await CalculateTitleRequestPermissionsAsync();
             }
             else
             {
-                //Get status. If multiple request exists, get the most advanced status
-                status = (RequestStatus)getRequests.Select(item => (long)item.Status).Max();
-
-                var profReq = getRequests.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
-                if (profReq == null)
-                {
-                    //This profile has not requested the title
-                    if (status == RequestStatus.Denied || status == RequestStatus.Fufilled)
-                        permission = TitleRequestPermissions.Disabled;
-                    else
-                        permission = await CalculateTitleRequestPermissionsAsync();
-                }
-                else
-                {    //This profile has requested the title
-                    permission = TitleRequestPermissions.Disabled;
-                }
-            }
-
-            
+                status = existingRequest.GetRequest.Status;
+                permission = TitleRequestPermissions.Disabled;
+            }            
 
             return (status, permission);
         }

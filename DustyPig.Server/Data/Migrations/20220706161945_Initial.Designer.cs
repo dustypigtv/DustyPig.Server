@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220706024157_Initial")]
+    [Migration("20220706161945_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -174,7 +174,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("EntryType")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProfileId")
+                    b.Property<int?>("ProfileId")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -183,18 +183,29 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("TMDB_Id")
                         .HasColumnType("int");
 
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
+                    b.HasIndex("ProfileId");
 
-                    b.HasIndex("ProfileId", "AccountId", "EntryType", "TMDB_Id");
+                    b.HasIndex("AccountId", "EntryType", "TMDB_Id")
+                        .IsUnique();
 
                     b.ToTable("GetRequests");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.GetRequestSubscription", b =>
+                {
+                    b.Property<int>("GetRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProfileId")
+                        .HasColumnType("int");
+
+                    b.HasKey("GetRequestId", "ProfileId");
+
+                    b.HasIndex("ProfileId");
+
+                    b.ToTable("GetRequestSubscriptions");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Library", b =>
@@ -1236,13 +1247,28 @@ namespace DustyPig.Server.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
+                    b.HasOne("DustyPig.Server.Data.Models.Profile", null)
                         .WithMany("GetRequests")
+                        .HasForeignKey("ProfileId");
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.GetRequestSubscription", b =>
+                {
+                    b.HasOne("DustyPig.Server.Data.Models.GetRequest", "GetRequest")
+                        .WithMany("NotificationSubscriptions")
+                        .HasForeignKey("GetRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
+                        .WithMany()
                         .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.Navigation("GetRequest");
 
                     b.Navigation("Profile");
                 });
@@ -1513,6 +1539,11 @@ namespace DustyPig.Server.Data.Migrations
             modelBuilder.Entity("DustyPig.Server.Data.Models.Friendship", b =>
                 {
                     b.Navigation("FriendLibraryShares");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.GetRequest", b =>
+                {
+                    b.Navigation("NotificationSubscriptions");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Library", b =>
