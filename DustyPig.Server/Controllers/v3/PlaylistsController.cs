@@ -127,7 +127,6 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var pli = new PlaylistItem
                 {
-                    ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl,
                     Description = dbPlaylistItem.MediaEntry.Description,
                     Id = dbPlaylistItem.Id,
                     Index = dbPlaylistItem.Index,
@@ -141,33 +140,59 @@ namespace DustyPig.Server.Controllers.v3
                 switch (dbPlaylistItem.MediaEntry.EntryType)
                 {
                     case MediaTypes.Episode:
+                    
                         pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.Season:00}e{dbPlaylistItem.MediaEntry.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
+                        pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
 
                         if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                        {
                             ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        }
                         else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
-                            ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        {
+                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
+                                ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        }
                         else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
-                            ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        {
+                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
+                                ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        }
                         else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
-                            ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        
+                        {
+                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
+                                ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        }
+
                         break;
 
 
 
                     case MediaTypes.Movie:
+                        
                         pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
+                        pli.ArtworkUrl = StringUtils.Coalesce(dbPlaylistItem.MediaEntry.BackdropUrl, dbPlaylistItem.MediaEntry.ArtworkUrl);
 
                         if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                        {
                             ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        }
                         else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
-                            ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        {
+                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl)
+                                ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        }
                         else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
-                            ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        {
+                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl)
+                                ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        }
                         else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
-                            ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        {
+                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.ArtworkUrl)
+                                ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        }
 
                         break;
                 }
