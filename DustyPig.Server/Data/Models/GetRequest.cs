@@ -32,9 +32,5 @@ namespace DustyPig.Server.Data.Models
         public string Title { get; set; }
 
         public RequestStatus Status { get; set; } = RequestStatus.NotRequested;
-
-        public bool NotificationCreated { get; set; }
-
-        public DateTime Timestamp { get; set; }
     }
 }

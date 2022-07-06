@@ -35,10 +35,6 @@ namespace DustyPig.Server.Data.Models
 
         public bool Accepted { get; set; }
 
-        public bool NotificationCreated { get; set; }
-
-        public DateTime Timestamp { get; set; }
-
         public List<FriendLibraryShare> FriendLibraryShares { get; set; }
     }
 }

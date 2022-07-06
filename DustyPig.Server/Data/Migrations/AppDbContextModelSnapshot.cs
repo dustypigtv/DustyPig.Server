@@ -148,12 +148,6 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
 
-                    b.Property<bool>("NotificationCreated")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime(6)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Account1Id");
@@ -178,9 +172,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("EntryType")
                         .HasColumnType("int");
 
-                    b.Property<bool>("NotificationCreated")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<int>("ProfileId")
                         .HasColumnType("int");
 
@@ -189,9 +180,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<int>("TMDB_Id")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -345,9 +333,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int?>("LinkedToId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("NotificationsCreated")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<double?>("Popularity")
                         .HasColumnType("double");
 
@@ -404,7 +389,6 @@ namespace DustyPig.Server.Data.Migrations
                             Hash = "4EA15C97603CE91602141FB1D5D04F5705311AEA6BB1FFD3B0AF4801BB7FE5A9B867B08AD8E2E90BBFCF70583E85EC20D9D0816E6B55FD34D16123A9F03624B1",
                             Length = 231.47999999999999,
                             LibraryId = 1,
-                            NotificationsCreated = true,
                             Rated = 1,
                             SortTitle = "agent 327: operation barbershop",
                             TMDB_Id = 457784,
@@ -426,7 +410,6 @@ namespace DustyPig.Server.Data.Migrations
                             Hash = "9646997A1E9CDA5FC57353A2F7A6CEE4B58BBCADDBE9D921E09F75396C1F07682CACE518417BB111644EE79D2C0ECBAFB52F21BB652D7FF2B8A231ADB40C8015",
                             Length = 596.47400000000005,
                             LibraryId = 1,
-                            NotificationsCreated = true,
                             Rated = 1,
                             SortTitle = "big buck bunny",
                             TMDB_Id = 10378,
@@ -450,7 +433,6 @@ namespace DustyPig.Server.Data.Migrations
                             IntroStartTime = 0.0,
                             Length = 184.59899999999999,
                             LibraryId = 1,
-                            NotificationsCreated = true,
                             Rated = 1,
                             SortTitle = "coffee run",
                             TMDB_Id = 717986,
@@ -474,7 +456,6 @@ namespace DustyPig.Server.Data.Migrations
                             IntroStartTime = 0.0,
                             Length = 236.65799999999999,
                             LibraryId = 1,
-                            NotificationsCreated = true,
                             Rated = 1,
                             SortTitle = "hero",
                             TMDB_Id = 615324,
@@ -496,7 +477,6 @@ namespace DustyPig.Server.Data.Migrations
                             Hash = "027B24E5D65C5FA431D54AD24F16DD801851CE3F95615CDD3951A5141D79AFD7B01688C0B2E83060948888B339160411DD1E116FFB018E440943BFD99B022291",
                             Length = 464.09800000000001,
                             LibraryId = 1,
-                            NotificationsCreated = true,
                             Rated = 1,
                             SortTitle = "spring",
                             TMDB_Id = 593048,
@@ -513,7 +493,6 @@ namespace DustyPig.Server.Data.Migrations
                             Genres = 1060L,
                             Hash = "E47A2E93157FE103F49F71DE1D04CA6E31F47F6DFFADAA2CDA654B71C61BB0E4038235F5C97C09323590BB084EF5BD30C58B555689FE835668A2DC68232C548F",
                             LibraryId = 2,
-                            NotificationsCreated = true,
                             Rated = 256,
                             SortTitle = "caminandes",
                             TMDB_Id = 276116,
@@ -534,7 +513,6 @@ namespace DustyPig.Server.Data.Migrations
                             Length = 150.048,
                             LibraryId = 2,
                             LinkedToId = 6,
-                            NotificationsCreated = true,
                             Season = 1,
                             TMDB_Id = 0,
                             Title = "Llamigos",
@@ -556,7 +534,6 @@ namespace DustyPig.Server.Data.Migrations
                             Length = 146.00800000000001,
                             LibraryId = 2,
                             LinkedToId = 6,
-                            NotificationsCreated = true,
                             Season = 1,
                             TMDB_Id = 0,
                             Title = "Gran Dillama",
@@ -578,7 +555,6 @@ namespace DustyPig.Server.Data.Migrations
                             Length = 90.001000000000005,
                             LibraryId = 2,
                             LinkedToId = 6,
-                            NotificationsCreated = true,
                             Season = 1,
                             TMDB_Id = 0,
                             Title = "Llama Drama",

@@ -100,8 +100,6 @@ namespace DustyPig.Server.Data.Models
 
         public DateTime? PopularityUpdated { get; set; }
 
-        public bool NotificationsCreated { get; set; }
-
         public List<PlaylistItem> PlaylistItems { get; set; } = new List<PlaylistItem>();
 
         public List<ProfileMediaProgress> ProfileMediaProgress { get; set; } = new List<ProfileMediaProgress>();

@@ -4,6 +4,7 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
+using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.TMDB;
 using DustyPig.TMDB.Models;
@@ -191,7 +192,7 @@ namespace DustyPig.Server.Controllers.v3
             try { data.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            int accountId = UserAccount.Id;
+            var targetAcct = UserAccount;
 
             if (UserProfile.IsMain)
             {
@@ -203,15 +204,19 @@ namespace DustyPig.Server.Controllers.v3
 
                 var friend = await DB.Friendships
                     .AsNoTracking()
+                    .Include(item => item.Account1)
+                    .ThenInclude(item => item.Profiles)
+                    .Include(item => item.Account2)
+                    .ThenInclude(item => item.Profiles)
                     .Where(item => item.Id == data.FriendId)
                     .FirstOrDefaultAsync();
 
                 if (friend == null)
                     return BadRequest("Friend not found");
-            
-                accountId = friend.Account1Id == UserAccount.Id
-                    ? friend.Account2Id
-                    : friend.Account1Id;
+
+                targetAcct = friend.Account1Id == UserAccount.Id
+                    ? friend.Account2
+                    : friend.Account1;
             }
             else
             {
@@ -228,15 +233,19 @@ namespace DustyPig.Server.Controllers.v3
 
                         var friend = await DB.Friendships
                             .AsNoTracking()
+                            .Include(item => item.Account1)
+                            .ThenInclude(item => item.Profiles)
+                            .Include(item => item.Account2)
+                            .ThenInclude(item => item.Profiles)
                             .Where(item => item.Id == data.FriendId)
                             .FirstOrDefaultAsync();
 
                         if (friend == null)
                             return BadRequest("Friend not found");
 
-                        accountId = friend.Account1Id == UserAccount.Id
-                            ? friend.Account2Id
-                            : friend.Account1Id;
+                        targetAcct = friend.Account1Id == UserAccount.Id
+                            ? friend.Account2
+                            : friend.Account1;
                     }
                 }
             }
@@ -247,7 +256,7 @@ namespace DustyPig.Server.Controllers.v3
             var existingRequests = await DB.GetRequests
                 .AsNoTracking()
                 .Include(item => item.Profile)
-                .Where(item => item.AccountId == accountId)
+                .Where(item => item.AccountId == targetAcct.Id)
                 .Where(item => item.TMDB_Id == data.TMDB_Id)
                 .Where(item => item.EntryType == data.MediaType)
                 .ToListAsync();
@@ -268,12 +277,10 @@ namespace DustyPig.Server.Controllers.v3
                     //Add get request for this profile, so they are notified when available
                     DB.GetRequests.Add(new Data.Models.GetRequest
                     {
-                        AccountId = accountId,
+                        AccountId = targetAcct.Id,
                         EntryType = data.MediaType,
-                        NotificationCreated = existingRequests.Any(item => item.NotificationCreated),
                         ProfileId = UserProfile.Id,
                         Status = status,
-                        Timestamp = DateTime.UtcNow,
                         Title = existingRequests.First().Title,
                         TMDB_Id = data.TMDB_Id
                     });
@@ -307,18 +314,28 @@ namespace DustyPig.Server.Controllers.v3
             //Create the request
             var newReq = new Data.Models.GetRequest
             {
-                AccountId = accountId,
+                AccountId = targetAcct.Id,
                 EntryType = data.MediaType,
                 ProfileId = UserProfile.Id,
-                Timestamp = DateTime.UtcNow,
                 Title = title,
                 TMDB_Id = data.TMDB_Id
             };
 
-            if (accountId == UserAccount.Id)
+            if (targetAcct.Id == UserAccount.Id)
                 newReq.Status = RequestStatus.RequestSentToMain;
             else
                 newReq.Status = RequestStatus.RequestSentToAccount;
+
+            //Notification
+            DB.Notifications.Add(new Data.Models.Notification
+            {
+                GetRequest = newReq,
+                Message = UserProfile.Name + " has requested the movie \"" + title + "\"",
+                NotificationType = NotificationType.GetRequest,
+                ProfileId = targetAcct.Profiles.First(item => item.IsMain).Id,
+                Timestamp = DateTime.UtcNow,
+                Title = data.MediaType + " Requested"
+            });
 
             DB.GetRequests.Add(newReq);
             await DB.SaveChangesAsync();

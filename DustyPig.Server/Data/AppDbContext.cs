@@ -157,8 +157,7 @@ namespace DustyPig.Server.Data
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.jpg",
                     BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.backdrop.jpg",
-                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.bif",
-                    NotificationsCreated = true
+                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.bif"
                 },
                 new MediaEntry
                 {
@@ -179,8 +178,7 @@ namespace DustyPig.Server.Data
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.jpg",
                     BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.backdrop.jpg",
-                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.bif",
-                    NotificationsCreated = true
+                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.bif"
                 },
                 new MediaEntry
                 {
@@ -203,8 +201,7 @@ namespace DustyPig.Server.Data
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.jpg",
                     BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.backdrop.jpg",
-                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.bif",
-                    NotificationsCreated = true
+                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.bif"
                 },
                 new MediaEntry
                 {
@@ -227,8 +224,7 @@ namespace DustyPig.Server.Data
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.jpg",
                     BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.backdrop.jpg",
-                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.bif",
-                    NotificationsCreated = true
+                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.bif"
                 },
                 new MediaEntry
                 {
@@ -249,8 +245,7 @@ namespace DustyPig.Server.Data
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.mp4",
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.jpg",
                     BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.backdrop.jpg",
-                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.bif",
-                    NotificationsCreated = true
+                    BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.bif"
                 },
                 new MediaEntry
                 {
@@ -265,8 +260,7 @@ namespace DustyPig.Server.Data
                     Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
                     Genres = (API.v3.MPAA.Genres)1060,
                     ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/show.jpg",
-                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/backdrop.jpg",
-                    NotificationsCreated = true
+                    BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/backdrop.jpg"
                 },
                 new MediaEntry
                 {
@@ -287,8 +281,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 139.500,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.mp4",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.bif",
-                    ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.jpg",
-                    NotificationsCreated = true
+                    ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.jpg"
                 },
                 new MediaEntry
                 {
@@ -309,8 +302,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 119.250,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.mp4",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.bif",
-                    ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg",
-                    NotificationsCreated = true
+                    ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg"
                 },
                 new MediaEntry
                 {
@@ -331,8 +323,7 @@ namespace DustyPig.Server.Data
                     CreditsStartTime = 87.917,
                     VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.mp4",
                     BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.bif",
-                    ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.jpg",
-                    NotificationsCreated = true
+                    ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.jpg"
                 }
             });
 

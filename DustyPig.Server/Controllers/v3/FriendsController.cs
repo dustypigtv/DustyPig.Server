@@ -85,8 +85,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Id = id,
                 Accepted = friend.Accepted,
-                DisplayName = friend.GetFriendDisplayNameForAccount(UserAccount.Id),
-                Timestamp = friend.Timestamp
+                DisplayName = friend.GetFriendDisplayNameForAccount(UserAccount.Id)
             };
 
             foreach (var share in friend.FriendLibraryShares)
@@ -170,11 +169,22 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-            DB.Friendships.Add(new Friendship
+            //Request
+            friendship = DB.Friendships.Add(new Friendship
             {
                 Account1Id = UserAccount.Id,
                 Account2Id = friendAccount.Id,
-                Hash = uniqueFriendId,
+                Hash = uniqueFriendId
+            }).Entity;
+
+            //Notification
+            DB.Notifications.Add(new Data.Models.Notification
+            {
+                Friendship = friendship,
+                Title = "Friend Request",
+                Message = $"{UserProfile.Name} has sent you a friend request",
+                NotificationType = NotificationType.Friend,
+                ProfileId = friendAccount.Profiles.Single(item => item.IsMain).Id,
                 Timestamp = DateTime.UtcNow
             });
 
@@ -226,9 +236,17 @@ namespace DustyPig.Server.Controllers.v3
             if (info.Accepted && !friendship.Accepted)
             {
                 friendship.Accepted = true;
-                friendship.Timestamp = DateTime.UtcNow;
-                friendship.NotificationCreated = false;
-                string name = friendship.Account2.Profiles.Single(item => item.IsMain).Name;
+               
+                DB.Notifications.Add(new Data.Models.Notification
+                {
+                    FriendshipId = friendship.Id,
+                    Title = "You have a new friend!",
+                    Message = $"{UserProfile.Name} has accepted your friend request",
+                    NotificationType = NotificationType.Friend,
+                    ProfileId = friendship.Account1.Profiles.Single(item => item.IsMain).Id,
+                    Timestamp = DateTime.UtcNow
+                });
+
             }
 
 

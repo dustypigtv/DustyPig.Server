@@ -170,11 +170,13 @@ namespace DustyPig.Server.Controllers.v3
             var ownedSeries = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(item => item.Library)
+                .ThenInclude(item => item.ProfileLibraryShares)
+                .Include(item => item.Subscriptions)
                 .Where(item => item.Id == episodeInfo.SeriesId)
                 .SingleOrDefaultAsync();
+
             if (ownedSeries == null)
                 return NotFound(nameof(episodeInfo.SeriesId));
-
 
             if (ownedSeries.Library.AccountId != UserAccount.Id)
                 return NotFound(nameof(episodeInfo.SeriesId));
@@ -232,6 +234,49 @@ namespace DustyPig.Server.Controllers.v3
                         Name = srt.Name,
                         Url = srt.Url
                     });
+
+            //Notifications
+            if (ownedSeries.TMDB_Id > 0 && episodeInfo.SeasonNumber == 1 && episodeInfo.EpisodeNumber == 1)
+            {
+                var getRequests = await DB.GetRequests
+                    .Where(item => item.AccountId == UserAccount.Id)
+                    .Where(item => item.TMDB_Id == newItem.TMDB_Id)
+                    .Where(item => item.Status == RequestStatus.Pending)
+                    .ToListAsync();
+
+                foreach (var gr in getRequests)
+                {
+                    gr.Status = RequestStatus.Fufilled;
+                    
+                    DB.Notifications.Add(new Data.Models.Notification
+                    {
+                        GetRequestId = gr.Id,
+                        MediaEntry = newItem,
+                        Message = "\"" + gr.Title + "\" is now availble!",
+                        NotificationType = NotificationType.GetRequest,
+                        ProfileId = gr.ProfileId,
+                        Timestamp = DateTime.UtcNow,
+                        Title = "Your Series Is Now Available"
+                    });
+                }
+            }
+
+            foreach (var subscription in ownedSeries.Subscriptions)
+            {
+                if (ownedSeries.Library.ProfileLibraryShares.Any(item => item.ProfileId == subscription.ProfileId))
+                {
+                    DB.Notifications.Add(new Data.Models.Notification
+                    {
+                        MediaEntry = newItem,
+                        Message = $"{ownedSeries.Title} - s{episodeInfo.SeasonNumber:00}e{episodeInfo.EpisodeNumber:00} is now available",
+                        NotificationType = NotificationType.Media,
+                        ProfileId = subscription.ProfileId,
+                        Timestamp = DateTime.UtcNow,
+                        Title = "New Episode Available"
+                    });
+                }
+            }
+
 
             //Moment of truth!
             await DB.SaveChangesAsync();

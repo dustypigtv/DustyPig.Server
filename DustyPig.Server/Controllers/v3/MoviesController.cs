@@ -295,6 +295,33 @@ namespace DustyPig.Server.Controllers.v3
                         Url = srt.Url
                     });
 
+
+            //Notifications
+            if(newItem.TMDB_Id > 0)
+            {
+                var getRequests = await DB.GetRequests
+                    .Where(item => item.AccountId == UserAccount.Id)
+                    .Where(item => item.TMDB_Id == newItem.TMDB_Id)
+                    .Where(item => item.Status == RequestStatus.Pending)
+                    .ToListAsync();
+
+                foreach(var gr in getRequests)
+                {
+                    gr.Status = RequestStatus.Fufilled;
+                    
+                    DB.Notifications.Add(new Data.Models.Notification
+                    {
+                        GetRequestId = gr.Id,
+                        MediaEntry = newItem,
+                        Message = "\"" + gr.Title + "\" is now availble!",
+                        NotificationType = NotificationType.GetRequest,
+                        ProfileId = gr.ProfileId,
+                        Timestamp = DateTime.UtcNow,
+                        Title = "Your Movie Is Now Available"
+                    });
+                }
+            }
+
             //Moment of truth!
             await DB.SaveChangesAsync();
 
