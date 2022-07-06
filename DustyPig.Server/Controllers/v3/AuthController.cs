@@ -70,7 +70,7 @@ namespace DustyPig.Server.Controllers.v3
                 account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
             }
 
-            if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
+            if (account.Profiles.Count == 1)
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.MainProfile,
@@ -156,7 +156,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
 
-            if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
+            if (account.Profiles.Count == 1)
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.MainProfile,
@@ -235,7 +235,7 @@ namespace DustyPig.Server.Controllers.v3
                     .Where(item => item.Id == rec.AccountId)
                     .FirstAsync();
 
-                if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber != null)
+                if (account.Profiles.Count == 1)
                 {
                     ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, account.Profiles[0].Id, null);
                     ret.LoginType = LoginResponseType.MainProfile;
