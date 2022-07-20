@@ -23,9 +23,9 @@
 
 
 <ItemGroup>
-    <PackageReference Include="DustyPig.API" Version="3.0.3.92" />
-    <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.4" />
-    <PackageReference Include="DustyPig.TMDB" Version="3.0.1.6" />
+    <PackageReference Include="DustyPig.API" Version="3.0.4.94" />
+    <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.5" />
+    <PackageReference Include="DustyPig.TMDB" Version="3.0.2.7" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
     <PackageReference Include="Krypto.WonderDog" Version="22.4.24.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.6" />
