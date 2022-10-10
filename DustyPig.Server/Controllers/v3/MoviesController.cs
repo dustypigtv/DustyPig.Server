@@ -50,20 +50,26 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         /// <remarks>Returns the next 100 movies based on start position and sort order. Designed for admin tools, will return all mvoies owned by the account</remarks>
-        [HttpGet("{start}")]
+        [HttpGet("{start}/{libId}")]
         [RequireMainProfile]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start)
+        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start, int libId)
         {
-            var movies = await DB.MediaEntries
+            var moviesQ = DB.MediaEntries
                 .AsNoTracking()
                 .Include(item => item.Library)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
-                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => item.EntryType == MediaTypes.Movie);
+
+            if (libId > 0)
+                moviesQ = moviesQ.Where(item => item.LibraryId == libId);
+
+            moviesQ = moviesQ
                 .OrderBy(item => item.SortTitle)
                 .Skip(start)
-                .Take(LIST_SIZE)
-                .ToListAsync();
+                .Take(100);
+
+            var movies = await moviesQ.ToListAsync();
 
             return movies.Select(item => item.ToBasicMedia()).ToList();
         }
