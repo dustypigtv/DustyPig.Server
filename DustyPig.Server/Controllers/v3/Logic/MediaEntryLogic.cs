@@ -169,7 +169,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //This fixes the cast sort problem
             //mediaEntry.People.RemoveAll(item => item.Role == Roles.Cast);
             foreach (var person in mediaEntry.People.Where(item => item.Role == Roles.Cast))
-                DB.Entry(person).State = EntityState.Deleted;
+                DB.MediaPersonBridges.Remove(person);
 
             AddNewPeople(mediaEntry, cast, normLst, dbPeople, Roles.Cast);
             AddNewPeople(mediaEntry, directors, normLst, dbPeople, Roles.Director);
