@@ -3,6 +3,7 @@ using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 namespace DustyPig.Server.Data
 {
@@ -49,7 +50,11 @@ namespace DustyPig.Server.Data
         {
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
-                .UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
+                //.UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
+                .UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql), opts =>
+                {
+                    opts.EnableRetryOnFailure();
+                })
                 .UseLoggerFactory(MyLoggerFactory)
 
 #if DEBUG
