@@ -439,6 +439,8 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.MediaEntryId == existingItem.Id)
                 .ToListAsync();
 
+            existingSubtitles.ForEach(item => DB.Subtitles.Remove(item));
+
             if (movieInfo.ExternalSubtitles != null)
                 foreach (var srt in movieInfo.ExternalSubtitles)
                     DB.Subtitles.Add(new Subtitle
