@@ -67,6 +67,62 @@ namespace DustyPig.Server.Controllers.v3
             return ret;
         }
 
+
+        /// <summary>
+        /// Level 3
+        /// </summary>
+        [HttpGet]
+        [RequireMainProfile]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.NotFound)]
+        public async Task<ActionResult<List<DetailedLibrary>>> AdminList()
+        {
+            var ret = new List<DetailedLibrary>();
+            
+            var libs = await DB.Libraries
+                .AsNoTracking()
+
+                .Include(item => item.ProfileLibraryShares)
+                .ThenInclude(item => item.Profile)
+
+                .Include(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account1)
+                .ThenInclude(item => item.Profiles)
+
+                .Include(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account2)
+                .ThenInclude(item => item.Profiles)
+
+                .Where(item => item.AccountId == UserAccount.Id)
+                .ToListAsync();
+
+            foreach(var lib in libs)
+            {
+                var dl = new DetailedLibrary
+                {
+                    Id = lib.Id,
+                    IsTV = lib.IsTV,
+                    Name = lib.Name,
+                };
+
+                foreach (var share in lib.ProfileLibraryShares)
+                    if (UserAccount.Profiles.Select(item => item.Id).Contains(share.ProfileId))
+                        dl.Profiles.Add(share.Profile.ToBasicProfileInfo());
+
+                foreach (var friendship in lib.FriendLibraryShares.Select(item => item.Friendship))
+                    dl.SharedWith.Add(friendship.ToBasicFriendInfo(UserAccount.Id));
+
+                ret.Add(dl);
+            }
+
+            ret.Sort();
+            return ret;
+        }
+
+
         [HttpGet("{id}")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
