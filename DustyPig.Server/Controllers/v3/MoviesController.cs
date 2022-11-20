@@ -283,16 +283,19 @@ namespace DustyPig.Server.Controllers.v3
             //Add the new item
             DB.MediaEntries.Add(newItem);
 
+            await DB.SaveChangesAsync();
 
             //People
-            await MediaEntryLogic.UpdatePeople(DB, newItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
+            await MediaEntryLogic.UpdatePeople(true, newItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
 
             //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(DB, newItem, GetSearchTerms(newItem, movieInfo.ExtraSearchTerms));
+            await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, movieInfo.ExtraSearchTerms));
 
 
             //Add Subtitles
-            if (movieInfo.ExternalSubtitles != null)
+            bool save = false;
+            if (movieInfo.ExternalSubtitles != null && movieInfo.ExternalSubtitles.Count > 0)
+            {
                 foreach (var srt in movieInfo.ExternalSubtitles)
                     DB.Subtitles.Add(new Subtitle
                     {
@@ -300,7 +303,8 @@ namespace DustyPig.Server.Controllers.v3
                         Name = srt.Name,
                         Url = srt.Url
                     });
-
+                save = true;
+            }
 
             //Notifications
             if(newItem.TMDB_Id > 0)
@@ -330,12 +334,13 @@ namespace DustyPig.Server.Controllers.v3
                         });
 
                         DB.GetRequestSubscriptions.Remove(sub);
+                        save = true;
                     }
                 }
             }
 
-            //Moment of truth!
-            await DB.SaveChangesAsync();
+            if(save) 
+                await DB.SaveChangesAsync();
 
             return CommonResponses.CreatedObject(new SimpleValue<int>(newItem.Id));
         }
@@ -358,13 +363,7 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
 
-
-
             var existingItem = await DB.MediaEntries
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
                 .Where(item => item.Id == movieInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
                 .FirstOrDefaultAsync();
@@ -427,21 +426,28 @@ namespace DustyPig.Server.Controllers.v3
             if (tmdb_changed)
                 await UpdatePopularity(existingItem);
 
+            await DB.SaveChangesAsync();
+
             //People
-            await MediaEntryLogic.UpdatePeople(DB, existingItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
+            await MediaEntryLogic.UpdatePeople(false, existingItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
 
             //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(DB, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));
+            await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));
 
 
             //Redo Subtitles
             var existingSubtitles = await DB.Subtitles
                 .Where(item => item.MediaEntryId == existingItem.Id)
                 .ToListAsync();
+          
+            if(existingSubtitles.Count > 0)
+            {
+                DB.Subtitles.RemoveRange(existingSubtitles);
+                await DB.SaveChangesAsync();
+            }
 
-            existingSubtitles.ForEach(item => DB.Subtitles.Remove(item));
-
-            if (movieInfo.ExternalSubtitles != null)
+            if (movieInfo.ExternalSubtitles != null && movieInfo.ExternalSubtitles.Count > 0)
+            {
                 foreach (var srt in movieInfo.ExternalSubtitles)
                     DB.Subtitles.Add(new Subtitle
                     {
@@ -450,10 +456,8 @@ namespace DustyPig.Server.Controllers.v3
                         Url = srt.Url
                     });
 
-
-            //Moment of truth!
-            await DB.SaveChangesAsync();
-
+                await DB.SaveChangesAsync();
+            }
 
             return Ok();
         }

@@ -62,9 +62,12 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return ret;
         }
 
-        
 
-        public static async Task UpdateSearchTerms(AppDbContext DB, MediaEntry mediaEntry, List<string> searchTerms)
+
+        /// <summary>
+        /// Save the mediaEntry BEFORE calling this method - it must have a valid id
+        /// </summary>
+        public static async Task UpdateSearchTerms(bool isNewEntry, MediaEntry mediaEntry, List<string> searchTerms)
         {
             using var localCtx = new AppDbContext();
 
@@ -73,16 +76,18 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var hashes = normLst.Select(item => item.Hash).ToList();
 
             //Find existing terms based on hash
-            var dbSearchTerms = await localCtx.SearchTerms
+            var dbSearchTerms = hashes.Count > 0 ?
+                await localCtx.SearchTerms
                 .AsNoTracking()
                 .Where(item => hashes.Contains(item.Hash))
-                .ToListAsync();
+                .ToListAsync() :
+                new List<SearchTerm>();
 
             //Add any new terms needed
             var newDBTerms = new List<SearchTerm>();
             foreach (var term in normLst)
                 if (!dbSearchTerms.Any(item => item.Hash == term.Hash))
-                    if(!newDBTerms.Any(item => item.Hash == term.Hash))
+                    if (!newDBTerms.Any(item => item.Hash == term.Hash))
                         newDBTerms.Add(localCtx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
 
             if (newDBTerms.Count > 0)
@@ -92,35 +97,43 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     dbSearchTerms.Add(newDBTerm);
             }
 
-
-            //Update the media entry
-            if (mediaEntry.MediaSearchBridges == null)
-                mediaEntry.MediaSearchBridges = new List<MediaSearchBridge>();
-
-            //Remove any terms that are not in the list
-            foreach (var bridge in mediaEntry.MediaSearchBridges)
-                if (!hashes.Contains(bridge.SearchTerm.Hash))
-                    localCtx.MediaSearchBridges.Remove(bridge);
-
-            //Add any new terms
-            foreach (var term in normLst)
+            //Reset
+            if (!isNewEntry)
             {
-                var dbTerm = dbSearchTerms.First(item => item.Hash == term.Hash);
+                var existingBridges = await localCtx.MediaSearchBridges
+                    .AsNoTracking()
+                    .Where(item => item.MediaEntryId == mediaEntry.Id)
+                    .ToListAsync();
 
-                var exists = mediaEntry.MediaSearchBridges.Any(item => item.SearchTermId == dbTerm.Id);
-                if (!exists)
-                    mediaEntry.MediaSearchBridges.Add(new MediaSearchBridge
+                if (existingBridges.Count > 0)
+                {
+                    localCtx.MediaSearchBridges.RemoveRange(existingBridges);
+                    await localCtx.SaveChangesAsync();
+                }
+            }
+
+
+            //Add Terms
+            if (normLst.Count > 0)
+            {
+                foreach (var term in normLst)
+                {
+                    var dbTerm = dbSearchTerms.First(item => item.Hash == term.Hash);
+                    localCtx.MediaSearchBridges.Add(new MediaSearchBridge
                     {
-                        MediaEntry = mediaEntry,
+                        MediaEntryId = mediaEntry.Id,
                         SearchTermId = dbTerm.Id
                     });
+                }
+                await localCtx.SaveChangesAsync();
             }
         }
 
 
-
-
-        public static async Task UpdatePeople(AppDbContext DB, MediaEntry mediaEntry, List<string> cast, List<string> directors, List<string> producers, List<string> writers)
+        /// <summary>
+        /// Save the mediaEntry BEFORE calling this method - it must have a valid id
+        /// </summary>
+        public static async Task UpdatePeople(bool isNewEntry, MediaEntry mediaEntry, List<string> cast, List<string> directors, List<string> producers, List<string> writers)
         {
             using var localCtx = new AppDbContext();
 
@@ -136,10 +149,12 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             var hashes = normLst.Select(item => item.Hash).Distinct().ToList();
 
-            var dbPeople = await localCtx.People
+            var dbPeople = hashes.Count > 0 ?
+                await localCtx.People
                 .AsNoTracking()
                 .Where(item => hashes.Contains(item.Hash))
-                .ToListAsync();
+                .ToListAsync() :
+                new List<Person>();
 
 
             //Add any new people needed
@@ -157,52 +172,51 @@ namespace DustyPig.Server.Controllers.v3.Logic
             }
 
 
-            //Update media entry
-            if (mediaEntry.People == null)
-                mediaEntry.People = new List<MediaPersonBridge>();
+            //Reset
+            if (!isNewEntry)
+            {
+                var existingBridges = await localCtx.MediaPersonBridges
+                    .AsNoTracking()
+                    .Where(item => item.MediaEntryId == mediaEntry.Id)
+                    .ToListAsync();
+
+                if (existingBridges.Count > 0)
+                {
+                    localCtx.MediaPersonBridges.RemoveRange(existingBridges);
+                    await localCtx.SaveChangesAsync();
+                }
+            }
 
 
-            foreach (var bridge in mediaEntry.People)
-                if (!hashes.Contains(bridge.Person.Hash))
-                    DB.MediaPersonBridges.Remove(bridge);
-
-            //This fixes the cast sort problem
-            //mediaEntry.People.RemoveAll(item => item.Role == Roles.Cast);
-            foreach (var person in mediaEntry.People.Where(item => item.Role == Roles.Cast))
-                DB.MediaPersonBridges.Remove(person);
-
-            AddNewPeople(mediaEntry, cast, normLst, dbPeople, Roles.Cast);
-            AddNewPeople(mediaEntry, directors, normLst, dbPeople, Roles.Director);
-            AddNewPeople(mediaEntry, producers, normLst, dbPeople, Roles.Producer);
-            AddNewPeople(mediaEntry, writers, normLst, dbPeople, Roles.Writer);
+            if (cast.Count + directors.Count + producers.Count + writers.Count == 0)
+                return;
+            
+            //Add bridges
+            AddNewPeople(localCtx, mediaEntry.Id, cast, normLst, dbPeople, Roles.Cast);
+            AddNewPeople(localCtx, mediaEntry.Id, directors, normLst, dbPeople, Roles.Director);
+            AddNewPeople(localCtx, mediaEntry.Id, producers, normLst, dbPeople, Roles.Producer);
+            AddNewPeople(localCtx, mediaEntry.Id, writers, normLst, dbPeople, Roles.Writer);
 
             //This fixes the context.update problem
-            mediaEntry.People.ForEach(item => item.Person = null);
-                        
+            await localCtx.SaveChangesAsync();                        
         }
 
-        private static void AddNewPeople(MediaEntry mediaEntry, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)
+        private static void AddNewPeople(AppDbContext context, int mediaEntryId, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)
         {
             int sort = 0;
             foreach (string person in people)
             {
                 var normItem = normLst.First(item => item.Hash == Crypto.NormalizedHash(person));
-                var exists = mediaEntry.People
-                    .Where(item => item.Person.Hash == normItem.Hash)
-                    .Where(item => item.Role == role)
-                    .Any();
-
-                if (!exists)
-                    mediaEntry.People.Add(new MediaPersonBridge
-                    {
-                        MediaEntry = mediaEntry,
-                        Person = dbPeople.First(item => item.Hash == normItem.Hash),
-                        PersonId = dbPeople.First(item => item.Hash == normItem.Hash).Id,
-                        Role = role,
-                        SortOrder = sort++
-                    });
-
+                var bridge = new MediaPersonBridge
+                {
+                    MediaEntryId = mediaEntryId,
+                    PersonId = dbPeople.First(item => item.Hash == normItem.Hash).Id,
+                    Role = role,
+                    SortOrder = sort++
+                };
+                context.MediaPersonBridges.Add(bridge);
             }
         }
+
     }
 }

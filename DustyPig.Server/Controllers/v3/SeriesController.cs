@@ -418,15 +418,13 @@ namespace DustyPig.Server.Controllers.v3
 
             //Add the new item
             DB.MediaEntries.Add(newItem);
+            await DB.SaveChangesAsync();
 
             //People
-            await MediaEntryLogic.UpdatePeople(DB, newItem, seriesInfo.Cast, seriesInfo.Directors, seriesInfo.Producers, seriesInfo.Writers);
+            await MediaEntryLogic.UpdatePeople(true, newItem, seriesInfo.Cast, seriesInfo.Directors, seriesInfo.Producers, seriesInfo.Writers);
 
             //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(DB, newItem, GetSearchTerms(newItem, seriesInfo.ExtraSearchTerms));
-
-            //Moment of truth!
-            await DB.SaveChangesAsync();
+            await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, seriesInfo.ExtraSearchTerms));
 
             return CommonResponses.CreatedObject(new SimpleValue<int>(newItem.Id));
         }
@@ -512,14 +510,6 @@ namespace DustyPig.Server.Controllers.v3
             if (tmdb_changed)
                 await UpdatePopularity(existingItem);
 
-
-            //People
-            await MediaEntryLogic.UpdatePeople(DB, existingItem, seriesInfo.Cast, seriesInfo.Directors, seriesInfo.Producers, seriesInfo.Writers);
-
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(DB, existingItem, GetSearchTerms(existingItem, seriesInfo.ExtraSearchTerms));
-
-
             //Update library/rated for episodes
             if (library_changed || rated_changed)
             {
@@ -533,9 +523,14 @@ namespace DustyPig.Server.Controllers.v3
                 });
             }
 
-
-            //Moment of truth!
             await DB.SaveChangesAsync();
+
+            //People
+            await MediaEntryLogic.UpdatePeople(false, existingItem, seriesInfo.Cast, seriesInfo.Directors, seriesInfo.Producers, seriesInfo.Writers);
+
+            //Search Terms
+            await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, seriesInfo.ExtraSearchTerms));
+
 
             return Ok();
         }
