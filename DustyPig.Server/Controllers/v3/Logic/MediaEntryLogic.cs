@@ -205,6 +205,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
         private static void AddNewPeople(AppDbContext context, int mediaEntryId, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)
         {
+            //Since 1 person can play multiple roles, sometimes this tries to add duplicates.
+            //The simplest way I can see to stop that is to add IEquatable to the bridge and
+            //then check for previous instances before adding again
+            var newBridges = new List<MediaPersonBridge>();
+            
             int sort = 0;
             foreach (string person in people)
             {
@@ -214,9 +219,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     MediaEntryId = mediaEntryId,
                     PersonId = dbPeople.First(item => item.Hash == normItem.Hash).Id,
                     Role = role,
-                    SortOrder = sort++
+                    //SortOrder = sort++
                 };
-                context.MediaPersonBridges.Add(bridge);
+             
+                if (!newBridges.Contains(bridge))
+                {
+                    bridge.SortOrder = sort++;
+                    newBridges.Add(bridge);
+                    context.MediaPersonBridges.Add(bridge);
+                }
             }
         }
 
