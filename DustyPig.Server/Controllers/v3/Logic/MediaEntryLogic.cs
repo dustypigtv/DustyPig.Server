@@ -69,7 +69,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         /// </summary>
         public static async Task UpdateSearchTerms(bool isNewEntry, MediaEntry mediaEntry, List<string> searchTerms)
         {
-            using var localCtx = new AppDbContext();
+            using var ctx = new AppDbContext();
 
             //Normalize
             var normLst = CreateNormalizedList(FixList(searchTerms), true);
@@ -77,7 +77,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             //Find existing terms based on hash
             var dbSearchTerms = hashes.Count > 0 ?
-                await localCtx.SearchTerms
+                await ctx.SearchTerms
                 .AsNoTracking()
                 .Where(item => hashes.Contains(item.Hash))
                 .ToListAsync() :
@@ -88,11 +88,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
             foreach (var term in normLst)
                 if (!dbSearchTerms.Any(item => item.Hash == term.Hash))
                     if (!newDBTerms.Any(item => item.Hash == term.Hash))
-                        newDBTerms.Add(localCtx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
+                        newDBTerms.Add(ctx.SearchTerms.Add(new SearchTerm { Term = term.Norm, Hash = term.Hash }).Entity);
 
             if (newDBTerms.Count > 0)
             {
-                await localCtx.SaveChangesAsync();
+                await ctx.SaveChangesAsync();
                 foreach (var newDBTerm in newDBTerms)
                     dbSearchTerms.Add(newDBTerm);
             }
@@ -100,15 +100,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Reset
             if (!isNewEntry)
             {
-                var existingBridges = await localCtx.MediaSearchBridges
+                var existingBridges = await ctx.MediaSearchBridges
                     .AsNoTracking()
                     .Where(item => item.MediaEntryId == mediaEntry.Id)
                     .ToListAsync();
 
                 if (existingBridges.Count > 0)
                 {
-                    localCtx.MediaSearchBridges.RemoveRange(existingBridges);
-                    await localCtx.SaveChangesAsync();
+                    ctx.MediaSearchBridges.RemoveRange(existingBridges);
+                    await ctx.SaveChangesAsync();
                 }
             }
 
@@ -119,13 +119,13 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 foreach (var term in normLst)
                 {
                     var dbTerm = dbSearchTerms.First(item => item.Hash == term.Hash);
-                    localCtx.MediaSearchBridges.Add(new MediaSearchBridge
+                    ctx.MediaSearchBridges.Add(new MediaSearchBridge
                     {
                         MediaEntryId = mediaEntry.Id,
                         SearchTermId = dbTerm.Id
                     });
                 }
-                await localCtx.SaveChangesAsync();
+                await ctx.SaveChangesAsync();
             }
         }
 
@@ -135,7 +135,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         /// </summary>
         public static async Task UpdatePeople(bool isNewEntry, MediaEntry mediaEntry, List<string> cast, List<string> directors, List<string> producers, List<string> writers)
         {
-            using var localCtx = new AppDbContext();
+            using var ctx = new AppDbContext();
 
             cast = FixList(cast);
             directors = FixList(directors);
@@ -150,7 +150,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var hashes = normLst.Select(item => item.Hash).Distinct().ToList();
 
             var dbPeople = hashes.Count > 0 ?
-                await localCtx.People
+                await ctx.People
                 .AsNoTracking()
                 .Where(item => hashes.Contains(item.Hash))
                 .ToListAsync() :
@@ -162,11 +162,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
             foreach (var person in normLst)
                 if (!dbPeople.Any(item => item.Hash == person.Hash))
                     if(!newDBPeople.Any(item => item.Hash == person.Hash))
-                        newDBPeople.Add(localCtx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
+                        newDBPeople.Add(ctx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
 
             if (newDBPeople.Count > 0)
             {
-                await localCtx.SaveChangesAsync();
+                await ctx.SaveChangesAsync();
                 foreach (var newDBPerson in newDBPeople)
                     dbPeople.Add(newDBPerson);
             }
@@ -175,30 +175,31 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Reset
             if (!isNewEntry)
             {
-                var existingBridges = await localCtx.MediaPersonBridges
+                var existingBridges = await ctx.MediaPersonBridges
                     .AsNoTracking()
                     .Where(item => item.MediaEntryId == mediaEntry.Id)
                     .ToListAsync();
 
                 if (existingBridges.Count > 0)
                 {
-                    localCtx.MediaPersonBridges.RemoveRange(existingBridges);
-                    await localCtx.SaveChangesAsync();
+                    ctx.MediaPersonBridges.RemoveRange(existingBridges);
+                    await ctx.SaveChangesAsync();
                 }
             }
 
 
             if (cast.Count + directors.Count + producers.Count + writers.Count == 0)
                 return;
-            
+
             //Add bridges
-            AddNewPeople(localCtx, mediaEntry.Id, cast, normLst, dbPeople, Roles.Cast);
-            AddNewPeople(localCtx, mediaEntry.Id, directors, normLst, dbPeople, Roles.Director);
-            AddNewPeople(localCtx, mediaEntry.Id, producers, normLst, dbPeople, Roles.Producer);
-            AddNewPeople(localCtx, mediaEntry.Id, writers, normLst, dbPeople, Roles.Writer);
+            ctx.ChangeTracker.Clear();
+            AddNewPeople(ctx, mediaEntry.Id, cast, normLst, dbPeople, Roles.Cast);
+            AddNewPeople(ctx, mediaEntry.Id, directors, normLst, dbPeople, Roles.Director);
+            AddNewPeople(ctx, mediaEntry.Id, producers, normLst, dbPeople, Roles.Producer);
+            AddNewPeople(ctx, mediaEntry.Id, writers, normLst, dbPeople, Roles.Writer);
 
             //This fixes the context.update problem
-            await localCtx.SaveChangesAsync();                        
+            await ctx.SaveChangesAsync();                        
         }
 
         private static void AddNewPeople(AppDbContext context, int mediaEntryId, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)

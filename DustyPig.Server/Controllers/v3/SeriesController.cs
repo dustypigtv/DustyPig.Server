@@ -448,10 +448,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var existingItem = await DB.MediaEntries
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
                 .Where(item => item.Id == seriesInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .FirstOrDefaultAsync();
