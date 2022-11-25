@@ -116,6 +116,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Add Terms
             if (normLst.Count > 0)
             {
+                ctx.ChangeTracker.Clear();
                 foreach (var term in normLst)
                 {
                     var dbTerm = dbSearchTerms.First(item => item.Hash == term.Hash);
