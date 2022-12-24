@@ -122,6 +122,7 @@ namespace DustyPig.Server.Controllers.v3
                 CurrentIndex = playlistItems[0].Playlist.CurrentIndex
             };
 
+            var art = new List<string>();
 
             foreach (var dbPlaylistItem in playlistItems.OrderBy(item => item.Index))
             {
@@ -145,25 +146,29 @@ namespace DustyPig.Server.Controllers.v3
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
                         pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
 
-                        if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
-                        {
-                            ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        }
-                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
-                        {
-                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
-                                ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        }
-                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
-                        {
-                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
-                                ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        }
-                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
-                        {
-                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
-                                ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        }
+                        //if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                        //{
+                        //    ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        //}
+                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
+                        //{
+                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
+                        //        ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        //}
+                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
+                        //{
+                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
+                        //        ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        //}
+                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
+                        //{
+                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
+                        //        ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
+                        //}
+
+                        if (!art.Contains(dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl))
+                            art.Add(dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl);
+
 
                         break;
 
@@ -174,29 +179,36 @@ namespace DustyPig.Server.Controllers.v3
                         pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
                         pli.ArtworkUrl = StringUtils.Coalesce(dbPlaylistItem.MediaEntry.BackdropUrl, dbPlaylistItem.MediaEntry.ArtworkUrl);
 
-                        if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
-                        {
-                            ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        }
-                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
-                        {
-                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl)
-                                ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        }
-                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
-                        {
-                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl)
-                                ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        }
-                        else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
-                        {
-                            if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.ArtworkUrl)
-                                ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        }
+                        //if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+                        //{
+                        //    ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        //}
+                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
+                        //{
+                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl)
+                        //        ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        //}
+                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
+                        //{
+                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl)
+                        //        ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        //}
+                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
+                        //{
+                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.ArtworkUrl)
+                        //        ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        //}
+
+                        if (!art.Contains(dbPlaylistItem.MediaEntry.ArtworkUrl))
+                            art.Add(dbPlaylistItem.MediaEntry.ArtworkUrl);
 
                         break;
                 }
 
+                if (art.Count == 0)
+                    art.Add(Constants.DEFAULT_PLAYLIST_IMAGE);
+
+            
                 var progress = dbPlaylistItem.MediaEntry.ProfileMediaProgress.FirstOrDefault(item2 => item2.ProfileId == UserProfile.Id);
                 if (progress != null)
                 {
@@ -213,8 +225,38 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Items.Add(pli);
             }
 
-            if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
-                ret.ArtworkUrl1 = Constants.DEFAULT_PLAYLIST_IMAGE;
+
+            //if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
+            //    ret.ArtworkUrl1 = Constants.DEFAULT_PLAYLIST_IMAGE;
+
+
+            /*
+                Clint Poster Grid:
+                    1   2
+                    3   4
+             */
+            ret.ArtworkUrl1 = art[0];
+
+            if (art.Count == 2)
+            {
+                ret.ArtworkUrl2 = art[1];
+                ret.ArtworkUrl3 = art[1];
+                ret.ArtworkUrl4 = art[0];
+            }
+
+            if (art.Count == 3)
+            {
+                ret.ArtworkUrl2 = art[1];
+                ret.ArtworkUrl3 = art[2];
+                ret.ArtworkUrl4 = art[0];
+            }
+
+            if (art.Count > 3)
+            {
+                ret.ArtworkUrl2 = art[1];
+                ret.ArtworkUrl3 = art[2];
+                ret.ArtworkUrl4 = art[3];
+            }
 
             return ret;
         }
