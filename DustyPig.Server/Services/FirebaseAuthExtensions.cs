@@ -17,6 +17,9 @@ namespace DustyPig.Server.Services
     {
         public static string TranslateFirebaseError(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method)
         {
+            if (error == null || string.IsNullOrWhiteSpace(error.Message))
+                return "Unknown Firebase.Auth Error";
+
             switch (method)
             {
                 case FirebaseMethods.PasswordSignup:
