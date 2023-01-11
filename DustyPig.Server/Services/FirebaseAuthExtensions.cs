@@ -45,6 +45,11 @@ namespace DustyPig.Server.Services
                             return "Password sign-in is disabled";
                     }
                     break;
+
+                case FirebaseMethods.OauthSignin:
+                    if (error.Message.StartsWith("INVALID_IDP_RESPONSE : Bad access token:"))
+                        return "Bad access token";
+                    break;
             }
 
             return error.Message switch
