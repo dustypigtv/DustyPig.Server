@@ -23,6 +23,9 @@ namespace DustyPig.Server.Services
                 {
                     case FirebaseMethods.PasswordSignin:
                         return "Invalid email or password";
+
+                    case FirebaseMethods.PasswordReset:
+                        return "Invalid email";
                 }
 
                 return "Unknown Firebase.Auth error";
