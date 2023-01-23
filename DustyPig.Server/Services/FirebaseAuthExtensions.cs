@@ -18,10 +18,18 @@ namespace DustyPig.Server.Services
         public static string TranslateFirebaseError(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method)
         {
             if (error == null || string.IsNullOrWhiteSpace(error.Message))
-                return "Unknown Firebase.Auth Error";
+            {
+                switch (method)
+                {
+                    case FirebaseMethods.PasswordSignin:
+                        return "Invalid email or password";
+                }
+
+                return "Unknown Firebase.Auth error";
+            }
 
             switch (method)
-            {
+            {            
                 case FirebaseMethods.PasswordSignup:
                     switch (error.Message)
                     {
@@ -64,6 +72,9 @@ namespace DustyPig.Server.Services
 
         private static string TranslateFirebaseErrorMessage(string message)
         {
+            if (string.IsNullOrWhiteSpace(message))
+                return "Unknown Firebase error";
+
             var ret = message.Split('_');
             for (int i = 0; i < ret.Length; i++)
                 ret[i] = ret[i].ToLower();
