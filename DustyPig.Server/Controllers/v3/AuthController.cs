@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -450,6 +451,22 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile 
                 };
+        }
+
+
+        /// <summary>
+        /// Level 1
+        /// </summary>
+        /// <returns>Updates the device token for Firebase Cloud Messaging, and returns a new JWT</returns>
+        public async Task<ActionResult<SimpleValue<string>>> UpdateDeviceToken(SimpleValue<string> newDeviceToken)
+        {
+            var (account, profile) = await User.VerifyAsync();
+
+            if (account == null || profile == null)
+                return Unauthorized();
+
+            string newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newDeviceToken.Value);
+            return new SimpleValue<string>(newJWT);
         }
 
 
