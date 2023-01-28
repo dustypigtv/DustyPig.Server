@@ -458,6 +458,10 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 1
         /// </summary>
         /// <returns>Updates the device token for Firebase Cloud Messaging, and returns a new JWT</returns>
+        [HttpPost]
+        [Authorize]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         public async Task<ActionResult<SimpleValue<string>>> UpdateDeviceToken(SimpleValue<string> newDeviceToken)
         {
             var (account, profile) = await User.VerifyAsync();
