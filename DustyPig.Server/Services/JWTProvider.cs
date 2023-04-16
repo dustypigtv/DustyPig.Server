@@ -39,18 +39,15 @@ namespace DustyPig.Server.Services
 
             if (profileId != null && !string.IsNullOrWhiteSpace(deviceToken))
             {
+                //Don't filter on profile id - let the device token re-associate with the current profile
                 var dbDeviceToken = await _db.DeviceTokens
-                    .Where(item => item.ProfileId == profileId.Value)
                     .Where(item => item.Token == deviceToken)
                     .FirstOrDefaultAsync();
 
                 if (dbDeviceToken == null)
-                    dbDeviceToken = _db.DeviceTokens.Add(new Data.Models.DeviceToken
-                    {
-                        ProfileId = profileId.Value,
-                        Token = deviceToken
-                    }).Entity;
+                    dbDeviceToken = _db.DeviceTokens.Add(new Data.Models.DeviceToken { Token = deviceToken }).Entity;
 
+                dbDeviceToken.ProfileId = profileId.Value;
                 dbDeviceToken.LastSeen = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
                 deviceTokenId = dbDeviceToken.Id;
