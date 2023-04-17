@@ -431,8 +431,8 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 1
         /// </summary>
-        /// <returns>Verifies the current auth token and returns the type</returns>
-        [HttpGet]
+        /// <returns>Verifies the current auth token (and if not null, the FirebaseCloudMessaging token) and returns the type</returns>
+        [HttpPost]
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
