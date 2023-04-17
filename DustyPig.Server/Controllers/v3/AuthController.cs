@@ -7,7 +7,6 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
-using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -75,7 +74,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.MainProfile,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.DeviceToken)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.FCMToken)
                 };
             else
                 return new LoginResponse
@@ -161,7 +160,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new LoginResponse
                 {
                     LoginType = LoginResponseType.MainProfile,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.DeviceToken)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.FCMToken)
                 };
             else
                 return new LoginResponse
@@ -347,7 +346,7 @@ namespace DustyPig.Server.Controllers.v3
             return new LoginResponse
             {
                 LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile,
-                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.DeviceToken)
+                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.FCMToken)
             };
         }
 
@@ -366,20 +365,20 @@ namespace DustyPig.Server.Controllers.v3
             if (account == null)
                 return Unauthorized();
 
-            var token = account.AccountTokens.FirstOrDefault(item => item.Id == User.GetTokenId());
-            if (token == null)
+            var acctToken = account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId());
+            if (acctToken == null)
                 return Unauthorized();
 
-            DB.AccountTokens.Remove(token);
+            DB.AccountTokens.Remove(acctToken);
 
             if (profile != null)
             {
-                var deviceToken = User.GetDeviceTokenId();
-                if (deviceToken != null)
+                var fcmTokenId = User.GetFCMTokenId();
+                if (fcmTokenId != null)
                 {
-                    var dbDeviceToken = profile.DeviceTokens.FirstOrDefault(item => item.Id == deviceToken);
-                    if (dbDeviceToken != null)
-                        DB.DeviceTokens.Remove(dbDeviceToken);
+                    var dbFCMToken = profile.FCMTokens.FirstOrDefault(item => item.Id == fcmTokenId);
+                    if (dbFCMToken != null)
+                        DB.FCMTokens.Remove(dbFCMToken);
                 }
             }
 
@@ -419,8 +418,8 @@ namespace DustyPig.Server.Controllers.v3
 
 
             DB.AccountTokens.RemoveRange(account.AccountTokens);
-            foreach (var deviceToken in profile.DeviceTokens)
-                DB.DeviceTokens.Remove(deviceToken);
+            foreach (var fcmToken in profile.FCMTokens)
+                DB.FCMTokens.Remove(fcmToken);
 
             await DB.SaveChangesAsync();
 
@@ -437,20 +436,57 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        public async Task<ActionResult<VerifyTokenResponse>> VerifyToken()
+        public async Task<ActionResult<VerifyTokenResponse>> VerifyAuthToken(SimpleValue<string> fcmToken)
         {
+
             var (account, profile) = await User.VerifyAsync();
 
             if (account == null)
                 return Unauthorized();
 
             if (profile == null)
+            {
                 return new VerifyTokenResponse { LoginType = LoginResponseType.Account };
+            }
             else
+            {
+                int? fcmTokenId = User.GetFCMTokenId();
+                if (fcmTokenId.HasValue)
+                {
+                    if (fcmToken == null || string.IsNullOrWhiteSpace(fcmToken.Value))
+                    {
+                        DB.AccountTokens.Remove(account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId()));
+                        await DB.SaveChangesAsync();
+                        return Unauthorized();
+                    }
+                    else
+                    {
+                        var dbFCMToken = await DB.FCMTokens
+                            .AsNoTracking()
+                            .Where(item => item.ProfileId == profile.Id)
+                            .Where(item => item.Id == fcmTokenId)
+                            .FirstOrDefaultAsync();
+
+                        if (dbFCMToken != null && dbFCMToken.Token != fcmToken.Value)
+                        {
+                            DB.AccountTokens.Remove(account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId()));
+                            await DB.SaveChangesAsync();
+                            return Unauthorized();
+                        }
+                    }
+                }
+                else if (fcmToken != null && !string.IsNullOrWhiteSpace(fcmToken.Value))
+                {
+                    DB.AccountTokens.Remove(account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId()));
+                    await DB.SaveChangesAsync();
+                    return Unauthorized();
+                }
+
                 return new VerifyTokenResponse
                 {
-                    LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile 
+                    LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile
                 };
+            }
         }
 
 
@@ -462,14 +498,14 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        public async Task<ActionResult<SimpleValue<string>>> UpdateDeviceToken(SimpleValue<string> newDeviceToken)
+        public async Task<ActionResult<SimpleValue<string>>> UpdateFCMToken(SimpleValue<string> newFCMToken)
         {
             var (account, profile) = await User.VerifyAsync();
 
             if (account == null || profile == null)
                 return Unauthorized();
 
-            string newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newDeviceToken.Value);
+            string newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMToken.Value);
             return new SimpleValue<string>(newJWT);
         }
 

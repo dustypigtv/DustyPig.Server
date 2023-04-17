@@ -76,7 +76,7 @@ namespace DustyPig.Server.HostedServices
             //Scoping easier, and smaller-faster progress saves
 
             //First, create all any needed notifications
-            await RemoveOldDeviceTokensAsync();
+            await RemoveOldFCMTokensAsync();
 
 
             //Now do the notifications
@@ -84,10 +84,10 @@ namespace DustyPig.Server.HostedServices
         }
 
 
-        private async Task RemoveOldDeviceTokensAsync()
+        private async Task RemoveOldFCMTokensAsync()
         {
             using var db = new AppDbContext();
-            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM DeviceTokens WHERE LastSeen < {DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}", _cancellationToken);
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM FCMTokens WHERE LastSeen < {DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}", _cancellationToken);
         }
              
         
@@ -101,7 +101,7 @@ namespace DustyPig.Server.HostedServices
             {
                 var notifications = await db.Notifications
                     .Include(item => item.Profile)
-                    .ThenInclude(item => item.DeviceTokens)
+                    .ThenInclude(item => item.FCMTokens)
                     .Where(item => item.Sent == false)
                     .Where(item => item.Seen == false)
                     .OrderBy(item => item.Id)
@@ -118,12 +118,12 @@ namespace DustyPig.Server.HostedServices
                 {
                     if (!(notification.Sent || notification.Seen))
                     {
-                        foreach (var deviceToken in notification.Profile.DeviceTokens)
+                        foreach (var fcmToken in notification.Profile.FCMTokens)
                         {
 
                             var msg = new Message
                             {
-                                Token = deviceToken.Token,
+                                Token = fcmToken.Token,
                                 Notification = new FirebaseAdmin.Messaging.Notification
                                 {
                                     Title = notification.Title,

@@ -23,15 +23,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
             catch { return null; }
         }
 
-        public static int? GetTokenId(this ClaimsPrincipal @this)
+        public static int? GetAuthTokenId(this ClaimsPrincipal @this)
         {
-            try { return int.Parse(@this.Claims.First(item => item.Type == JWTProvider.CLAIM_TOKEN_ID).Value); }
+            try { return int.Parse(@this.Claims.First(item => item.Type == JWTProvider.CLAIM_AUTH_TOKEN_ID).Value); }
             catch { return null; }
         }
 
-        public static int? GetDeviceTokenId(this ClaimsPrincipal @this)
+        public static int? GetFCMTokenId(this ClaimsPrincipal @this)
         {
-            try { return int.Parse(@this.Claims.First(item => item.Type == JWTProvider.CLAIM_DEVICE_TOKEN_ID).Value); }
+            try { return int.Parse(@this.Claims.First(item => item.Type == JWTProvider.CLAIM_FCM_TOKEN_ID).Value); }
             catch { return null; }
         }
 
@@ -39,11 +39,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static async Task<(Account Account, Profile Profile)> VerifyAsync(this ClaimsPrincipal @this)
         {
             var acctId = @this.GetAccountId();
-            var tokenId = @this.GetTokenId();
+            var authTokenId = @this.GetAuthTokenId();
             var profId = @this.GetProfileId();
-            var deviceTokenId = @this.GetDeviceTokenId();
+            var fcmTokenId = @this.GetFCMTokenId();
 
-            if (acctId == null || tokenId == null)
+            if (acctId == null || authTokenId == null)
                 return (null, null);
 
             using var db = new AppDbContext();
@@ -52,21 +52,21 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .AsNoTracking()
                 .Include(item => item.AccountTokens)
                 .Include(item => item.Profiles)
-                .ThenInclude(item => item.DeviceTokens)
+                .ThenInclude(item => item.FCMTokens)
                 .Where(item => item.Id == acctId.Value)
                 .FirstOrDefaultAsync();
 
             if (account == null)
                 return (null, null);
 
-            if (!account.AccountTokens.Any(item => item.Id == tokenId.Value))
+            if (!account.AccountTokens.Any(item => item.Id == authTokenId.Value))
                 return (null, null);
 
             Profile profile = profId == null ? null : account.Profiles.FirstOrDefault(item => item.Id == profId.Value);
 
-            if (profile != null && deviceTokenId != null)
+            if (profile != null && fcmTokenId != null)
             {
-                var dbToken = profile.DeviceTokens.FirstOrDefault(item => item.Id == deviceTokenId);
+                var dbToken = profile.FCMTokens.FirstOrDefault(item => item.Id == fcmTokenId);
 
                 //Only update once/day
                 if (dbToken != null && dbToken.LastSeen.AddDays(1) < DateTime.UtcNow)

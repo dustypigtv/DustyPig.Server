@@ -97,7 +97,7 @@ namespace DustyPig.Server.Controllers.v3
                         if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
                         {
                             var profile = account.Profiles.First();
-                            var token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, info.DeviceToken);
+                            var token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, info.FCMToken);
                             return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.MainProfile });
                         }
                         else

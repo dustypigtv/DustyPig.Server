@@ -23,7 +23,7 @@ namespace DustyPig.Server.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<AccountToken> AccountTokens { get; set; }
         public DbSet<ActivationCode> ActivationCodes { get; set; }
-        public DbSet<DeviceToken> DeviceTokens { get; set; }
+        public DbSet<FCMToken> FCMTokens { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<FriendLibraryShare> FriendLibraryShares { get; set; }
         public DbSet<GetRequest> GetRequests { get; set; }

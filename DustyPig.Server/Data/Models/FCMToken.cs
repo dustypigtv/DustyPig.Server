@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
 {
-    public class DeviceToken
+    public class FCMToken
     {
         public int Id { get; set; }
 

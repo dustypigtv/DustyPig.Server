@@ -58,7 +58,7 @@ namespace DustyPig.Server.Data.Models
 
         public List<TitleOverride> TitleOverrides { get; set; }
 
-        public List<DeviceToken> DeviceTokens { get; set; }
+        public List<FCMToken> FCMTokens { get; set; }
 
         public int CompareTo(object obj)
         {

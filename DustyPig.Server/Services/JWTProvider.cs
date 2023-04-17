@@ -17,8 +17,8 @@ namespace DustyPig.Server.Services
         public const string AUDIENCE = "dusty-pig-clients";
         public const string CLAIM_ACCOUNT_ID = "account_id";
         public const string CLAIM_PROFILE_ID = "profile_id";
-        public const string CLAIM_TOKEN_ID = "token_id";
-        public const string CLAIM_DEVICE_TOKEN_ID = "device_token_id";
+        public const string CLAIM_AUTH_TOKEN_ID = "token_id";
+        public const string CLAIM_FCM_TOKEN_ID = "device_token_id";
 
         public static SymmetricSecurityKey SigningKey { get; private set; }
         private static SigningCredentials _signingCredentials = null;
@@ -33,24 +33,24 @@ namespace DustyPig.Server.Services
 
         public JWTProvider(AppDbContext db) => _db = db;
 
-        public async Task<string> CreateTokenAsync(int accountId, int? profileId, string deviceToken)
+        public async Task<string> CreateTokenAsync(int accountId, int? profileId, string fcmToken)
         {
-            int? deviceTokenId = null;
+            int? fcmTokenId = null;
 
-            if (profileId != null && !string.IsNullOrWhiteSpace(deviceToken))
+            if (profileId != null && !string.IsNullOrWhiteSpace(fcmToken))
             {
                 //Don't filter on profile id - let the device token re-associate with the current profile
-                var dbDeviceToken = await _db.DeviceTokens
-                    .Where(item => item.Token == deviceToken)
+                var dbFCMToken = await _db.FCMTokens
+                    .Where(item => item.Token == fcmToken)
                     .FirstOrDefaultAsync();
 
-                if (dbDeviceToken == null)
-                    dbDeviceToken = _db.DeviceTokens.Add(new Data.Models.DeviceToken { Token = deviceToken }).Entity;
+                if (dbFCMToken == null)
+                    dbFCMToken = _db.FCMTokens.Add(new Data.Models.FCMToken { Token = fcmToken }).Entity;
 
-                dbDeviceToken.ProfileId = profileId.Value;
-                dbDeviceToken.LastSeen = DateTime.UtcNow;
+                dbFCMToken.ProfileId = profileId.Value;
+                dbFCMToken.LastSeen = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
-                deviceTokenId = dbDeviceToken.Id;
+                fcmTokenId = dbFCMToken.Id;
             }
 
 
@@ -59,14 +59,14 @@ namespace DustyPig.Server.Services
 
             var claims = new List<Claim>();
 
-            claims.Add(new Claim(CLAIM_TOKEN_ID, acctToken.Id.ToString()));
+            claims.Add(new Claim(CLAIM_AUTH_TOKEN_ID, acctToken.Id.ToString()));
             claims.Add(new Claim(CLAIM_ACCOUNT_ID, accountId.ToString()));
             if (profileId != null)
             {
                 claims.Add(new Claim(CLAIM_PROFILE_ID, profileId.Value.ToString()));
 
-                if (deviceTokenId != null)
-                    claims.Add(new Claim(CLAIM_DEVICE_TOKEN_ID, deviceTokenId.Value.ToString()));
+                if (fcmTokenId != null)
+                    claims.Add(new Claim(CLAIM_FCM_TOKEN_ID, fcmTokenId.Value.ToString()));
             }
 
             var token = new JwtSecurityToken(ISSUER, AUDIENCE, claims, null, DateTime.UtcNow.AddYears(10), _signingCredentials);

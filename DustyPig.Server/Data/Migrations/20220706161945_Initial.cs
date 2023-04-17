@@ -301,7 +301,7 @@ namespace DustyPig.Server.Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "DeviceTokens",
+                name: "FCMTokens",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -822,7 +822,7 @@ namespace DustyPig.Server.Data.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_DeviceTokens_ProfileId",
-                table: "DeviceTokens",
+                table: "FCMTokens",
                 column: "ProfileId");
 
             migrationBuilder.CreateIndex(
@@ -995,7 +995,7 @@ namespace DustyPig.Server.Data.Migrations
                 name: "ActivationCodes");
 
             migrationBuilder.DropTable(
-                name: "DeviceTokens");
+                name: "FCMTokens");
 
             migrationBuilder.DropTable(
                 name: "FriendLibraryShares");

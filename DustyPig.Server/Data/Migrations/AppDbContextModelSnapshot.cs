@@ -77,7 +77,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.ToTable("ActivationCodes");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.DeviceToken", b =>
+            modelBuilder.Entity("DustyPig.Server.Data.Models.FCMToken", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -98,7 +98,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("DeviceTokens");
+                    b.ToTable("FCMTokens");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.FriendLibraryShare", b =>
@@ -1188,10 +1188,10 @@ namespace DustyPig.Server.Data.Migrations
                     b.Navigation("Account");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.DeviceToken", b =>
+            modelBuilder.Entity("DustyPig.Server.Data.Models.FCMToken", b =>
                 {
                     b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
-                        .WithMany("DeviceTokens")
+                        .WithMany("FCMTokens")
                         .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1584,7 +1584,7 @@ namespace DustyPig.Server.Data.Migrations
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Profile", b =>
                 {
-                    b.Navigation("DeviceTokens");
+                    b.Navigation("FCMTokens");
 
                     b.Navigation("GetRequests");
 
