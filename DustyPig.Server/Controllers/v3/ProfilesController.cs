@@ -83,10 +83,8 @@ namespace DustyPig.Server.Controllers.v3
                 IsMain = profile.IsMain,
                 Locked = profile.Locked,
                 Name = profile.Name,
-                NotificationMethods = profile.NotificationMethods,
                 Pin = profile.PinNumber,
-                TitleRequestPermissions = profile.TitleRequestPermission,
-                WeeklySummary = profile.WeeklySummary
+                TitleRequestPermissions = profile.TitleRequestPermission
             };
 
             //Get all owned libraries the profile has access to
@@ -234,10 +232,8 @@ namespace DustyPig.Server.Controllers.v3
                 AvatarUrl = info.AvatarUrl,
                 Locked = info.Locked,
                 Name = info.Name,
-                NotificationMethods = info.NotificationMethods,
                 PinNumber = info.Pin,
-                TitleRequestPermission = info.TitleRequestPermissions,
-                WeeklySummary = info.WeeklySummary
+                TitleRequestPermission = info.TitleRequestPermissions
             };
 
             DB.Profiles.Add(profile);

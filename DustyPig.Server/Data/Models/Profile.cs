@@ -32,16 +32,6 @@ namespace DustyPig.Server.Data.Models
 
         public bool Locked { get; set; }
 
-        /// <summary>
-        /// Whether to send weekly updates of all new content
-        /// </summary>
-        public bool WeeklySummary { get; set; }
-
-
-        public NotificationMethods NotificationMethods { get; set; }
-
-
-
         public List<ProfileLibraryShare> ProfileLibraryShares { get; set; }
 
         public List<GetRequest> GetRequests { get; set; }
