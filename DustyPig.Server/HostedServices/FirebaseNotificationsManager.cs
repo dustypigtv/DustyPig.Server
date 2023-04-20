@@ -75,7 +75,6 @@ namespace DustyPig.Server.HostedServices
             //Separate functions aren't called more than once, but are separated to make
             //Scoping easier, and smaller-faster progress saves
 
-            //First, create all any needed notifications
             await RemoveOldFCMTokensAsync();
 
 
