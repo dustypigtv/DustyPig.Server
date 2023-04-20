@@ -6,6 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -45,27 +46,34 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            var signinResponse = await _client.SignUpWithEmailPasswordAsync(info.Email, info.Password);
-            if (signinResponse.Success)
+            try
+            {
+                //Check if they already exist
+                var existingUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(info.Email);
+                return BadRequest("Account already exists");
+            }
+            catch { }
+
+            var signupResponse = await _client.SignUpWithEmailPasswordAsync(info.Email, info.Password);
+            if (signupResponse.Success)
             {
                 var account = await DB.Accounts
                     .AsNoTracking()
                     .Include(item => item.Profiles)
-                    .Where(item => item.FirebaseId == signinResponse.Data.LocalId)
+                    .Where(item => item.FirebaseId == signupResponse.Data.LocalId)
                     .FirstOrDefaultAsync();
-
 
                 int profileId = 0;
                 if (account == null)
                 {
-                    account = DB.Accounts.Add(new Account { FirebaseId = signinResponse.Data.LocalId }).Entity;
+                    account = DB.Accounts.Add(new Account { FirebaseId = signupResponse.Data.LocalId }).Entity;
                     var profile = DB.Profiles.Add(new Profile
                     {
                         Account = account,
                         AllowedRatings = API.v3.MPAA.Ratings.All,
                         AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
                         IsMain = true,
-                        Name = Utils.Coalesce(info.DisplayName, signinResponse.Data.Email[..signinResponse.Data.Email.IndexOf("@")]),
+                        Name = Utils.Coalesce(info.DisplayName, signupResponse.Data.Email[..signupResponse.Data.Email.IndexOf("@")]),
                         TitleRequestPermission = TitleRequestPermissions.Enabled
                     }).Entity;
 
@@ -74,50 +82,23 @@ namespace DustyPig.Server.Controllers.v3
                 }
 
                 //Send verification mail
-
-                var dataResponse = await _client.GetUserDataAsync(signinResponse.Data.IdToken);
+                var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
                 if (!dataResponse.Success)
                     return BadRequest(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
-                bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signinResponse.Data.Email)).Any(item => item.EmailVerified);
-
+                bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
                 if (emailVerificationRequired)
                 {
-                    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signinResponse.Data.IdToken);
+                    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
                     if (!sendVerificationEmailResponse.Success)
                         return BadRequest(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
-
-                    return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = true });
-                }
-                else
-                {
-                    if (profileId == 0)
-                    {
-                        //Account already existed
-                        if (account.Profiles.Count == 1 && account.Profiles[0].PinNumber == null)
-                        {
-                            var profile = account.Profiles.First();
-                            var token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, info.FCMToken);
-                            return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.MainProfile });
-                        }
-                        else
-                        {
-                            var token = await _jwtProvider.CreateTokenAsync(account.Id, null, null);
-                            return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.Account });
-                        }
-                    }
-                    else
-                    {
-                        //Account created
-                        var token = await _jwtProvider.CreateTokenAsync(account.Id, profileId, null);
-                        return CommonResponses.CreatedObject(new CreateAccountResponse { Token = token, LoginType = LoginResponseType.Account });
-                    }
                 }
 
+                return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
             }
             else
             {
-                return BadRequest(signinResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
+                return BadRequest(signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
             }
         }
 
@@ -144,6 +125,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!profile.IsMain)
                 return CommonResponses.RequireMainProfile;
 
+            await _client.DeleteAccountAsync(account.FirebaseId);
             DB.Entry(UserAccount).State = EntityState.Deleted;
             await DB.SaveChangesAsync();
 
