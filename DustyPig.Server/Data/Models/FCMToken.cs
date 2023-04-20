@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(ProfileId), nameof(Hash), IsUnique = true)]
+    [Index(nameof(Hash), IsUnique = true)]
     public class FCMToken
     {
         public int Id { get; set; }
