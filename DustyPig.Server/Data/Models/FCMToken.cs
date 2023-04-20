@@ -1,12 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DustyPig.Server.Utilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Xml.Linq;
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(ProfileId), nameof(TokenHash), IsUnique = true)]
+    [Index(nameof(ProfileId), nameof(Hash), IsUnique = true)]
     public class FCMToken
     {
         public int Id { get; set; }
@@ -18,10 +18,17 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(API.v3.Models.Constants.MAX_MOBILE_DEVICE_ID_LENGTH)]
         public string Token { get; set; }
 
+        //The hash is required because Token is too big for a unique index
         [Required]
         [MaxLength(128)]
-        public string TokenHash { get; set; }
+        public string Hash { get; set; }
 
         public DateTime LastSeen { get; set; }
+
+
+        public void ComputeHash()
+        {
+            Hash = Crypto.NormalizedHash(Token);
+        }
     }
 }
