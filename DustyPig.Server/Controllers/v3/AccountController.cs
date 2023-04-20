@@ -63,7 +63,6 @@ namespace DustyPig.Server.Controllers.v3
                     .Where(item => item.FirebaseId == signupResponse.Data.LocalId)
                     .FirstOrDefaultAsync();
 
-                int profileId = 0;
                 if (account == null)
                 {
                     account = DB.Accounts.Add(new Account { FirebaseId = signupResponse.Data.LocalId }).Entity;
@@ -78,7 +77,6 @@ namespace DustyPig.Server.Controllers.v3
                     }).Entity;
 
                     await DB.SaveChangesAsync();
-                    profileId = profile.Id;
                 }
 
                 //Send verification mail
