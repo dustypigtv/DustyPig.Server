@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -71,17 +72,26 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             if (account.Profiles.Count == 1)
+            {
+                int? fcmId = string.IsNullOrWhiteSpace(credentials.FCMToken) ?
+                    null :
+                    await EnsureFCMTokenAssociatedWithProfile(account.Profiles.First(), credentials.FCMToken);
+
                 return new LoginResponse
                 {
-                    LoginType = LoginResponseType.MainProfile,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.FCMToken)
+                    LoginType = LoginType.MainProfile,
+                    ProfileId = account.Profiles.First().Id,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId)
                 };
+            }
             else
+            {
                 return new LoginResponse
                 {
-                    LoginType = LoginResponseType.Account,
+                    LoginType = LoginType.Account,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
                 };
+            }
         }
 
 
@@ -137,38 +147,38 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        /// <summary>
-        /// Level 0
-        /// </summary>
-        /// <remarks>Logs into the account using an OAuth token, and returns an account level bearer token</remarks>
-        [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<LoginResponse>> OAuthLogin(OAuthCredentials credentials)
-        {
-            //Validate
-            try { credentials.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+        ///// <summary>
+        ///// Level 0
+        ///// </summary>
+        ///// <remarks>Logs into the account using an OAuth token, and returns an account level bearer token</remarks>
+        //[HttpPost]
+        //[SwaggerResponse((int)HttpStatusCode.OK)]
+        //[SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        //public async Task<ActionResult<LoginResponse>> OAuthLogin(OAuthCredentials credentials)
+        //{
+        //    //Validate
+        //    try { credentials.Validate(); }
+        //    catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com");
-            if (!response.Success)
-                return BadRequest(response.FirebaseError().TranslateFirebaseError(FirebaseMethods.OauthSignin));
+        //    var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com");
+        //    if (!response.Success)
+        //        return BadRequest(response.FirebaseError().TranslateFirebaseError(FirebaseMethods.OauthSignin));
 
-            var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
+        //    var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
 
-            if (account.Profiles.Count == 1)
-                return new LoginResponse
-                {
-                    LoginType = LoginResponseType.MainProfile,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.FCMToken)
-                };
-            else
-                return new LoginResponse
-                {
-                    LoginType = LoginResponseType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
-                };
-        }
+        //    if (account.Profiles.Count == 1)
+        //        return new LoginResponse
+        //        {
+        //            LoginType = LoginType.MainProfile,
+        //            Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.FCMToken)
+        //        };
+        //    else
+        //        return new LoginResponse
+        //        {
+        //            LoginType = LoginType.Account,
+        //            Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+        //        };
+        //}
 
 
 
@@ -238,12 +248,12 @@ namespace DustyPig.Server.Controllers.v3
                 if (account.Profiles.Count == 1)
                 {
                     ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, account.Profiles[0].Id, null);
-                    ret.LoginType = LoginResponseType.MainProfile;
+                    ret.LoginType = LoginType.MainProfile;
                 }
                 else
                 {
                     ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null);
-                    ret.LoginType = LoginResponseType.Account;
+                    ret.LoginType = LoginType.Account;
                 }
 
                 DB.ActivationCodes.Remove(rec);
@@ -343,10 +353,15 @@ namespace DustyPig.Server.Controllers.v3
             if (!profile.IsMain && profile.Locked)
                 return CommonResponses.ProfileIsLocked;
 
+            int? fcmId = string.IsNullOrWhiteSpace(credentials.FCMToken) ?
+                null :
+                await EnsureFCMTokenAssociatedWithProfile(profile, credentials.FCMToken);
+
             return new LoginResponse
             {
-                LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile,
-                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, credentials.FCMToken)
+                ProfileId = profile.Id,
+                LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
+                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, fcmId)
             };
         }
 
@@ -414,13 +429,8 @@ namespace DustyPig.Server.Controllers.v3
             if (profile.Id == TestAccount.ProfileId)
                 return CommonResponses.ProhibitTestUser;
 
-            await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(account.FirebaseId);
-
-
             DB.AccountTokens.RemoveRange(account.AccountTokens);
-            foreach (var fcmToken in profile.FCMTokens)
-                DB.FCMTokens.Remove(fcmToken);
-
+            DB.FCMTokens.RemoveRange(profile.FCMTokens);
             await DB.SaveChangesAsync();
 
             return Ok();
@@ -431,14 +441,13 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 1
         /// </summary>
-        /// <returns>Verifies the current auth token (and if not null, the FirebaseCloudMessaging token) and returns the type</returns>
+        /// <returns>Verifies the current auth token (and if not null, the FirebaseCloudMessaging token) and returns the type. This may include a new AuthToken</returns>
         [HttpPost]
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        public async Task<ActionResult<VerifyTokenResponse>> VerifyAuthToken(SimpleValue<string> fcmToken)
+        public async Task<ActionResult<LoginResponse>> VerifyAuthToken(SimpleValue<string> fcmToken)
         {
-
             var (account, profile) = await User.VerifyAsync();
 
             if (account == null)
@@ -446,45 +455,44 @@ namespace DustyPig.Server.Controllers.v3
 
             if (profile == null)
             {
-                return new VerifyTokenResponse { LoginType = LoginResponseType.Account };
+                return new LoginResponse { LoginType = LoginType.Account };
             }
             else
             {
-                int? fcmTokenId = User.GetFCMTokenId();
-                if (fcmTokenId.HasValue)
+                string newJWT = null;
+
+                if (string.IsNullOrWhiteSpace(fcmToken.Value))
                 {
-                    if (fcmToken == null || string.IsNullOrWhiteSpace(fcmToken.Value))
+                    if(await DeleteCurrentFCMToken(profile))
+                        newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null);
+                }
+                else
+                {
+                    int? oldId = User.GetFCMTokenId();
+                    int newId = await EnsureFCMTokenAssociatedWithProfile(profile, fcmToken.Value);
+                    if (oldId == null || oldId != newId)
+                        newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId);
+                }
+
+                if(!string.IsNullOrWhiteSpace(newJWT))
+                {
+                    var authId = User.GetAuthTokenId();
+                    var oldAuthToken = await DB.AccountTokens
+                        .AsNoTracking()
+                        .Where(item => item.Id == authId)
+                        .FirstOrDefaultAsync();
+                    if(oldAuthToken != null)
                     {
-                        DB.AccountTokens.Remove(account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId()));
+                        DB.AccountTokens.Remove(oldAuthToken);
                         await DB.SaveChangesAsync();
-                        return Unauthorized();
-                    }
-                    else
-                    {
-                        var dbFCMToken = await DB.FCMTokens
-                            .AsNoTracking()
-                            .Where(item => item.ProfileId == profile.Id)
-                            .Where(item => item.Id == fcmTokenId)
-                            .FirstOrDefaultAsync();
-
-                        if (dbFCMToken != null && dbFCMToken.Token != fcmToken.Value)
-                        {
-                            DB.AccountTokens.Remove(account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId()));
-                            await DB.SaveChangesAsync();
-                            return Unauthorized();
-                        }
                     }
                 }
-                else if (fcmToken != null && !string.IsNullOrWhiteSpace(fcmToken.Value))
-                {
-                    DB.AccountTokens.Remove(account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId()));
-                    await DB.SaveChangesAsync();
-                    return Unauthorized();
-                }
 
-                return new VerifyTokenResponse
+                return new LoginResponse
                 {
-                    LoginType = profile.IsMain ? LoginResponseType.MainProfile : LoginResponseType.SubProfile
+                    LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
+                    ProfileId = profile.Id,
+                    Token = newJWT
                 };
             }
         }
@@ -505,10 +513,96 @@ namespace DustyPig.Server.Controllers.v3
             if (account == null || profile == null)
                 return Unauthorized();
 
-            string newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMToken.Value);
+            string newJWT;
+
+            if (string.IsNullOrWhiteSpace(newFCMToken.Value))
+            {
+                await DeleteCurrentFCMToken(profile);
+                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null);
+            }
+            else
+            {
+                int newId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMToken.Value);
+                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId);
+            }
+
             return new SimpleValue<string>(newJWT);
         }
 
+
+        private async Task<int> EnsureFCMTokenAssociatedWithProfile(Profile profile, string newFCM)
+        {
+            if (string.IsNullOrWhiteSpace(newFCM))
+                throw new ArgumentNullException(nameof(newFCM));
+
+            int? currentFCM = User.GetFCMTokenId();
+
+            //Check if the token value is in the db
+            var dbNewToken = await DB.FCMTokens
+                .AsNoTracking()
+                .Where(item => item.Token == newFCM)
+                .FirstOrDefaultAsync();
+
+            if (dbNewToken == null)
+            {
+                //If profile still has the old token, delete it
+                if (currentFCM != null)
+                {
+                    var dbOldToken = profile.FCMTokens.FirstOrDefault(item => item.Id == currentFCM);
+                    if (dbOldToken != null)
+                    {
+                        DB.FCMTokens.Remove(dbOldToken);
+                        await DB.SaveChangesAsync();
+                    }
+                }
+
+                //New token
+                dbNewToken = DB.FCMTokens.Add(new FCMToken
+                {
+                    ProfileId = profile.Id,
+                    Token = newFCM,
+                    LastSeen = DateTime.UtcNow
+                }).Entity;
+                dbNewToken.ComputeHash();
+                await DB.SaveChangesAsync();
+                return dbNewToken.Id;
+            }
+            else
+            {
+                var dbOldToken = profile.FCMTokens.FirstOrDefault(item => item.Id == currentFCM);
+                if (dbOldToken != null)
+                {
+                    if (dbOldToken.Token == newFCM)
+                        //Same token, all good
+                        return dbOldToken.Id;
+                    else
+                        //Delete the old token
+                        DB.FCMTokens.Remove(dbOldToken);
+                }
+
+                //Associate with this profile
+                dbNewToken.ProfileId = profile.Id;
+                DB.FCMTokens.Update(dbNewToken);
+                await DB.SaveChangesAsync();
+                return dbNewToken.Id;
+            }
+        }
+
+        private async Task<bool> DeleteCurrentFCMToken(Profile profile)
+        {
+            int? currentFCM = User.GetFCMTokenId();
+            if (currentFCM == null)
+                return false;
+           
+            var dbToken = profile.FCMTokens.FirstOrDefault(item => item.Id != currentFCM);
+            if (dbToken == null)
+                return false;
+
+            //Only delete when still associated with this profile
+            DB.FCMTokens.Remove(dbToken);
+            await DB.SaveChangesAsync();
+            return true;
+        }
 
         private async Task<Account> GetOrCreateAccountAsync(string localId, string name, string email, string photoUrl)
         {

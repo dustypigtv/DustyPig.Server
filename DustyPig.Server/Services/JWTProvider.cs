@@ -33,27 +33,8 @@ namespace DustyPig.Server.Services
 
         public JWTProvider(AppDbContext db) => _db = db;
 
-        public async Task<string> CreateTokenAsync(int accountId, int? profileId, string fcmToken)
+        public async Task<string> CreateTokenAsync(int accountId, int? profileId, int? fcmTokenId)
         {
-            int? fcmTokenId = null;
-
-            if (profileId != null && !string.IsNullOrWhiteSpace(fcmToken))
-            {
-                //Don't filter on profile id - let the device token re-associate with the current profile
-                var dbFCMToken = await _db.FCMTokens
-                    .Where(item => item.Token == fcmToken)
-                    .FirstOrDefaultAsync();
-
-                if (dbFCMToken == null)
-                    dbFCMToken = _db.FCMTokens.Add(new Data.Models.FCMToken { Token = fcmToken }).Entity;
-
-                dbFCMToken.ProfileId = profileId.Value;
-                dbFCMToken.LastSeen = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
-                fcmTokenId = dbFCMToken.Id;
-            }
-
-
             var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken { AccountId = accountId }).Entity;
             await _db.SaveChangesAsync();
 
