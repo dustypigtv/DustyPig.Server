@@ -446,7 +446,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        public async Task<ActionResult<LoginResponse>> VerifyAuthToken(SimpleValue<string> fcmToken)
+        public async Task<ActionResult<LoginResponse>> UpdateAuthToken(SimpleValue<string> fcmToken)
         {
             var (account, profile) = await User.VerifyAsync();
 
@@ -459,40 +459,34 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                string newJWT = null;
+                int? fcmId = null;
 
                 if (string.IsNullOrWhiteSpace(fcmToken.Value))
                 {
-                    if(await DeleteCurrentFCMToken(profile))
-                        newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null);
+                    await DeleteCurrentFCMToken(profile);
                 }
                 else
                 {
                     int? oldId = User.GetFCMTokenId();
-                    int newId = await EnsureFCMTokenAssociatedWithProfile(profile, fcmToken.Value);
-                    if (oldId == null || oldId != newId)
-                        newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId);
+                    fcmId = await EnsureFCMTokenAssociatedWithProfile(profile, fcmToken.Value);
                 }
 
-                if(!string.IsNullOrWhiteSpace(newJWT))
+                var authId = User.GetAuthTokenId();
+                var oldAuthToken = await DB.AccountTokens
+                    .AsNoTracking()
+                    .Where(item => item.Id == authId)
+                    .FirstOrDefaultAsync();
+                if (oldAuthToken != null)
                 {
-                    var authId = User.GetAuthTokenId();
-                    var oldAuthToken = await DB.AccountTokens
-                        .AsNoTracking()
-                        .Where(item => item.Id == authId)
-                        .FirstOrDefaultAsync();
-                    if(oldAuthToken != null)
-                    {
-                        DB.AccountTokens.Remove(oldAuthToken);
-                        await DB.SaveChangesAsync();
-                    }
+                    DB.AccountTokens.Remove(oldAuthToken);
+                    await DB.SaveChangesAsync();
                 }
 
                 return new LoginResponse
                 {
                     LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
                     ProfileId = profile.Id,
-                    Token = newJWT
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId)
                 };
             }
         }
