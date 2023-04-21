@@ -41,17 +41,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0" />
   </ItemGroup>
 
-
-<ItemGroup>
-  <Content Update="wwwroot\.well-known\*">
-    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-  </Content>
-  <Content Update="wwwroot\.well-known\assetlinks.json">
-    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-  </Content>
-</ItemGroup>
-
-	
-
+	<ItemGroup>
+		<Content Include="wwwroot\.well-known\**" CopyToPublishDirectory="Always" />
+	</ItemGroup>
 
 </Project>
