@@ -73,7 +73,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Genres
             Dictionary<Genres, Task<List<GenreListDTO>>> genreTasks = new();
-            foreach(var genre in GenresUtils.AllGenres)
+            foreach(var genre in GenresUtils.AllGenres.Where(item => item.Key != Genres.Unknown))
             {
                 var task = GenresQuery(genre.Key, new AppDbContext())
                     .Take(LIST_SIZE)
