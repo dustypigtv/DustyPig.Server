@@ -19,7 +19,7 @@
 
 
 <ItemGroup>
-    <PackageReference Include="DustyPig.API" Version="3.0.4.108" />
+    <PackageReference Include="DustyPig.API" Version="3.0.4.109" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.5" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.2.7" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
@@ -41,8 +41,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0" />
   </ItemGroup>
 
-	<ItemGroup>
+	<!--<ItemGroup>
 		<Content Include="wwwroot\.well-known\**" CopyToPublishDirectory="Always" />
-	</ItemGroup>
+	</ItemGroup>-->
 
 </Project>

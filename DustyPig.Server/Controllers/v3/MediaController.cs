@@ -80,8 +80,8 @@ namespace DustyPig.Server.Controllers.v3
             if (cwResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
-                    ListId = ID_CONTINUE_WATCHING,
-                    Title = ID_CONTINUE_WATCHING_TITLE,
+                    ListId = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING,
+                    Title = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING_TITLE,
                     Items = new List<BasicMedia>(cwResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -91,8 +91,8 @@ namespace DustyPig.Server.Controllers.v3
             if (wlResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
-                    ListId = ID_WATCHLIST,
-                    Title = ID_WATCHLIST_TITLE,
+                    ListId = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST,
+                    Title = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST_TITLE,
                     Items = new List<BasicMedia>(wlResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -102,8 +102,8 @@ namespace DustyPig.Server.Controllers.v3
             if (plResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
-                    ListId = ID_PLAYLISTS,
-                    Title = ID_PLAYLISTS_TITLE,
+                    ListId = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS,
+                    Title = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS_TITLE,
                     Items = new List<BasicMedia>(plResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -113,8 +113,8 @@ namespace DustyPig.Server.Controllers.v3
             if (raResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
-                    ListId = ID_RECENTLY_ADDED,
-                    Title = "Recently Added",
+                    ListId = DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED,
+                    Title = DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED_TITLE,
                     Items = new List<BasicMedia>(raResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -124,8 +124,8 @@ namespace DustyPig.Server.Controllers.v3
             if (popResults.Count > 0)
                 ret.Sections.Add(new HomeScreenList
                 {
-                    ListId = ID_POPULAR,
-                    Title = "Popular",
+                    ListId = DustyPig.API.v3.Clients.MediaClient.ID_POPULAR,
+                    Title = DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE,
                     Items = new List<BasicMedia>(popResults.Select(item => item.ToBasicMedia()))
                 });
 
@@ -148,14 +148,14 @@ namespace DustyPig.Server.Controllers.v3
 
             IEnumerable<BasicMedia> results = null;
 
-            if (request.ListId == ID_CONTINUE_WATCHING)
+            if (request.ListId == DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING)
                 results = (await ContinueWatchingQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
                             .ToListAsync())
                             .Select(item => item.ToBasicMedia());
 
-            if (request.ListId == ID_WATCHLIST)
+            if (request.ListId == DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST)
                 results = (await WatchlistQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
@@ -163,7 +163,7 @@ namespace DustyPig.Server.Controllers.v3
                             .Select(item => item.ToBasicMedia());
 
 
-            if (request.ListId == ID_RECENTLY_ADDED)
+            if (request.ListId == DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED)
                 results = (await RecentlyAddedQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
@@ -171,7 +171,7 @@ namespace DustyPig.Server.Controllers.v3
                             .Select(item => item.ToBasicMedia());
 
 
-            if (request.ListId == ID_PLAYLISTS)
+            if (request.ListId == DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS)
                 results = (await PlaylistQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)
@@ -179,7 +179,7 @@ namespace DustyPig.Server.Controllers.v3
                             .Select(item => item.ToBasicMedia());
 
 
-            if (request.ListId == ID_POPULAR)
+            if (request.ListId == DustyPig.API.v3.Clients.MediaClient.ID_POPULAR)
                 results = (await PopularQuery(DB)
                             .Skip(request.Start)
                             .Take(LIST_SIZE)

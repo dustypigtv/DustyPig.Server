@@ -17,19 +17,20 @@ namespace DustyPig.Server.Controllers.v3
         internal const int LIST_SIZE = 25;
 
         //Put these in sort order
-        internal const long ID_CONTINUE_WATCHING = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING;
-        internal const string ID_CONTINUE_WATCHING_TITLE = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING_TITLE;
+        //internal const long ID_CONTINUE_WATCHING = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING;
+        //internal const string ID_CONTINUE_WATCHING_TITLE = DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING_TITLE;
 
-        internal const long ID_WATCHLIST = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST;
-        internal const string ID_WATCHLIST_TITLE = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST_TITLE;
+        //internal const long ID_WATCHLIST = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST;
+        //internal const string ID_WATCHLIST_TITLE = DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST_TITLE;
 
 
-        internal const long ID_PLAYLISTS = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS;
-        internal const string ID_PLAYLISTS_TITLE = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS_TITLE;
+        //internal const long ID_PLAYLISTS = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS;
+        //internal const string ID_PLAYLISTS_TITLE = DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS_TITLE;
 
-        
-        internal const long ID_RECENTLY_ADDED = -2;
-        internal const long ID_POPULAR = -1;
+
+        //internal const long ID_RECENTLY_ADDED = DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED;
+      
+        //internal const long ID_POPULAR = -1;
 
         internal readonly Services.TMDBClient _tmdbClient;
 
