@@ -42,7 +42,14 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<Content Update="wwwroot\.well-known\**" CopyToPublishDirectory="Always" />
+	  <Content Update="wwwroot\.well-known\apple-app-site-association">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+	  </Content>
+	  <Content Update="wwwroot\.well-known\assetlinks.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+	  </Content>
 	</ItemGroup>
 
 	
