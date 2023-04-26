@@ -41,8 +41,4 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0" />
   </ItemGroup>
 
-	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<Content Include="wwwroot\.well-known\**" CopyToPublishDirectory="Always" />
-	</ItemGroup>	
-
 </Project>
