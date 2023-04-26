@@ -41,8 +41,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.4.0" />
   </ItemGroup>
 
-	<!--<ItemGroup>
-		<Content Include="wwwroot\.well-known\**" CopyToPublishDirectory="Always" />
-	</ItemGroup>-->
+	<ItemGroup>
+		<Content Update="wwwroot\.well-known\**" CopyToPublishDirectory="Always" />
+	</ItemGroup>
+
+	
 
 </Project>
