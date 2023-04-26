@@ -21,7 +21,7 @@ jobs:
         run: |
             sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
             dotnet publish -c release -p:PublishProfile=FolderProfile -o publish
-            cp "DustyPig.Server/wwwroot/.well-known" "publish/wwwroot"
+            cp -r "DustyPig.Server/wwwroot/.well-known" "publish/wwwroot"
             cd publish
             zip -rm9 ../DustyPig.Server.zip .
             cd ..
