@@ -71,6 +71,16 @@ namespace DustyPig.Server.Controllers.v3
             allTasks.Add(popTask);
 
 
+            //Genres
+            Dictionary<Genres, Task<List<GenreListDTO>>> genreTasks = new();
+            foreach(var genre in GenresUtils.AllGenres)
+            {
+                var task = GenresQuery(genre.Key, new AppDbContext())
+                    .Take(LIST_SIZE)
+                    .ToListAsync();
+                genreTasks.Add(genre.Key, task);
+            }
+            allTasks.AddRange(genreTasks.Values);
 
             await Task.WhenAll(allTasks);
 
@@ -128,6 +138,16 @@ namespace DustyPig.Server.Controllers.v3
                     Title = DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE,
                     Items = new List<BasicMedia>(popResults.Select(item => item.ToBasicMedia()))
                 });
+
+            //Genres
+            foreach(var kvp in genreTasks)
+                if (kvp.Value.Result.Count >= 5)
+                    ret.Sections.Add(new HomeScreenList
+                    {
+                        ListId =(long)kvp.Key,
+                        Title = kvp.Key.AsString(),
+                        Items = kvp.Value.Result.Select(item => item.MediaEntry.ToBasicMedia()).ToList()
+                    });
 
             ret.Sections.Sort((x, y) => x.ListId.CompareTo(y.ListId));
             return ret;
