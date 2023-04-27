@@ -64,24 +64,19 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
             allTasks.Add(raTask);
 
+
             //Popular
+            //For this one, take them all
+            //Then take LIST_SIZE for the popular list,
+            //and process by genre for the other lists
             var popTask = PopularQuery(new AppDbContext())
-                .Take(LIST_SIZE)
+                //.Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(popTask);
 
 
             //Genres
-            Dictionary<Genres, Task<List<GenreListDTO>>> genreTasks = new();
-            foreach(var genre in GenresUtils.AllGenres.Where(item => item.Key != Genres.Unknown))
-            {
-                var task = GenresQuery(genre.Key, new AppDbContext())
-                    .Take(LIST_SIZE)
-                    .ToListAsync();
-                genreTasks.Add(genre.Key, task);
-            }
-            allTasks.AddRange(genreTasks.Values);
-
+            
             await Task.WhenAll(allTasks);
 
 
@@ -132,22 +127,38 @@ namespace DustyPig.Server.Controllers.v3
             //Popular
             var popResults = popTask.Result;
             if (popResults.Count > 0)
+            {
                 ret.Sections.Add(new HomeScreenList
                 {
                     ListId = DustyPig.API.v3.Clients.MediaClient.ID_POPULAR,
                     Title = DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE,
-                    Items = new List<BasicMedia>(popResults.Select(item => item.ToBasicMedia()))
+                    Items = new List<BasicMedia>(popResults.Take(LIST_SIZE).Select(item => item.ToBasicMedia()))
                 });
+            }
 
             //Genres
-            foreach(var kvp in genreTasks)
-                if (kvp.Value.Result.Count >= 5)
-                    ret.Sections.Add(new HomeScreenList
-                    {
-                        ListId =(long)kvp.Key,
-                        Title = kvp.Key.AsString(),
-                        Items = kvp.Value.Result.Select(item => item.MediaEntry.ToBasicMedia()).ToList()
-                    });
+            if(popResults.Count > 0)
+            {
+                foreach(var kvp in API.v3.MPAA.GenresUtils.AllGenres.Where(item => item.Key != Genres.Unknown))
+                {
+                    var genreTitles = popResults
+                        .Where(item => item.Genres != null)
+                        .Where(item => item.Genres != Genres.Unknown)
+                        .Where(item => (item.Genres & kvp.Key) == kvp.Key)
+                        .Take(LIST_SIZE)
+                        .Select(item => item.ToBasicMedia())
+                        .ToList();
+
+                    if (genreTitles.Count > 0)
+                        ret.Sections.Add(new HomeScreenList
+                        {
+                            ListId = (long)kvp.Key,
+                            Title = kvp.Value,
+                            Items = genreTitles
+                        });
+                }
+            }
+            
 
             ret.Sections.Sort((x, y) => x.ListId.CompareTo(y.ListId));
             return ret;
