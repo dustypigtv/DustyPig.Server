@@ -75,8 +75,6 @@ namespace DustyPig.Server.Controllers.v3
             allTasks.Add(popTask);
 
 
-            //Genres
-            
             await Task.WhenAll(allTasks);
 
 
@@ -149,7 +147,7 @@ namespace DustyPig.Server.Controllers.v3
                         .Select(item => item.ToBasicMedia())
                         .ToList();
 
-                    if (genreTitles.Count > 0)
+                    if (genreTitles.Count >= LIST_SIZE)
                         ret.Sections.Add(new HomeScreenList
                         {
                             ListId = (long)kvp.Key,
