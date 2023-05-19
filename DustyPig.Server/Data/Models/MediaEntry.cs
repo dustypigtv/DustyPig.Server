@@ -150,6 +150,14 @@ namespace DustyPig.Server.Data.Models
             {
                 long s = Season ?? 0;
                 long e = Episode ?? 0;
+
+                //To make sure specials are sorted AFTER all other seasons,
+                //treat season 0 as season 10,000
+                //There aren't 10k seasons of any show, and even ones that
+                //Go by year max out at < 3,000
+                if (s < 1)
+                    s = 10000;
+
                 Xid = s * int.MaxValue + e;
             }
 
