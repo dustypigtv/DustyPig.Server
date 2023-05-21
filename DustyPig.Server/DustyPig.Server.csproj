@@ -19,11 +19,14 @@
 
 
 <ItemGroup>
-    <PackageReference Include="DustyPig.API" Version="3.0.4.111" />
+    <PackageReference Include="AsyncAwaitBestPractices" Version="6.0.6" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.104.19" />
+    <PackageReference Include="DustyPig.API" Version="3.0.4.116" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.5" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.2.7" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
     <PackageReference Include="Krypto.WonderDog" Version="22.4.24.4" />
+    <PackageReference Include="Magick.NET-Q8-x64" Version="13.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.10">

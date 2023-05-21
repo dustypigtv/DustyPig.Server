@@ -1,16 +1,21 @@
-﻿using DustyPig.API.v3;
+﻿using AsyncAwaitBestPractices;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -31,15 +36,8 @@ namespace DustyPig.Server.Controllers.v3
         {
             var ret = new List<BasicPlaylist>();
 
-            var playableIds = DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
-               .Select(item => item.Id);
-
-
             var playlists = await DB.Playlists
                 .AsNoTracking()              
-                .Include(item => item.PlaylistItems.Where(item2 => playableIds.Contains(item2.MediaEntryId)))
-                .ThenInclude(item => item.MediaEntry)
-                .ThenInclude(item => item.LinkedTo)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Name)
                 .ToListAsync();
@@ -49,11 +47,10 @@ namespace DustyPig.Server.Controllers.v3
                 var bpl = new BasicPlaylist
                 {
                     Id = pl.Id,
-                    Name = pl.Name
+                    Name = pl.Name,
+                    ArtworkUrl = $"{Constants.DEFAULT_PLAYLIST_URL_ROOT}{pl.Id}.jpg"
                 };
-
-                SortPlaylist(pl.PlaylistItems);
-                GetArtwork(bpl, pl);
+                
                 ret.Add(bpl);
             }
 
@@ -105,7 +102,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new DetailedPlaylist
                 {
                     Id = id,
-                    ArtworkUrl1 = Constants.DEFAULT_PLAYLIST_IMAGE,
+                    ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE,
                     Name = playlist.Name
                 };
             }
@@ -119,14 +116,13 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Id = playlistItems[0].Playlist.Id,
                 Name = playlistItems[0].Playlist.Name,
-                CurrentIndex = playlistItems[0].Playlist.CurrentIndex
+                CurrentIndex = playlistItems[0].Playlist.CurrentIndex,
+                ArtworkUrl = playlistItems[0].Playlist.ArtworkUrl,
             };
-
-            var art = new List<string>();
 
             foreach (var dbPlaylistItem in playlistItems.OrderBy(item => item.Index))
             {
-                var pli = new PlaylistItem
+                var pli = new API.v3.Models.PlaylistItem
                 {
                     Description = dbPlaylistItem.MediaEntry.Description,
                     Id = dbPlaylistItem.Id,
@@ -146,30 +142,6 @@ namespace DustyPig.Server.Controllers.v3
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
                         pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
 
-                        //if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
-                        //{
-                        //    ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        //}
-                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
-                        //{
-                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
-                        //        ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        //}
-                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
-                        //{
-                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
-                        //        ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        //}
-                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
-                        //{
-                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl)
-                        //        ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl;
-                        //}
-
-                        if (!art.Contains(dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl))
-                            art.Add(dbPlaylistItem.MediaEntry.LinkedTo.ArtworkUrl);
-
-
                         break;
 
 
@@ -179,36 +151,9 @@ namespace DustyPig.Server.Controllers.v3
                         pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
                         pli.ArtworkUrl = StringUtils.Coalesce(dbPlaylistItem.MediaEntry.BackdropUrl, dbPlaylistItem.MediaEntry.ArtworkUrl);
 
-                        //if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
-                        //{
-                        //    ret.ArtworkUrl1 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        //}
-                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl2))
-                        //{
-                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl)
-                        //        ret.ArtworkUrl2 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        //}
-                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl3))
-                        //{
-                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl)
-                        //        ret.ArtworkUrl3 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        //}
-                        //else if (string.IsNullOrWhiteSpace(ret.ArtworkUrl4))
-                        //{
-                        //    if (ret.ArtworkUrl1 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl2 != dbPlaylistItem.MediaEntry.ArtworkUrl && ret.ArtworkUrl3 != dbPlaylistItem.MediaEntry.ArtworkUrl)
-                        //        ret.ArtworkUrl4 = dbPlaylistItem.MediaEntry.ArtworkUrl;
-                        //}
-
-                        if (!art.Contains(dbPlaylistItem.MediaEntry.ArtworkUrl))
-                            art.Add(dbPlaylistItem.MediaEntry.ArtworkUrl);
-
                         break;
                 }
-
-                if (art.Count == 0)
-                    art.Add(Constants.DEFAULT_PLAYLIST_IMAGE);
-
-            
+                
                 var progress = dbPlaylistItem.MediaEntry.ProfileMediaProgress.FirstOrDefault(item2 => item2.ProfileId == UserProfile.Id);
                 if (progress != null)
                 {
@@ -223,39 +168,6 @@ namespace DustyPig.Server.Controllers.v3
                 pli.ExternalSubtitles = dbPlaylistItem.MediaEntry.Subtitles.ToExternalSubtitleList();
 
                 ret.Items.Add(pli);
-            }
-
-
-            //if (string.IsNullOrWhiteSpace(ret.ArtworkUrl1))
-            //    ret.ArtworkUrl1 = Constants.DEFAULT_PLAYLIST_IMAGE;
-
-
-            /*
-                Clint Poster Grid:
-                    1   2
-                    3   4
-             */
-            ret.ArtworkUrl1 = art[0];
-
-            if (art.Count == 2)
-            {
-                ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[1];
-                ret.ArtworkUrl4 = art[0];
-            }
-
-            if (art.Count == 3)
-            {
-                ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[2];
-                ret.ArtworkUrl4 = art[0];
-            }
-
-            if (art.Count > 3)
-            {
-                ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[2];
-                ret.ArtworkUrl4 = art[3];
             }
 
             return ret;
@@ -287,7 +199,8 @@ namespace DustyPig.Server.Controllers.v3
             playlist = new Data.Models.Playlist
             {
                 Name = info.Name,
-                ProfileId = UserProfile.Id
+                ProfileId = UserProfile.Id,
+                ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE
             };
 
             DB.Playlists.Add(playlist);
@@ -313,14 +226,13 @@ namespace DustyPig.Server.Controllers.v3
             
 
             var playlist = await DB.Playlists
-                .Include(item => item.PlaylistItems)
                 .Where(item => item.Id == info.Id)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
 
             if (playlist == null)
                 return NotFound();
-
+            
             //Make sure name is unique
             if (playlist.Name != info.Name)
             {
@@ -337,8 +249,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
             playlist.Name = info.Name;
-
-            SortPlaylist(playlist.PlaylistItems);
 
             await DB.SaveChangesAsync();
 
@@ -362,6 +272,18 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.Playlists.Remove(playlist);
                 await DB.SaveChangesAsync();
+
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
+                        if (playlist.ArtworkUrl.ICStartsWith(Constants.DEFAULT_PLAYLIST_URL_ROOT))
+                            if (!playlist.ArtworkUrl.ICEquals(Constants.DEFAULT_PLAYLIST_IMAGE))
+                            {
+                                string oldKey = new Uri(playlist.ArtworkUrl).LocalPath.Trim('/');
+                                ArtworkUpdater.DeletePlaylistArt(oldKey);
+                            }
+                }
+                catch { }
             }
 
             return Ok();
@@ -382,7 +304,6 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.Id == info.PlaylistId)
@@ -392,7 +313,8 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound();
 
-            SortPlaylist(playlist.PlaylistItems);
+            if (SortPlaylist(playlist.PlaylistItems))
+                playlist.ArtworkUpdateNeeded = true;
 
             playlist.CurrentIndex = Math.Min(info.CurrentIndex, playlist.PlaylistItems.Max(item => item.Index));
 
@@ -427,7 +349,6 @@ namespace DustyPig.Server.Controllers.v3
 
             var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
-                .Include(item => item.LinkedTo)
                 .Where(item => item.Id == info.MediaId)
                 .Where(item => new MediaTypes[] { MediaTypes.Movie, MediaTypes.Episode }.Contains(item.EntryType))
                 .FirstOrDefaultAsync();
@@ -436,18 +357,21 @@ namespace DustyPig.Server.Controllers.v3
                 return NotFound("Media not found");
 
             SortPlaylist(playlist.PlaylistItems);
-            
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
                 Index = playlist.PlaylistItems.Count,
-                MediaEntryId = info.MediaId,
+                MediaEntryId = mediaEntry.Id,
                 PlaylistId = info.PlaylistId
             }).Entity;
 
-            await DB.SaveChangesAsync();
+            playlist.ArtworkUpdateNeeded = true;
 
+            await DB.SaveChangesAsync();         
+            
             return Ok(new SimpleValue<int> { Value = entity.Id });
         }
+
+
 
         /// <summary>
         /// Level 2
@@ -495,15 +419,19 @@ namespace DustyPig.Server.Controllers.v3
                 DB.PlaylistItems.Add(new Data.Models.PlaylistItem
                 {
                     Index = ++idx,
-                    MediaEntryId = episode.Id,
+                    MediaEntry = episode,
                     PlaylistId = info.PlaylistId
                 });
             }
+
+            playlist.ArtworkUpdateNeeded = true;
 
             await DB.SaveChangesAsync();
 
             return Ok();
         }
+
+
 
         /// <summary>
         /// Level 2
@@ -513,21 +441,26 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ActionResult> DeleteItem(int id)
         {
             var data = await DB.PlaylistItems
-                .Include(item => item.Playlist)
                 .Where(item => item.Id == id)
                 .Where(item => item.Playlist.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
 
             if (data != null)
             {
-                int playlistId = data.PlaylistId;
+                var playlist = await DB.Playlists
+                    .Where(item => item.Id == data.PlaylistId)
+                    .FirstOrDefaultAsync();
 
                 DB.PlaylistItems.Remove(data);
-                await DB.SaveChangesAsync();                
+                playlist.ArtworkUpdateNeeded = true;
+
+                await DB.SaveChangesAsync();
             }
 
             return Ok();
         }
+
+
 
         /// <summary>
         /// Level 2
@@ -551,8 +484,6 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound("Playlist not found");
 
-            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
-
             foreach (var item in playlist.PlaylistItems)
                 if (item.Index >= info.Index)
                     item.Index++;
@@ -560,6 +491,8 @@ namespace DustyPig.Server.Controllers.v3
             playlist.PlaylistItems.First(item => item.Id == info.MediaId).Index = info.Index;
 
             SortPlaylist(playlist.PlaylistItems);
+
+            playlist.ArtworkUpdateNeeded = true;
 
             await DB.SaveChangesAsync();
 
@@ -588,8 +521,6 @@ namespace DustyPig.Server.Controllers.v3
 
             if (playlist == null)
                 return NotFound("Playlist not found");
-
-            playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
             
             while(playlist.PlaylistItems.Count > data.MediaIds.Count)
             {
@@ -614,14 +545,11 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-
+            playlist.ArtworkUpdateNeeded = true;
             await DB.SaveChangesAsync();
 
             return Ok();
         }
-
-
-
 
         private static bool SortPlaylist(List<Data.Models.PlaylistItem> playlistItems)
         {
@@ -637,72 +565,7 @@ namespace DustyPig.Server.Controllers.v3
             
             return changed;
         }
-
-        private void GetArtwork(BasicPlaylist ret, Data.Models.Playlist pl)
-        {
-            //pl must have:
-            /*
-                .Include(item => item.PlaylistItems.Where(item2 => playableIds.Contains(item2.MediaEntryId)))
-                .ThenInclude(item => item.MediaEntry)
-                .ThenInclude(item => item.LinkedTo) 
-            */
-
-
-            List<string> art = new List<string>();
-
-            for (int i = 0; i < pl.PlaylistItems.Count; i++)
-            {
-                if (pl.PlaylistItems[i].MediaEntry.EntryType == MediaTypes.Movie)
-                {
-                    if (!art.Contains(pl.PlaylistItems[i].MediaEntry.ArtworkUrl))
-                    {
-                        art.Add(pl.PlaylistItems[i].MediaEntry.ArtworkUrl);
-                        if (art.Count > 3)
-                            break;
-                    }
-                }
-                else if (pl.PlaylistItems[i].MediaEntry.EntryType == MediaTypes.Episode)
-                {
-                    if (!art.Contains(pl.PlaylistItems[i].MediaEntry.LinkedTo.ArtworkUrl))
-                    {
-                        art.Add(pl.PlaylistItems[i].MediaEntry.LinkedTo.ArtworkUrl);
-                        if (art.Count > 3)
-                            break;
-                    }
-                }
-            }
-
-            if (art.Count == 0)
-                art.Add(Constants.DEFAULT_PLAYLIST_IMAGE);
-
-            /*
-                Clint Grid:
-                    1   2
-                    3   4
-             */
-            ret.ArtworkUrl1 = art[0];
-
-            if (art.Count == 2)
-            {
-                ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[1];
-                ret.ArtworkUrl4 = art[0];
-            }
-
-            if (art.Count == 3)
-            {
-                ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[2];
-                ret.ArtworkUrl4 = art[0];
-            }
-
-            if (art.Count == 4)
-            {
-                ret.ArtworkUrl2 = art[1];
-                ret.ArtworkUrl3 = art[2];
-                ret.ArtworkUrl4 = art[3];
-            }
-        }
+        
     }
 }
 

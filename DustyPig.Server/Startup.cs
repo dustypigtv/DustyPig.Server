@@ -48,6 +48,8 @@ namespace DustyPig.Server
 
             JWTProvider.Configure(Configuration["jwt-key"]);
 
+            S3.Configure(Configuration["s3-url"], Configuration["s3-key"], Configuration["s3-secret"]);
+
             //Write logs to sql database
             var config = new LoggingConfiguration();
             var nullTarget = new NullTarget("null");
@@ -267,6 +269,7 @@ namespace DustyPig.Server
             services.AddHostedService<PopularityUpdater>();
             services.AddHostedService<FirebaseNotificationsManager>();
             services.AddHostedService<LogCleaner>();
+            services.AddHostedService<ArtworkUpdater>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

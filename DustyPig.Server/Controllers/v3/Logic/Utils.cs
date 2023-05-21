@@ -1,4 +1,5 @@
-﻿using DustyPig.Server.Utilities;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if (string.IsNullOrWhiteSpace(s))
             {
                 string color = new string[] { "blue", "gold", "green", "grey", "red" }[new Random().Next(0, 5)];
-                s = $"https://s3.us-central-1.wasabisys.com/dustypig/media/profile_{color}.png";
+                s = Constants.DEFAULT_PROFILE_URL_ROOT + color + ".png";
             }
             return s;
         }

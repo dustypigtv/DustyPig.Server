@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
@@ -21,6 +22,13 @@ namespace DustyPig.Server.Data.Models
         /// Current Item Index
         /// </summary>
         public int CurrentIndex { get; set; }
+
+        [Required]
+        [DefaultValue(Constants.DEFAULT_PLAYLIST_IMAGE)]
+        [MaxLength(Constants.MAX_NAME_LENGTH)]
+        public string ArtworkUrl { get; set; }
+
+        public bool ArtworkUpdateNeeded { get; set; }
 
         public List<PlaylistItem> PlaylistItems { get; set; }
     }
