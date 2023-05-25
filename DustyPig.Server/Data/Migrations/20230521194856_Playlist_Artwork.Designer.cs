@@ -399,9 +399,9 @@ namespace DustyPig.Server.Data.Migrations
                         {
                             Id = 1,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 399, DateTimeKind.Unspecified).AddTicks(9293),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.jpg",
-                            BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.backdrop.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.jpg",
+                            BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.backdrop.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.bif",
                             CreditsStartTime = 205.875,
                             Date = new DateTime(2017, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Agent 327 is investigating a clue that leads him to a shady barbershop in Amsterdam. Little does he know that he is being tailed by mercenary Boris Kloris.",
@@ -414,15 +414,15 @@ namespace DustyPig.Server.Data.Migrations
                             SortTitle = "agent 327: operation barbershop",
                             TMDB_Id = 457784,
                             Title = "Agent 327: Operation Barbershop",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4"
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4"
                         },
                         new
                         {
                             Id = 2,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 454, DateTimeKind.Unspecified).AddTicks(1594),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.jpg",
-                            BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.backdrop.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.jpg",
+                            BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.backdrop.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.bif",
                             CreditsStartTime = 490.25,
                             Date = new DateTime(2008, 4, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Follow a day of the life of Big Buck Bunny when he meets three bullying rodents: Frank, Rinky, and Gamera. The rodents amuse themselves by harassing helpless creatures by throwing fruits, nuts and rocks at them. After the deaths of two of Bunny's favorite butterflies, and an offensive attack on Bunny himself, Bunny sets aside his gentle nature and orchestrates a complex plan for revenge.",
@@ -435,15 +435,15 @@ namespace DustyPig.Server.Data.Migrations
                             SortTitle = "big buck bunny",
                             TMDB_Id = 10378,
                             Title = "Big Buck Bunny",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4"
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4"
                         },
                         new
                         {
                             Id = 3,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 506, DateTimeKind.Unspecified).AddTicks(3620),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.jpg",
-                            BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.backdrop.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.jpg",
+                            BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.backdrop.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.bif",
                             CreditsStartTime = 164.083,
                             Date = new DateTime(2020, 5, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Fueled by caffeine, a young woman runs through the bittersweet memories of her past relationship.",
@@ -458,15 +458,15 @@ namespace DustyPig.Server.Data.Migrations
                             SortTitle = "coffee run",
                             TMDB_Id = 717986,
                             Title = "Coffee Run",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Coffee%20Run%20%282020%29.mp4"
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.mp4"
                         },
                         new
                         {
                             Id = 4,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 554, DateTimeKind.Unspecified).AddTicks(5793),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.jpg",
-                            BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.backdrop.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.jpg",
+                            BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.backdrop.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.bif",
                             CreditsStartTime = 147.31399999999999,
                             Date = new DateTime(2018, 4, 16, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Hero is a showcase for the updated Grease Pencil tools in Blender 2.80. Grease Pencil means 2D animation tools within a full 3D pipeline.",
@@ -481,15 +481,15 @@ namespace DustyPig.Server.Data.Migrations
                             SortTitle = "hero",
                             TMDB_Id = 615324,
                             Title = "Hero",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Hero%20%282018%29.mp4"
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.mp4"
                         },
                         new
                         {
                             Id = 5,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 601, DateTimeKind.Unspecified).AddTicks(9560),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.jpg",
-                            BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.backdrop.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.jpg",
+                            BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.backdrop.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.bif",
                             CreditsStartTime = 427.79199999999997,
                             Date = new DateTime(2019, 4, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "The story of a shepherd girl and her dog who face ancient spirits in order to continue the cycle of life.",
@@ -502,13 +502,13 @@ namespace DustyPig.Server.Data.Migrations
                             SortTitle = "spring",
                             TMDB_Id = 593048,
                             Title = "Spring",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/Movies/Spring%20%282019%29.mp4"
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.mp4"
                         },
                         new
                         {
                             Id = 6,
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/show.jpg",
-                            BackdropUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/backdrop.jpg",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/show.jpg",
+                            BackdropUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/backdrop.jpg",
                             Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
                             EntryType = 2,
                             Genres = 1060L,
@@ -523,8 +523,8 @@ namespace DustyPig.Server.Data.Migrations
                         {
                             Id = 7,
                             Added = new DateTime(2021, 9, 6, 5, 20, 39, 559, DateTimeKind.Unspecified).AddTicks(3737),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.bif",
                             CreditsStartTime = 139.5,
                             Date = new DateTime(2013, 12, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Koro meets Oti, a pesky Magellanic penguin, in an epic battle over tasty red berries during the winter.",
@@ -537,15 +537,15 @@ namespace DustyPig.Server.Data.Migrations
                             Season = 1,
                             TMDB_Id = 0,
                             Title = "Llamigos",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.mp4",
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.mp4",
                             Xid = 10003L
                         },
                         new
                         {
                             Id = 8,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 559, DateTimeKind.Unspecified).AddTicks(3102),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.bif",
                             CreditsStartTime = 119.25,
                             Date = new DateTime(2013, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Koro hunts for food on the other side of a fence and is once again inspired by the Armadillo but this time to a shocking effect.",
@@ -558,15 +558,15 @@ namespace DustyPig.Server.Data.Migrations
                             Season = 1,
                             TMDB_Id = 0,
                             Title = "Gran Dillama",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.mp4",
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.mp4",
                             Xid = 10002L
                         },
                         new
                         {
                             Id = 9,
                             Added = new DateTime(2021, 9, 6, 5, 20, 37, 559, DateTimeKind.Unspecified).AddTicks(1031),
-                            ArtworkUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.jpg",
-                            BifUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.bif",
+                            ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.jpg",
+                            BifUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.bif",
                             CreditsStartTime = 87.917000000000002,
                             Date = new DateTime(2013, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Koro has trouble crossing an apparent desolate road, a problem that an unwitting Armadillo does not share.",
@@ -579,7 +579,7 @@ namespace DustyPig.Server.Data.Migrations
                             Season = 1,
                             TMDB_Id = 0,
                             Title = "Llama Drama",
-                            VideoUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.mp4",
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.mp4",
                             Xid = 10001L
                         });
                 });
@@ -885,7 +885,7 @@ namespace DustyPig.Server.Data.Migrations
                             Id = 1,
                             AccountId = 1,
                             AllowedRatings = 8191,
-                            AvatarUrl = "https://s3.us-central-1.wasabisys.com/dustypig/media/profile_grey.png",
+                            AvatarUrl = "https://s3.dustypig.tv/demo-media/profile_grey.png",
                             IsMain = true,
                             Locked = false,
                             Name = "Test User",
