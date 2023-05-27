@@ -184,7 +184,7 @@ namespace DustyPig.Server.HostedServices
             {
                 if (_toDelete.TryDequeue(out string key))
                 {
-                    if (key.ICStartsWith("playlist/"))
+                    if (key.ICStartsWith(Constants.DEFAULT_PLAYLIST_PATH))
                         if (!key.ICEndsWith("default.jpg"))
                             await S3.DeletePlaylistArtAsync(key, cancellationToken);
                 }
