@@ -1,10 +1,11 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
 using DustyPig.Server.Services;
-using ImageMagick;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp.Processing;
 
 namespace DustyPig.Server.HostedServices
 {
@@ -34,7 +36,7 @@ namespace DustyPig.Server.HostedServices
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
+            using PeriodicTimer timer = new(TimeSpan.FromSeconds(15));
 
             try
             {
@@ -109,45 +111,48 @@ namespace DustyPig.Server.HostedServices
                         string calcArt = Constants.DEFAULT_PLAYLIST_URL_ROOT + artId + ".jpg";
                         if (playlist.ArtworkUrl != calcArt)
                         {
-                            using var images = new MagickImageCollection();
-
                             var dataLst = new List<byte[]>();
                             foreach (var key in art.Keys)
                                 dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], cancellationToken));
 
+                            int idx_tl = 0;
+                            int idx_tr = 1;
+                            int idx_bl = 2;
+                            int idx_br = 3;
+
                             if (art.Count == 2)
                             {
-                                images.Add(new MagickImage(dataLst[0]));
-                                images.Add(new MagickImage(dataLst[1]));
-                                images.Add(new MagickImage(dataLst[1]));
-                                images.Add(new MagickImage(dataLst[0]));
+                                idx_bl = 1;
+                                idx_br = 0;
                             }
 
                             if (art.Count == 3)
+                                idx_br = 0;
+
+
+                            using MemoryStream ms = new();
+
+                            using (Image<Rgba32> img1 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tl])))
+                            using (Image<Rgba32> img2 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tr])))
+                            using (Image<Rgba32> img3 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_bl])))
+                            using (Image<Rgba32> img4 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_br])))
+                            using (Image<Rgba32> outputImage = new Image<Rgba32>(POSTER_WIDTH * 2, POSTER_HEIGHT * 2))
                             {
-                                images.Add(new MagickImage(dataLst[0]));
-                                images.Add(new MagickImage(dataLst[1]));
-                                images.Add(new MagickImage(dataLst[2]));
-                                images.Add(new MagickImage(dataLst[0]));
+                                img1.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
+                                img2.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
+                                img3.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
+                                img4.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
+
+                                outputImage.Mutate(o => o
+                                    .DrawImage(img1, new Point(0, 0), 1f)
+                                    .DrawImage(img2, new Point(POSTER_WIDTH, 0), 1f)
+                                    .DrawImage(img3, new Point(0, POSTER_HEIGHT), 1f)
+                                    .DrawImage(img4, new Point(POSTER_WIDTH, POSTER_HEIGHT), 1f)
+                                );
+
+                                outputImage.SaveAsJpeg(ms);
                             }
 
-                            if (art.Count == 4)
-                            {
-                                images.Add(new MagickImage(dataLst[0]));
-                                images.Add(new MagickImage(dataLst[1]));
-                                images.Add(new MagickImage(dataLst[2]));
-                                images.Add(new MagickImage(dataLst[3]));
-                            }
-
-                            var montageSettings = new MontageSettings()
-                            {
-                                BackgroundColor = MagickColors.None,
-                                Geometry = new MagickGeometry(0, 0, POSTER_WIDTH, POSTER_HEIGHT),
-                            };
-                            var montage = images.Montage(montageSettings);
-                            
-                            using var ms = new MemoryStream();
-                            await montage.WriteAsync(ms, ImageMagick.MagickFormat.Jpg, cancellationToken);
                             await S3.UploadPlaylistArtAsync(ms, artId, cancellationToken);
 
                             if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))

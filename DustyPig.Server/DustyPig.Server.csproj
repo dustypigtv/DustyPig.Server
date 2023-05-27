@@ -20,13 +20,12 @@
 
 <ItemGroup>
     <PackageReference Include="AsyncAwaitBestPractices" Version="6.0.6" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.104.21" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.104.23" />
     <PackageReference Include="DustyPig.API" Version="3.0.4.118" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.5" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.2.7" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
     <PackageReference Include="Krypto.WonderDog" Version="22.4.24.4" />
-    <PackageReference Include="Magick.NET-Q8-x64" Version="13.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="5.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.10">
@@ -39,13 +38,10 @@
     <PackageReference Include="NLog.Database" Version="5.0.5" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.1.5" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.2" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.5.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.5.0" />
   </ItemGroup>
 
-	<PropertyGroup>
-		<MagickCopyNativeLinux>true</MagickCopyNativeLinux>
-	</PropertyGroup>
-	
 </Project>
