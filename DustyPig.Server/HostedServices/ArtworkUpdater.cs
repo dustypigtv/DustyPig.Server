@@ -98,7 +98,11 @@ namespace DustyPig.Server.HostedServices
                     }
                 }
 
-                if (art.Count > 0)
+                if(art.Count == 0)
+                {
+                    playlist.ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE;
+                }
+                else
                 {
 
                     if (art.Count == 1)
