@@ -21,7 +21,7 @@
 <ItemGroup>
     <PackageReference Include="AsyncAwaitBestPractices" Version="6.0.6" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.104.23" />
-    <PackageReference Include="DustyPig.API" Version="3.0.4.119" />
+    <PackageReference Include="DustyPig.API" Version="3.0.4.120" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.5" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.2.7" />
     <PackageReference Include="FirebaseAdmin" Version="2.3.0" />
