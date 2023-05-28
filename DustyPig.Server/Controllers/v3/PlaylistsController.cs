@@ -415,7 +415,7 @@ namespace DustyPig.Server.Controllers.v3
                 DB.PlaylistItems.Add(new Data.Models.PlaylistItem
                 {
                     Index = ++idx,
-                    MediaEntry = episode,
+                    MediaEntryId = episode.Id,
                     PlaylistId = info.PlaylistId
                 });
             }
