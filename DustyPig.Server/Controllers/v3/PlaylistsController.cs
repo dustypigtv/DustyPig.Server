@@ -44,7 +44,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     Id = pl.Id,
                     Name = pl.Name,
-                    ArtworkUrl = $"{Constants.DEFAULT_PLAYLIST_URL_ROOT}{pl.Id}.jpg"
+                    ArtworkUrl = pl.ArtworkUrl
                 };
                 
                 ret.Add(bpl);
