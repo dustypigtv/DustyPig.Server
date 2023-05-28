@@ -62,7 +62,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ActionResult<DetailedPlaylist>> Details(int id)
         {
-            var playableIds = DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+            var playableIds = DB.MediaEntriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
                 .Select(item => item.Id);
 
@@ -343,7 +343,7 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return NotFound("Playlist not found");
 
-            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserAccount, UserProfile)
+            var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
                 .Where(item => item.Id == info.MediaId)
                 .Where(item => new MediaTypes[] { MediaTypes.Movie, MediaTypes.Episode }.Contains(item.EntryType))
@@ -393,7 +393,7 @@ namespace DustyPig.Server.Controllers.v3
                 return NotFound("Playlist not found");
 
 
-            var series = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
+            var series = await DB.SeriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
                 .Where(item => item.Id == info.MediaId)
                 .FirstOrDefaultAsync();
@@ -401,7 +401,7 @@ namespace DustyPig.Server.Controllers.v3
             if (series == null)
                 return NotFound("Series not found");
 
-            var mediaEntries = await DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
+            var mediaEntries = await DB.EpisodesPlayableByProfile(UserProfile)
                 .AsNoTracking()
                 .Where(item => item.LinkedToId == info.MediaId)
                 .ToListAsync();

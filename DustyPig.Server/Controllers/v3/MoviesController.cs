@@ -36,7 +36,7 @@ namespace DustyPig.Server.Controllers.v3
             try { request.Validate(); }
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
-            var movies = await ApplySortOrder(DB.MoviesPlayableByProfile(UserAccount, UserProfile), request.Sort)
+            var movies = await ApplySortOrder(DB.MoviesPlayableByProfile(UserProfile), request.Sort)
                 .AsNoTracking()
                 .Skip(request.Start)
                 .Take(LIST_SIZE)

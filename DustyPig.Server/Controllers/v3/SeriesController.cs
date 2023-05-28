@@ -39,7 +39,7 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
 
             var seriesQ =
-                from mediaEntry in DB.SeriesPlayableByProfile(UserAccount, UserProfile)
+                from mediaEntry in DB.SeriesPlayableByProfile(UserProfile)
                 select mediaEntry;
 
             var sortedQ = ApplySortOrder(seriesQ, request.Sort);
@@ -557,7 +557,7 @@ namespace DustyPig.Server.Controllers.v3
                 from sub in DB.Subscriptions
                     .Include(item => item.MediaEntry)
 
-                join allowed in DB.SeriesPlayableByProfile(UserAccount, UserProfile) on sub.MediaEntryId equals allowed.Id
+                join allowed in DB.SeriesPlayableByProfile(UserProfile) on sub.MediaEntryId equals allowed.Id
 
                 orderby sub.MediaEntry.SortTitle
 
@@ -584,7 +584,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ActionResult> Subscribe(int id)
         {
             //Get the series
-            var series = await DB.SeriesPlayableByProfile(UserAccount, UserProfile)
+            var series = await DB.SeriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
                 .Include(item => item.Subscriptions)
                 .Where(item => item.Id == id)
@@ -672,7 +672,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Get the max Xid for series
             var maxXidQ =
-               from mediaEntry in DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
+               from mediaEntry in DB.EpisodesPlayableByProfile(UserProfile)
                group mediaEntry by mediaEntry.LinkedToId into g
                select new
                {

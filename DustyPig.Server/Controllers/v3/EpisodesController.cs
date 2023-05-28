@@ -59,7 +59,7 @@ namespace DustyPig.Server.Controllers.v3
             if (media == null)
                 return NotFound();
                        
-            bool playable = await DB.EpisodesPlayableByProfile(UserAccount, UserProfile)
+            bool playable = await DB.EpisodesPlayableByProfile(UserProfile)
                 .Where(item => item.Id == id)
                 .AnyAsync();
 

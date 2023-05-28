@@ -143,7 +143,7 @@ namespace DustyPig.Server.Data
         /// <summary>
         /// All media that can be played by the spcified profile
         /// </summary>
-        public IQueryable<MediaEntry> MediaEntriesPlayableByProfile(Account account, Profile profile)
+        public IQueryable<MediaEntry> MediaEntriesPlayableByProfile(Profile profile)
         {
             /*
                 If the profile is the main profile
@@ -158,9 +158,9 @@ namespace DustyPig.Server.Data
                     (from library in Libraries
                     join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
                     from share in LJ.DefaultIfEmpty()
-                    where library.AccountId == account.Id || 
+                    where library.AccountId == profile.AccountId || 
                     (
-                        share.Library.AccountId != account.Id &&
+                        share.Library.AccountId != profile.AccountId &&
                         share.ProfileId == profile.Id
                     )
                     select library.Id).Distinct();
@@ -198,20 +198,20 @@ namespace DustyPig.Server.Data
             }
         }
 
-        public IQueryable<MediaEntry> MoviesAndSeriesPlayableByProfile(Account account, Profile profile) =>
-            MediaEntriesPlayableByProfile(account, profile)
+        public IQueryable<MediaEntry> MoviesAndSeriesPlayableByProfile(Profile profile) =>
+            MediaEntriesPlayableByProfile(profile)
             .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType));
 
-        public IQueryable<MediaEntry> MoviesPlayableByProfile(Account account, Profile profile) =>
-            MediaEntriesPlayableByProfile(account, profile)
+        public IQueryable<MediaEntry> MoviesPlayableByProfile(Profile profile) =>
+            MediaEntriesPlayableByProfile(profile)
             .Where(item => item.EntryType == MediaTypes.Movie);
 
-        public IQueryable<MediaEntry> SeriesPlayableByProfile(Account account, Profile profile) =>
-            MediaEntriesPlayableByProfile(account, profile)
+        public IQueryable<MediaEntry> SeriesPlayableByProfile(Profile profile) =>
+            MediaEntriesPlayableByProfile(profile)
             .Where(item => item.EntryType == MediaTypes.Series);
 
-        public IQueryable<MediaEntry> EpisodesPlayableByProfile(Account account, Profile profile) =>
-            MediaEntriesPlayableByProfile(account, profile)
+        public IQueryable<MediaEntry> EpisodesPlayableByProfile(Profile profile) =>
+            MediaEntriesPlayableByProfile(profile)
             .Where(item => item.EntryType == MediaTypes.Episode);
 
         public IQueryable<ProfileMediaProgress> MediaProgress(Profile profile) =>
