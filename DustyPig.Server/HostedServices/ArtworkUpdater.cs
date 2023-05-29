@@ -109,7 +109,7 @@ namespace DustyPig.Server.HostedServices
                 playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
                 var art = new Dictionary<int, string>();
-                foreach(var playlistItem in playlist.PlaylistItems.Where(item => playable.Contains(item.Id)))
+                foreach(var playlistItem in playlist.PlaylistItems.Where(item => playable.Contains(item.MediaEntryId)))
                 {
                     if (playlistItem.MediaEntry.EntryType == MediaTypes.Movie)
                     {
@@ -146,41 +146,26 @@ namespace DustyPig.Server.HostedServices
                         foreach (var key in art.Keys)
                             dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], _cancellationToken));
 
+                        /*
+                            tl  tr
+                            bl  br
+                        */
                         int idx_tl = 0;
                         int idx_tr = 0;
                         int idx_bl = 0;
                         int idx_br = 0;
 
-                        if (art.Count == 2)
+                        if (art.Count > 1)
                         {
-                            /*
-                                0 1
-                                1 0
-                            */
                             idx_tr = 1;
                             idx_bl = 1;
                         }
 
-                        if (art.Count == 3)
-                        {
-                            /*
-                                0 1
-                                2 0
-                            */
-                            idx_tr = 1;
+                        if (art.Count > 2)
                             idx_bl = 2;
-                        }
 
-                        if(art.Count == 4)
-                        {
-                            /*
-                                0 1
-                                2 3
-                            */
-                            idx_tr = 1;
-                            idx_bl = 2;
+                        if (art.Count > 3)
                             idx_br = 3;
-                        }
 
                         using MemoryStream ms = new();
 
