@@ -33,15 +33,14 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 1
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public ActionResult<List<BasicProfile>> List()
+        public ResponseWrapper<List<BasicProfile>> List()
         {
             var ret = UserAccount.Profiles
                 .Select(item => item.ToBasicProfileInfo())
                 .ToList();
             ret.Sort();
 
-            return ret;
+            return new ResponseWrapper<List<BasicProfile>>(ret);
         }
     }
 
@@ -59,21 +58,18 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Only the profile owner or the main profile for the account may view this information</remarks>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult<DetailedProfile>> Details(int id)
+        public async Task<ResponseWrapper<DetailedProfile>> Details(int id)
         {
             bool allowed = UserProfile.IsMain && UserAccount.Profiles.Select(item => item.Id).Contains(id);
             if (!allowed)
                 allowed = id == UserProfile.Id;
             if (!allowed)
-                return CommonResponses.Forbid;
+                return CommonResponses.Forbid<DetailedProfile>();
 
 
             var profile = UserAccount.Profiles.SingleOrDefault(item => item.Id == id);
             if (profile == null)
-                return NotFound();
+                return CommonResponses.NotFound<DetailedProfile>();
 
             var ret = new DetailedProfile
             {
@@ -138,7 +134,7 @@ namespace DustyPig.Server.Controllers.v3
             foreach (var share in shares)
                 ret.AvailableLibraries.Add(share.ToBasicLibraryInfo(UserAccount.Id));
 
-            return ret;
+            return new ResponseWrapper<DetailedProfile>(ret);
         }
 
 
@@ -150,13 +146,10 @@ namespace DustyPig.Server.Controllers.v3
         /// If the profile being updated is the main profile, it cannot be locked</remarks>
         [HttpPost]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult> Update(UpdateProfile info)
+        public async Task<ResponseWrapper> Update(UpdateProfile info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
 
 
@@ -164,11 +157,11 @@ namespace DustyPig.Server.Controllers.v3
             if (!allowed)
                 allowed = info.Id == UserProfile.Id;
             if (!allowed)
-                return CommonResponses.Forbid;
+                return CommonResponses.Forbid();
 
             info.Name = Utils.EnsureNotNull(info.Name);
             if (string.IsNullOrWhiteSpace(info.Name))
-                return BadRequest("Name is missing");
+                return new ResponseWrapper("Name is missing");
 
             bool nameExists = UserAccount.Profiles
                 .Where(item => item.Id != info.Id)
@@ -176,7 +169,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Any();
 
             if (nameExists)
-                return BadRequest("There is already another profile with the specified name on this account");
+                return new ResponseWrapper("There is already another profile with the specified name on this account");
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
@@ -196,7 +189,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.Entry(profile).State = EntityState.Modified;
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -207,13 +200,10 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult<SimpleValue<int>>> Create(CreateProfile info)
+        public async Task<ResponseWrapper<SimpleValue<int>>> Create(CreateProfile info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
 
 
 
@@ -222,7 +212,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Any();
 
             if (nameExists)
-                return BadRequest("There is already another profile with the specified name on this account");
+                return new ResponseWrapper<SimpleValue<int>>("There is already another profile with the specified name on this account");
 
 
             var profile = new Profile
@@ -239,7 +229,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.Profiles.Add(profile);
             await DB.SaveChangesAsync();
 
-            return CommonResponses.CreatedObject(new SimpleValue<int>(profile.Id));
+            return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(profile.Id));
         }
 
 
@@ -250,17 +240,14 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<ResponseWrapper> Delete(int id)
         {
             var profile = UserAccount.Profiles.SingleOrDefault(item => item.Id == id);
             if (profile == null)
-                return Ok();
+                return new ResponseWrapper();
 
             if (profile.IsMain)
-                return BadRequest("Cannot delete main profile");
+                return new ResponseWrapper("Cannot delete main profile");
 
             var playlistArtworkUrls = await DB.Playlists
                 .AsNoTracking()
@@ -277,7 +264,7 @@ namespace DustyPig.Server.Controllers.v3
             
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -290,10 +277,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> LinkToLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<ResponseWrapper> LinkToLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -302,9 +286,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public Task<ActionResult> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<ResponseWrapper> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
     }
 }

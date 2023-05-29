@@ -8,11 +8,9 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,8 +30,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<HomeScreen>> HomeScreen()
+        public async Task<ResponseWrapper<HomeScreen>> HomeScreen()
         {
             var ret = new HomeScreen();            
 
@@ -159,7 +156,7 @@ namespace DustyPig.Server.Controllers.v3
             
 
             ret.Sections.Sort((x, y) => x.ListId.CompareTo(y.ListId));
-            return ret;
+            return new ResponseWrapper<HomeScreen>(ret);
         }
 
 
@@ -168,12 +165,11 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns more items for the specified home screen list based on start position</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<List<BasicMedia>>> LoadMoreHomeScreenItems(IDListRequest request)
+        public async Task<ResponseWrapper<List<BasicMedia>>> LoadMoreHomeScreenItems(IDListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
             IEnumerable<BasicMedia> results = null;
 
@@ -229,9 +225,9 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (results == null)
-                return new List<BasicMedia>();
+                return new ResponseWrapper<List<BasicMedia>>(new List<BasicMedia>());
 
-            return results.ToList();
+            return new ResponseWrapper<List<BasicMedia>>(results.ToList());
         }
 
 
@@ -240,12 +236,11 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns the next 100 items in a library based on start position and sort order</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<List<BasicMedia>>> ListLibraryItems(LibraryListRequest request)
+        public async Task<ResponseWrapper<List<BasicMedia>>> ListLibraryItems(LibraryListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
             var q =
                 from mediaEntry in DB.MoviesAndSeriesPlayableByProfile(UserProfile)
@@ -260,7 +255,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(LIST_SIZE)
                 .ToListAsync();
 
-            return entries.Select(item => item.ToBasicMedia()).ToList();
+            return new ResponseWrapper<List<BasicMedia>>(entries.Select(item => item.ToBasicMedia()).ToList());
         }
 
 
@@ -269,12 +264,11 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns the next 100 items in a Genre based on start position and sort order</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<List<BasicMedia>>> ListGenreItems(GenreListRequest request)
+        public async Task<ResponseWrapper<List<BasicMedia>>> ListGenreItems(GenreListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
             var q = GenresQuery(request.Genre, DB);
 
@@ -286,7 +280,7 @@ namespace DustyPig.Server.Controllers.v3
                         .ToListAsync())
                         .Select(item => item.MediaEntry);
 
-            return entries.Select(item => item.ToBasicMedia()).ToList();
+            return new ResponseWrapper<List<BasicMedia>>(entries.Select(item => item.ToBasicMedia()).ToList());
         }
 
 
@@ -298,17 +292,16 @@ namespace DustyPig.Server.Controllers.v3
         /// Url encoded title to search for
         /// </param>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<SearchResults>> Search(SearchRequest q, CancellationToken cancellationToken)
+        public async Task<ResponseWrapper<SearchResults>> Search(SearchRequest q, CancellationToken cancellationToken)
         {
             var ret = new SearchResults();
 
             if (string.IsNullOrWhiteSpace(q.Query))
-                return ret;
+                return new ResponseWrapper<SearchResults>(ret);
 
             q.Query = StringUtils.NormalizedQueryString(q.Query);
             if (string.IsNullOrWhiteSpace(q.Query))
-                return ret;
+                return new ResponseWrapper<SearchResults>(ret);
 
             var terms = q.Query.Tokenize();
 
@@ -381,7 +374,7 @@ namespace DustyPig.Server.Controllers.v3
                     ret.OtherTitles.AddRange(response.Data.Select(item => item.ToBasicTMDBInfo()).Take(LIST_SIZE));
             }
 
-            return ret;
+            return new ResponseWrapper<SearchResults>(ret);
         }
 
 
@@ -390,9 +383,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> AddToWatchlist(int id)
+        public async Task<ResponseWrapper> AddToWatchlist(int id)
         {
             var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
@@ -401,7 +392,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (mediaEntry == null)
-                return NotFound("Media not found");
+                return CommonResponses.NotFound("Media");
 
 
             var alreadyAdded = mediaEntry.WatchlistItems.Any(item => item.ProfileId == UserProfile.Id);
@@ -418,15 +409,14 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult> DeleteFromWatchlist(int id)
+        public async Task<ResponseWrapper> DeleteFromWatchlist(int id)
         {
             var item = await DB.WatchListItems
                 .Where(item => item.MediaEntryId == id)
@@ -439,7 +429,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -448,26 +438,23 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> UpdatePlaybackProgress(PlaybackProgress hist)
+        public async Task<ResponseWrapper> UpdatePlaybackProgress(PlaybackProgress hist)
         {
             if (hist == null)
-                return NotFound();
+                return CommonResponses.NotFound();
 
             if (hist.Id <= 0)
-                return NotFound();
+                return CommonResponses.NotFound();
 
             var mediaEntry = await DB.MediaEntriesPlayableByProfile(UserProfile)
                 .Where(item => item.Id == hist.Id)
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null)
-                return NotFound();
+                return CommonResponses.NotFound();
 
             if (mediaEntry.EntryType != MediaTypes.Movie && mediaEntry.EntryType != MediaTypes.Episode)
-                return BadRequest("This method is only for Movies and Episodes");
+                return new ResponseWrapper("This method is only for Movies and Episodes");
 
             int id = mediaEntry.EntryType == MediaTypes.Movie
                 ? mediaEntry.Id
@@ -479,7 +466,7 @@ namespace DustyPig.Server.Controllers.v3
             if (prog == null)
             {
                 if (hist.Seconds < 1 && mediaEntry.EntryType == MediaTypes.Movie)
-                    return Ok();
+                    return new ResponseWrapper();
 
                 //Add
                 DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
@@ -511,7 +498,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -520,8 +507,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<SimpleValue<Ratings>>> GetAllAvailableRatings()
+        public async Task<ResponseWrapper<SimpleValue<Ratings>>> GetAllAvailableRatings()
         {
             var available = await DB.MoviesAndSeriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
@@ -532,7 +518,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var strings = available.Select(item => item.ToString());
 
-            return new SimpleValue<Ratings>(strings.ToRatings());
+            return new ResponseWrapper<SimpleValue<Ratings>>(new SimpleValue<Ratings>(strings.ToRatings()));
         }
 
 
@@ -540,8 +526,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<SimpleValue<Genres>>> GetAllAvailableGenres()
+        public async Task<ResponseWrapper<SimpleValue<Genres>>> GetAllAvailableGenres()
         {
             var available = await DB.MoviesAndSeriesPlayableByProfile(UserProfile)
                 .AsNoTracking()
@@ -558,7 +543,7 @@ namespace DustyPig.Server.Controllers.v3
                         if (item.HasFlag(g))
                             ret |= g;
 
-            return new SimpleValue<Genres>(ret);
+            return new ResponseWrapper<SimpleValue<Genres>>(new SimpleValue<Genres>(ret));
         }
 
 
@@ -567,13 +552,10 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult<TitlePermissionInfo>> GetTitlePermissions(int id)
+        public async Task<ResponseWrapper<TitlePermissionInfo>> GetTitlePermissions(int id)
         {
             if (!UserProfile.IsMain)
-                return Forbid();
+                return CommonResponses.Forbid<TitlePermissionInfo>();
 
             var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
@@ -582,7 +564,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null)
-                return CommonResponses.NotFoundObject("Media not found");
+                return CommonResponses.NotFound<TitlePermissionInfo>("Media");
 
             var ret = new TitlePermissionInfo { TitleId = id };
 
@@ -619,7 +601,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Profiles.Add(profInfo);
             }
 
-            return ret;
+            return new ResponseWrapper<TitlePermissionInfo>(ret);
         }
 
 
@@ -628,13 +610,11 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<List<BasicMedia>>> Explore(ExploreRequest request)
+        public async Task<ResponseWrapper<List<BasicMedia>>> Explore(ExploreRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
 
             var maxAddedForSeriesQ =
@@ -740,7 +720,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(LIST_SIZE)
                 .ToListAsync();
 
-            return ret.Select(item => item.MediaEntry.ToBasicMedia()).ToList();
+            return new ResponseWrapper<List<BasicMedia>>(ret.Select(item => item.MediaEntry.ToBasicMedia()).ToList());
         }
 
 
@@ -751,17 +731,13 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> RequestAccessOverride(int id)
+        public async Task<ResponseWrapper> RequestAccessOverride(int id)
         {
             if (UserProfile.IsMain)
-                return BadRequest("Main profile cannot requst overrides");
+                return new ResponseWrapper("Main profile cannot requst overrides");
 
             if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                return CommonResponses.Forbid;
+                return CommonResponses.Forbid();
 
             var media = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
                 .AsNoTracking()
@@ -770,17 +746,17 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (media == null)
-                return NotFound();
+                return CommonResponses.NotFound();
 
             //Check if already requested
             var existingOverride = media.TitleOverrides.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
             if (existingOverride != null)
             {
                 if (existingOverride.State == OverrideState.Allow)
-                    return BadRequest($"You already have access to this {media.EntryType.ToString().ToLower()}");
+                    return new ResponseWrapper($"You already have access to this {media.EntryType.ToString().ToLower()}");
 
                 if (existingOverride.Status != OverrideRequestStatus.NotRequested)
-                    return BadRequest($"You have already requested access to this {media.EntryType.ToString().ToLower()}");
+                    return new ResponseWrapper($"You have already requested access to this {media.EntryType.ToString().ToLower()}");
 
                 existingOverride.Status = OverrideRequestStatus.Requested;
                 DB.Entry(existingOverride).State = EntityState.Modified;
@@ -820,7 +796,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -831,21 +807,17 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Set access override for a specific movie</remarks>
         [HttpPost]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> SetAccessOverride(API.v3.Models.TitleOverride info)
+        public async Task<ResponseWrapper> SetAccessOverride(API.v3.Models.TitleOverride info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
 
             // Check the profiles
             foreach (var ptoi in info.Overrides)
                 if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
-                    return NotFound("Profile not found");
+                    return CommonResponses.NotFound("Profile");
 
             //Get the media entry
             var media = await DB.MediaEntriesPlayableByProfile(UserProfile)
@@ -854,7 +826,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (media == null)
-                return NotFound();
+                return CommonResponses.NotFound();
 
             foreach (var ptoi in info.Overrides)
             {
@@ -927,7 +899,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 

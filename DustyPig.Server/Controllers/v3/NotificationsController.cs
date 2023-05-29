@@ -1,4 +1,6 @@
-﻿using DustyPig.Server.Controllers.v3.Filters;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Controllers.v3.Filters;
+using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Mvc;
@@ -25,8 +27,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{start}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<List<APINotification>>> List(int start)
+        public async Task<ResponseWrapper<List<APINotification>>> List(int start)
         {
 
             var notifications = await DB.Notifications
@@ -37,7 +38,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(LIST_SIZE)
                 .ToListAsync();
 
-            return notifications.Select(item => new APINotification
+            return new ResponseWrapper<List<APINotification>>( notifications.Select(item => new APINotification
             {
                 Id = item.Id,
                 Message = item.Message,
@@ -45,7 +46,7 @@ namespace DustyPig.Server.Controllers.v3
                 Timestamp = item.Timestamp,
                 Title = item.Title,
                 DeepLink = DeepLinks.Create(item)
-            }).ToList();
+            }).ToList());
         }
 
 
@@ -54,9 +55,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Marks a notification as seen</remarks>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> MarkAsRead(int id)
+        public async Task<ResponseWrapper> MarkAsRead(int id)
         {
             var dbNotification = await DB.Notifications
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -64,17 +63,17 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (dbNotification == null)
-                return NotFound("Notification not found");
+                return CommonResponses.NotFound("Notification");
 
             //Don't throw an error, just return
             if (dbNotification.Seen)
-                return Ok();
+                return new ResponseWrapper();
 
             dbNotification.Seen = true;
             dbNotification.Timestamp = DateTime.UtcNow;
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -82,8 +81,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<ResponseWrapper> Delete(int id)
         {
             var dbNotification = await DB.Notifications
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -95,7 +93,7 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Notifications.Remove(dbNotification);
                 await DB.SaveChangesAsync();
             }
-            return Ok();
+            return new ResponseWrapper();
         }
     }
 }

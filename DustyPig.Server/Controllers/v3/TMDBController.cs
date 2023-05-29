@@ -40,18 +40,18 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<DetailedTMDB>> GetMovie(int id)
+        public async Task<ResponseWrapper<DetailedTMDB>> GetMovie(int id)
         {
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
-                return CommonResponses.Forbid;
+                return CommonResponses.Forbid<DetailedTMDB>();
 
             var movie = await _client.GetMovieAsync(id);
             if (!movie.Success)
             {
                 if (movie.Error.InnerException is System.Net.Http.HttpRequestException httpEx)
                     if (httpEx.StatusCode == HttpStatusCode.NotFound)
-                        return NotFound(movie.Error.GetErrorResponse().StatusMessage);
-                return BadRequest(movie.Error.GetErrorResponse().StatusMessage);
+                        return new ResponseWrapper<DetailedTMDB>(movie.Error.GetErrorResponse().StatusMessage);
+                return new ResponseWrapper<DetailedTMDB>(movie.Error.GetErrorResponse().StatusMessage);
             }
 
             var ret = new DetailedTMDB
@@ -96,7 +96,7 @@ namespace DustyPig.Server.Controllers.v3
             ret.RequestPermission = reqPerm.Permission;
             ret.RequestStatus = reqPerm.Status;
 
-            return ret;
+            return new ResponseWrapper<DetailedTMDB>(ret);
         }
 
 
@@ -105,18 +105,18 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<DetailedTMDB>> GetSeries(int id)
+        public async Task<ResponseWrapper<DetailedTMDB>> GetSeries(int id)
         {
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
-                return CommonResponses.Forbid;
+                return CommonResponses.Forbid<DetailedTMDB>();
 
             var series = await _client.GetSeriesAsync(id);
             if (!series.Success)
             {
                 if (series.Error.InnerException is System.Net.Http.HttpRequestException httpEx)
                     if (httpEx.StatusCode == HttpStatusCode.NotFound)
-                        return NotFound(series.Error.GetErrorResponse().StatusMessage);
-                return BadRequest(series.Error.GetErrorResponse().StatusMessage);
+                        return new ResponseWrapper<DetailedTMDB>(series.Error.GetErrorResponse().StatusMessage);
+                return new ResponseWrapper<DetailedTMDB>(series.Error.GetErrorResponse().StatusMessage);
             }
 
             // Response
@@ -152,7 +152,7 @@ namespace DustyPig.Server.Controllers.v3
             ret.RequestPermission = reqPerm.Permission;
             ret.RequestStatus = reqPerm.Status;
 
-            return ret;
+            return new ResponseWrapper<DetailedTMDB>(ret);
         }
 
 
@@ -160,21 +160,21 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<SimpleValue<TitleRequestPermissions>>> GetRequestTitlePermission()
+        public async Task<ResponseWrapper<SimpleValue<TitleRequestPermissions>>> GetRequestTitlePermission()
         {
             var ret = await CalculateTitleRequestPermissionsAsync();
-            return new SimpleValue<TitleRequestPermissions>(ret);
+            return new ResponseWrapper<SimpleValue<TitleRequestPermissions>>(new SimpleValue<TitleRequestPermissions>(ret));
         }
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult> RequestTitle(TitleRequest data)
+        public async Task<ResponseWrapper> RequestTitle(TitleRequest data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
             //Check for existing request
             var existingSubscription = await DB.GetRequestSubscriptions
@@ -186,7 +186,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingSubscription)
-                return BadRequest("You have already requested this title");
+                return new ResponseWrapper("You have already requested this title");
 
 
 
@@ -195,10 +195,10 @@ namespace DustyPig.Server.Controllers.v3
             if (UserProfile.IsMain)
             {
                 if (data.FriendId == null)
-                    return BadRequest("You cannot request a title from yourself");
+                    return new ResponseWrapper("You cannot request a title from yourself");
 
                 if (data.FriendId.Value <= 0)
-                    return BadRequest($"Invalid {nameof(data.FriendId)}");
+                    return new ResponseWrapper($"Invalid {nameof(data.FriendId)}");
 
                 var friend = await DB.Friendships
                     .AsNoTracking()
@@ -210,7 +210,7 @@ namespace DustyPig.Server.Controllers.v3
                     .FirstOrDefaultAsync();
 
                 if (friend == null)
-                    return BadRequest("Friend not found");
+                    return CommonResponses.NotFound("Friend");
 
                 targetAcct = friend.Account1Id == UserAccount.Id
                     ? friend.Account2
@@ -219,7 +219,7 @@ namespace DustyPig.Server.Controllers.v3
             else
             {
                 if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                    return BadRequest("You are not authorized to request titles");
+                    return new ResponseWrapper("You are not authorized to request titles");
 
                 if (UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
                 {
@@ -227,7 +227,7 @@ namespace DustyPig.Server.Controllers.v3
                     if (data.FriendId != null)
                     {
                         if (data.FriendId.Value <= 0)
-                            return BadRequest($"Invalid {nameof(data.FriendId)}");
+                            return new ResponseWrapper($"Invalid {nameof(data.FriendId)}");
 
                         var friend = await DB.Friendships
                             .AsNoTracking()
@@ -239,7 +239,7 @@ namespace DustyPig.Server.Controllers.v3
                             .FirstOrDefaultAsync();
 
                         if (friend == null)
-                            return BadRequest("Friend not found");
+                            return CommonResponses.NotFound("Friend");
 
                         targetAcct = friend.Account1Id == UserAccount.Id
                             ? friend.Account2
@@ -254,14 +254,14 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var response = await _client.GetMovieAsync(data.TMDB_Id);
                 if (!response.Success)
-                    return BadRequest("Movie not found");
+                    return CommonResponses.NotFound("Movie");
                 title = response.Data.Title;
             }
             else
             {
                 var response = await _client.GetSeriesAsync(data.TMDB_Id);
                 if (!response.Success)
-                    return BadRequest("Series not found");
+                    return CommonResponses.NotFound("Series");
                 title = response.Data.Title;
             }
 
@@ -352,7 +352,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -360,11 +360,11 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult> CancelTitleRequest(TitleRequest data)
+        public async Task<ResponseWrapper> CancelTitleRequest(TitleRequest data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
             var req = await DB.GetRequestSubscriptions
                 .AsNoTracking()
@@ -380,7 +380,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 

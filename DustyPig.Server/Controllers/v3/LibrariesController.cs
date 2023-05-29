@@ -26,8 +26,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<ActionResult<List<BasicLibrary>>> List()
+        public async Task<ResponseWrapper<List<BasicLibrary>>> List()
         {
             //Libs owned by the account
             var ownedLibs = await DB.Libraries
@@ -65,7 +64,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Add(share.ToBasicLibraryInfo(UserAccount.Id));
 
             ret.Sort();
-            return ret;
+            return new ResponseWrapper<List<BasicLibrary>>(ret);
         }
 
 
@@ -74,10 +73,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult<List<DetailedLibrary>>> AdminList()
+        public async Task<ResponseWrapper<List<DetailedLibrary>>> AdminList()
         {
             var ret = new List<DetailedLibrary>();
             
@@ -120,14 +116,12 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             ret.Sort();
-            return ret;
+            return new ResponseWrapper<List<DetailedLibrary>>(ret);
         }
 
 
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult<BasicLibrary>> GetBasic(int id)
+        public async Task<ResponseWrapper<BasicLibrary>> GetBasic(int id)
         {
             //Libs owned by the account
             var lib = await DB.Libraries
@@ -137,7 +131,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (lib != null)
-                return lib.ToBasicLibraryInfo();
+                return new ResponseWrapper<BasicLibrary>(lib.ToBasicLibraryInfo());
 
             var sharedLibs = await DB.FriendLibraryShares
                 .AsNoTracking()
@@ -159,9 +153,9 @@ namespace DustyPig.Server.Controllers.v3
 
             var share = sharedLibs.FirstOrDefault(item => item.LibraryId == id);
             if (share != null)
-                return share.ToBasicLibraryInfo(UserAccount.Id);
+                return new ResponseWrapper<BasicLibrary>(share.ToBasicLibraryInfo(UserAccount.Id));
 
-            return NotFound("Library not found");
+            return CommonResponses.NotFound<BasicLibrary>("Library");
         }
 
         /// <summary>
@@ -169,10 +163,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult<DetailedLibrary>> Details(int id)
+        public async Task<ResponseWrapper<DetailedLibrary>> Details(int id)
         {
             //Try to get owned lib
             var lib = await DB.Libraries
@@ -217,7 +208,7 @@ namespace DustyPig.Server.Controllers.v3
                     .SingleOrDefaultAsync();
 
                 if (share == null)
-                    return NotFound();
+                    return CommonResponses.NotFound<DetailedLibrary>();
 
                 var ret = new DetailedLibrary
                 {
@@ -231,7 +222,7 @@ namespace DustyPig.Server.Controllers.v3
                     if (UserAccount.Profiles.Select(item => item.Id).Contains(pls.ProfileId))
                         ret.Profiles.Add(pls.Profile.ToBasicProfileInfo());
 
-                return ret;
+                return new ResponseWrapper<DetailedLibrary>(ret);
             }
             else
             {
@@ -250,7 +241,7 @@ namespace DustyPig.Server.Controllers.v3
                 foreach (var friendship in lib.FriendLibraryShares.Select(item => item.Friendship))
                     ret.SharedWith.Add(friendship.ToBasicFriendInfo(UserAccount.Id));
 
-                return ret;
+                return new ResponseWrapper<DetailedLibrary>(ret);
             }
         }
 
@@ -262,14 +253,11 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult<SimpleValue<int>>> Create(CreateLibrary info)
+        public async Task<ResponseWrapper<SimpleValue<int>>> Create(CreateLibrary info)
         {
             //Validate object
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
 
 
 
@@ -280,7 +268,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.Name == info.Name)
                 .AnyAsync();
             if (alreadyExists)
-                return BadRequest("A library with the specified name already exists in this account");
+                return new ResponseWrapper<SimpleValue<int>>("A library with the specified name already exists in this account");
 
             var lib = DB.Libraries.Add(new Library
             {
@@ -298,7 +286,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.CreatedObject(new SimpleValue<int>(lib.Id));
+            return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(lib.Id));
         }
 
 
@@ -308,14 +296,10 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> Update(UpdateLibrary info)
+        public async Task<ResponseWrapper> Update(UpdateLibrary info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
 
 
@@ -325,7 +309,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var lib = allLibs.SingleOrDefault(item => item.Id == info.Id);
             if (lib == null)
-                NotFound("Library not found");
+                CommonResponses.NotFound("Library");
 
             //Make sure the new name is unique
             if (lib.Name != info.Name)
@@ -336,14 +320,14 @@ namespace DustyPig.Server.Controllers.v3
                     .Any();
 
                 if (nameExists)
-                    return BadRequest("A library with the specified name already exists in this account");
+                    return new ResponseWrapper("A library with the specified name already exists in this account");
             }
 
             lib.IsTV = info.IsTV;
             lib.Name = info.Name;
 
             await DB.SaveChangesAsync();
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -354,9 +338,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<ResponseWrapper> Delete(int id)
         {
             var lib = await DB.Libraries
                 .Where(item => item.AccountId == UserAccount.Id)
@@ -378,7 +360,7 @@ namespace DustyPig.Server.Controllers.v3
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -388,10 +370,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> LinkToProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<ResponseWrapper> LinkToProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -400,9 +379,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public Task<ActionResult> UnLinkFromProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<ResponseWrapper> UnLinkFromProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -411,10 +388,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> ShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<ResponseWrapper> ShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
 
         /// <summary>
@@ -423,9 +397,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public Task<ActionResult> UnShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<ResponseWrapper> UnShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
     }
 }

@@ -1,4 +1,5 @@
-﻿using DustyPig.Server.Data;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     public static class ProfileLibraryLinks
     {
-        public static async Task<ActionResult> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        public static async Task<ResponseWrapper> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
             if (!account.Profiles.Any(item => item.Id == profileId))
-                return CommonResponses.NotFoundObject("Profile not found");
+                return CommonResponses.NotFound("Profile");
 
             //See if already linked
             using var db = new AppDbContext();
@@ -25,7 +26,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .SingleOrDefaultAsync();
 
             if (rec != null)
-                return new OkResult();
+                return new ResponseWrapper();
 
             //See if the lib is owned by the account
             bool owned = await db.Libraries
@@ -46,7 +47,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     .AnyAsync();
 
                 if (!shared)
-                    return CommonResponses.NotFoundObject("Library not found");
+                    return CommonResponses.NotFound("Library");
             }
 
             db.ProfileLibraryShares.Add(new ProfileLibraryShare
@@ -70,14 +71,14 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return new OkResult();
+            return new ResponseWrapper();
         }
 
-        public static async Task<ActionResult> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        public static async Task<ResponseWrapper> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
             if (!account.Profiles.Any(item => item.Id == profileId))
-                return CommonResponses.NotFoundObject("Profile not found");
+                return CommonResponses.NotFound("Profile");
 
             //Get the link
             using var db = new AppDbContext();
@@ -101,7 +102,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return new OkResult();
+            return new ResponseWrapper();
         }
     }
 }

@@ -27,7 +27,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task<ActionResult> DeleteMedia(int id)
+        internal async Task<ResponseWrapper> DeleteMedia(int id)
         {
             //Get the object, making sure it's owned
             var mediaEntry = await DB.MediaEntries
@@ -37,7 +37,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null || mediaEntry.Library.AccountId != UserAccount.Id)
-                return NotFound("Either the specified item does not exist or is not owned by this account");
+                return new ResponseWrapper ("Either the specified item does not exist or is not owned by this account");
 
             if(mediaEntry.EntryType == MediaTypes.Series)
             {
@@ -72,7 +72,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 

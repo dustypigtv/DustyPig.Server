@@ -41,19 +41,17 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>This will create the Firebase account and send a confirmation email</remarks>
         [HttpPost]
         [SwaggerOperation(OperationId = "Create")]
-        [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult> Create(CreateAccount info)
+        public async Task<ResponseWrapper<CreateAccountResponse>> Create(CreateAccount info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<CreateAccountResponse>(ex.ToString()); }
 
             try
             {
                 //Check if they already exist
                 var existingUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(info.Email);
-                return BadRequest("Account already exists");
+                return new ResponseWrapper<CreateAccountResponse> ("Account already exists");
             }
             catch { }
 
@@ -85,21 +83,22 @@ namespace DustyPig.Server.Controllers.v3
                 //Send verification mail
                 var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
                 if (!dataResponse.Success)
-                    return BadRequest(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+                    return new ResponseWrapper<CreateAccountResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
                 bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
                 if (emailVerificationRequired)
                 {
                     var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
                     if (!sendVerificationEmailResponse.Success)
-                        return BadRequest(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
+                        return new ResponseWrapper<CreateAccountResponse>(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
                 }
 
-                return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
+                //return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
+                return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
             }
             else
             {
-                return BadRequest(signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
+                return new ResponseWrapper<CreateAccountResponse>(signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
             }
         }
 
@@ -110,21 +109,18 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>WARNING: This will permanently delete the account and ALL data. This is not recoverable!</remarks>
         [HttpDelete]
         [Authorize]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        public async Task<ActionResult> Delete()
+        public async Task<ResponseWrapper> Delete()
         {
             var (account, profile) = await User.VerifyAsync();
 
             if (account.Id == TestAccount.AccountId)
-                return CommonResponses.ProhibitTestUser;
+                return CommonResponses.ProhibitTestUser();
 
             if (profile == null)
-                return CommonResponses.RequireMainProfile;
+                return CommonResponses.RequireMainProfile();
 
             if (!profile.IsMain)
-                return CommonResponses.RequireMainProfile;
+                return CommonResponses.RequireMainProfile();
 
             //Images to cleanup from Wasabi
             var profileIds = account.Profiles.Select(item => item.Id).ToList();
@@ -157,7 +153,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             catch { }
 
-            return Ok();
+            return new ResponseWrapper();
         }
     }
 }

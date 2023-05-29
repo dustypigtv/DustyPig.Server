@@ -7,6 +7,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MySqlX.XDevAPI.Common;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Linq;
@@ -30,7 +31,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{id}")]
         [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult<DetailedEpisode>> Details(int id)
+        public async Task<ResponseWrapper<DetailedEpisode>> Details(int id)
         {
             //Get the media entry
             var media = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
@@ -57,8 +58,8 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (media == null)
-                return NotFound();
-                       
+                return CommonResponses.NotFound<DetailedEpisode>();
+
             bool playable = await DB.EpisodesPlayableByProfile(UserProfile)
                 .Where(item => item.Id == id)
                 .AnyAsync();
@@ -92,7 +93,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.ExternalSubtitles = media.Subtitles.ToExternalSubtitleList();
 
                 var progress = media.LinkedTo.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
-                if(progress != null)
+                if (progress != null)
                 {
                     //Get the episodes
                     var dbEps = await DB.MediaEntries
@@ -101,12 +102,12 @@ namespace DustyPig.Server.Controllers.v3
                         .OrderBy(item => item.Xid)
                         .ToListAsync();
 
-                    if(dbEps.Count > 0)
+                    if (dbEps.Count > 0)
                     {
                         var dbEp = dbEps.FirstOrDefault(item => item.Xid == progress.Xid);
                         if (dbEp != null)
                         {
-                            if(dbEp.Xid == media.Xid)
+                            if (dbEp.Xid == media.Xid)
                             {
                                 if (progress.Played < (media.CreditsStartTime ?? media.Length.Value - 30))
                                 {
@@ -126,10 +127,10 @@ namespace DustyPig.Server.Controllers.v3
                                     }
                                 }
                             }
-                            else 
+                            else
                             {
                                 var prev = dbEps.LastOrDefault(item => item.Xid < media.Xid);
-                                if(prev != null && prev.Xid == progress.Xid)
+                                if (prev != null && prev.Xid == progress.Xid)
                                 {
                                     if (progress.Played >= (prev.CreditsStartTime ?? prev.Length.Value - 30))
                                     {
@@ -143,7 +144,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-            return ret;
+            return new ResponseWrapper<DetailedEpisode>(ret);
         }
 
 
@@ -154,15 +155,11 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.Created)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult<SimpleValue<int>>> Create(CreateEpisode episodeInfo)
+        public async Task<ResponseWrapper<SimpleValue<int>>> Create(CreateEpisode episodeInfo)
         {
             // ***** Tons of validation *****
             try { episodeInfo.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
 
 
 
@@ -176,10 +173,10 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (ownedSeries == null)
-                return NotFound(nameof(episodeInfo.SeriesId));
+                return CommonResponses.NotFound<SimpleValue<int>>(nameof(episodeInfo.SeriesId));
 
             if (ownedSeries.Library.AccountId != UserAccount.Id)
-                return NotFound(nameof(episodeInfo.SeriesId));
+                return CommonResponses.NotFound<SimpleValue<int>>(nameof(episodeInfo.SeriesId));
 
 
             // ***** Ok at this point the mediaInfo has all required data, build the new entry *****
@@ -218,7 +215,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return BadRequest($"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}");
+                return new ResponseWrapper<SimpleValue<int>>($"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}");
 
 
             //Add the new item
@@ -287,7 +284,7 @@ namespace DustyPig.Server.Controllers.v3
             //Moment of truth!
             await DB.SaveChangesAsync();
 
-            return CommonResponses.CreatedObject(new SimpleValue<int>(newItem.Id));
+            return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(newItem.Id));
         }
 
 
@@ -298,14 +295,10 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public async Task<ActionResult> Update(UpdateEpisode episodeInfo)
+        public async Task<ResponseWrapper> Update(UpdateEpisode episodeInfo)
         {
             try { episodeInfo.Validate(); }
-            catch (ModelValidationException ex) { return BadRequest(ex.ToString()); }
+            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
 
             //Update
@@ -316,10 +309,10 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (existingEpisode == null)
-                return NotFound(nameof(episodeInfo.Id));
+                return CommonResponses.NotFound(nameof(episodeInfo.Id));
 
             if (existingEpisode.Library.AccountId != UserAccount.Id)
-                return NotFound(nameof(episodeInfo.Id));
+                return CommonResponses.NotFound(nameof(episodeInfo.Id));
 
 
             existingEpisode.Added = DateTime.UtcNow;
@@ -352,7 +345,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return BadRequest($"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}");
+                return new ResponseWrapper($"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}");
 
 
 
@@ -373,7 +366,7 @@ namespace DustyPig.Server.Controllers.v3
             //Moment of truth!
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return new ResponseWrapper();
         }
 
 
@@ -383,11 +376,6 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ActionResult> Delete(int id) => DeleteMedia(id);
-
-
+        public Task<ResponseWrapper> Delete(int id) => DeleteMedia(id);
     }
 }
