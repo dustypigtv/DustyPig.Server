@@ -4,8 +4,10 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.VisualBasic.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
@@ -388,6 +390,8 @@ namespace DustyPig.Server.Controllers.v3
 
             //Update info
             bool tmdb_changed = existingItem.TMDB_Id != movieInfo.TMDB_Id;
+            bool artwork_changed = existingItem.ArtworkUrl != movieInfo.ArtworkUrl;
+            
 
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
             existingItem.BackdropUrl = movieInfo.BackdropUrl;
@@ -426,6 +430,17 @@ namespace DustyPig.Server.Controllers.v3
             if (tmdb_changed)
                 await UpdatePopularity(existingItem);
 
+            List<int> playlistIds = null;
+            if (artwork_changed)
+            {
+                playlistIds = await DB.PlaylistItems
+                    .AsNoTracking()
+                    .Where(item => item.MediaEntryId == movieInfo.Id)
+                    .Select(item => item.PlaylistId)
+                    .Distinct()
+                    .ToListAsync();
+            }
+
             await DB.SaveChangesAsync();
 
             //People
@@ -434,6 +449,8 @@ namespace DustyPig.Server.Controllers.v3
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));
 
+            //Playlists
+            await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
             //Redo Subtitles
             var existingSubtitles = await DB.Subtitles

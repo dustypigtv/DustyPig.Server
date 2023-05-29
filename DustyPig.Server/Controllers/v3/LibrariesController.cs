@@ -4,6 +4,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -364,8 +365,17 @@ namespace DustyPig.Server.Controllers.v3
 
             if (lib != null)
             {
+                var q =
+                    from me in DB.MediaEntries.Where(item => item.LibraryId == id)
+                    join pi in DB.PlaylistItems on me.Id equals pi.MediaEntryId
+                    select pi.PlaylistId;
+
+                var playlistIds = await q.Distinct().ToListAsync();
+
                 DB.Libraries.Remove(lib);
                 await DB.SaveChangesAsync();
+
+                await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
             return Ok();

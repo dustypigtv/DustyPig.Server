@@ -4,6 +4,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -277,8 +278,20 @@ namespace DustyPig.Server.Controllers.v3
 
             if (friend != null)
             {
+                int friendAcctId = friend.Account1Id == UserAccount.Id ? friend.Account2Id : friend.Account1Id;
+
+                var q =
+                    from me in DB.MediaEntries
+                    join lib in DB.Libraries.Where(item => item.AccountId == friendAcctId) on me.LibraryId equals lib.Id
+                    join pi in DB.PlaylistItems on me.Id equals pi.MediaEntryId
+                    select pi.PlaylistId;
+
+                var playlistIds = await q.Distinct().ToListAsync();
+
                 DB.Friendships.Remove(friend);
                 await DB.SaveChangesAsync();
+
+                await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
             return Ok();

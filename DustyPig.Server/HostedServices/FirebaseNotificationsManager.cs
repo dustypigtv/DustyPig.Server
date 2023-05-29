@@ -86,7 +86,8 @@ namespace DustyPig.Server.HostedServices
         private async Task RemoveOldFCMTokensAsync()
         {
             using var db = new AppDbContext();
-            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM FCMTokens WHERE LastSeen < {DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}", _cancellationToken);
+            string query = $"DELETE FROM {nameof(db.FCMTokens)} WHERE {nameof(FCMToken.LastSeen)} < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
+            await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
         }
              
         

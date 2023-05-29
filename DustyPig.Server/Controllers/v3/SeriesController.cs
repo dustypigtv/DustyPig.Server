@@ -1,11 +1,14 @@
-﻿using DustyPig.API.v3;
+﻿using AsyncAwaitBestPractices;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using DustyPig.TMDB.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -475,6 +478,7 @@ namespace DustyPig.Server.Controllers.v3
             bool tmdb_changed = existingItem.TMDB_Id != seriesInfo.TMDB_Id;
             bool library_changed = existingItem.LibraryId != seriesInfo.LibraryId;
             bool rated_changed = existingItem.Rated != seriesInfo.Rated;
+            bool artwork_changed = existingItem.ArtworkUrl != seriesInfo.ArtworkUrl;
 
             existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
             existingItem.BackdropUrl = seriesInfo.BackdropUrl;
@@ -507,17 +511,30 @@ namespace DustyPig.Server.Controllers.v3
                 await UpdatePopularity(existingItem);
 
             //Update library/rated for episodes
-            if (library_changed || rated_changed)
+            List<int> playlistIds = null;
+            if (library_changed || rated_changed || artwork_changed)
             {
                 var episodes = await DB.MediaEntries
                     .Where(item => item.LinkedToId == existingItem.Id)
                     .ToListAsync();
-                episodes.ForEach(item =>
-                {
-                    item.LibraryId = existingItem.LibraryId;
-                    item.Rated = existingItem.Rated;
-                });
+            
+                if(library_changed || rated_changed)
+                    episodes.ForEach(item =>
+                    {
+                        item.LibraryId = existingItem.LibraryId;
+                        item.Rated = existingItem.Rated;
+                    });
+
+                var episodeIds = episodes.Select(item => item.Id).Distinct().ToList();
+                playlistIds = await DB.PlaylistItems
+                    .AsNoTracking()
+                    .Where(item => episodeIds.Contains(item.MediaEntryId))
+                    .Include(item => item.Playlist)
+                    .Select(item => item.PlaylistId)
+                    .Distinct()
+                    .ToListAsync();
             }
+
 
             await DB.SaveChangesAsync();
 
@@ -527,6 +544,8 @@ namespace DustyPig.Server.Controllers.v3
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, seriesInfo.ExtraSearchTerms));
 
+            //Playlists
+            await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
             return Ok();
         }

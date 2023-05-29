@@ -3,6 +3,7 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -37,6 +38,36 @@ namespace DustyPig.Server.Controllers.v3
 
             if (mediaEntry == null || mediaEntry.Library.AccountId != UserAccount.Id)
                 return NotFound("Either the specified item does not exist or is not owned by this account");
+
+            if(mediaEntry.EntryType == MediaTypes.Series)
+            {
+                var episodeIds = await DB.MediaEntries
+                    .AsNoTracking()
+                    .Where(item => item.LinkedToId == id)
+                    .Select(item => item.Id)
+                    .Distinct()
+                    .ToListAsync();
+
+                var playlists = await DB.PlaylistItems
+                    .Where(item => episodeIds.Contains(item.MediaEntryId))
+                    .Include(item => item.Playlist)
+                    .Select(item => item.Playlist)
+                    .Distinct()
+                    .ToListAsync();
+
+                playlists.ForEach(item => item.ArtworkUpdateNeeded = true); 
+            }
+            else
+            {
+                var playlists = await DB.PlaylistItems
+                    .Where(item => item.MediaEntryId == id)
+                    .Include(item => item.Playlist)
+                    .Select(item => item.Playlist)
+                    .Distinct()
+                    .ToListAsync();
+
+                playlists.ForEach(item => item.ArtworkUpdateNeeded = true);
+            }
 
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();

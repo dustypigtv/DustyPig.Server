@@ -1,4 +1,5 @@
 ﻿using DustyPig.Server.Data;
+using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using System;
@@ -29,10 +30,7 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-
-#if !DEBUG
             _timer.Change(0, Timeout.Infinite);
-#endif
             return Task.CompletedTask;
         }
 
@@ -58,7 +56,7 @@ namespace DustyPig.Server.HostedServices
         private async Task CleanLogsAsync()
         {
             using var db = new AppDbContext();
-            string query = $"DELETE FROM Logs WHERE Timestamp < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
+            string query = $"DELETE FROM {nameof(db.Logs)} WHERE {nameof(LogEntry.Timestamp)} < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
             await db.Database.ExecuteSqlRawAsync(query);
         }
 

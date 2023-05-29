@@ -266,20 +266,10 @@ namespace DustyPig.Server.Controllers.v3
 
             if (playlist != null)
             {
+                if(!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
+                    DB.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
                 DB.Playlists.Remove(playlist);
                 await DB.SaveChangesAsync();
-
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
-                        if (playlist.ArtworkUrl.ICStartsWith(Constants.DEFAULT_PLAYLIST_URL_ROOT))
-                            if (!playlist.ArtworkUrl.ICEquals(Constants.DEFAULT_PLAYLIST_IMAGE))
-                            {
-                                string oldKey = new Uri(playlist.ArtworkUrl).LocalPath.Trim('/');
-                                ArtworkUpdater.DeletePlaylistArt(oldKey);
-                            }
-                }
-                catch { }
             }
 
             return Ok();

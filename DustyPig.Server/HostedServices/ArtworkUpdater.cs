@@ -17,34 +17,56 @@ using SixLabors.ImageSharp.Processing;
 
 namespace DustyPig.Server.HostedServices
 {
-    public class ArtworkUpdater : BackgroundService
+    public class ArtworkUpdater : IHostedService, IDisposable
     {
         //Poster should be 266x400
         //ImageMagick makes each quadrant the specified size, so set to 1/2
         const int POSTER_WIDTH = 133;
         const int POSTER_HEIGHT = 200;
 
-        readonly ILogger<ArtworkUpdater> _logger;
-        static readonly ConcurrentQueue<string> _toDelete = new();
+        //15 Seconds
+        const int MILLISECONDS_DELAY = 1000 * 15;
 
-        public static void DeletePlaylistArt(string key) => _toDelete.Enqueue(key);
+
+        readonly ILogger<ArtworkUpdater> _logger;
+        private readonly Timer _timer;
+        private CancellationToken _cancellationToken = default;
 
         public ArtworkUpdater(ILogger<ArtworkUpdater> logger)
         {
             _logger = logger;
+            _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        public void Dispose()
         {
-            using PeriodicTimer timer = new(TimeSpan.FromSeconds(15));
+            _timer.Dispose();
+        }
 
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            _cancellationToken = cancellationToken;
+            if (!_cancellationToken.IsCancellationRequested)
+                _timer.Change(MILLISECONDS_DELAY, Timeout.Infinite);
+            return Task.CompletedTask;
+        }
+
+        public Task StopAsync(CancellationToken cancellationToken)
+        {
+            _cancellationToken = cancellationToken;
+            return Task.CompletedTask;
+        }
+
+
+
+
+        private async void DoWork(object state)
+        {
             try
             {
-                while (await timer.WaitForNextTickAsync(stoppingToken))
-                {
-                    await ProcessNext(stoppingToken);
-                    await DeleteNext(stoppingToken);
-                }
+                await ProcessNextAsync();
+                await DeleteNextAsync();
             }
             catch (OperationCanceledException)
             {
@@ -53,9 +75,13 @@ namespace DustyPig.Server.HostedServices
             {
                 _logger.LogError(ex, ex.Message);
             }
+
+            if (!_cancellationToken.IsCancellationRequested)
+                _timer.Change(MILLISECONDS_DELAY, Timeout.Infinite);
         }
 
-        private async Task ProcessNext(CancellationToken cancellationToken)
+
+        private async Task ProcessNextAsync()
         {
             try
             {
@@ -68,7 +94,7 @@ namespace DustyPig.Server.HostedServices
                     .ThenInclude(item => item.MediaEntry)
                     .ThenInclude(item => item.LinkedTo)
                     .Where(item => item.ArtworkUpdateNeeded)
-                    .FirstOrDefaultAsync(cancellationToken);
+                    .FirstOrDefaultAsync(_cancellationToken);
 
                 if (playlist == null)
                     return;
@@ -77,7 +103,7 @@ namespace DustyPig.Server.HostedServices
                 var playable = await db.MediaEntriesPlayableByProfile(playlist.Profile)
                     .Where(item => mediaIds.Contains(item.Id))
                     .Select(item => item.Id)
-                    .ToListAsync(cancellationToken);
+                    .ToListAsync(_cancellationToken);
 
 
                 playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
@@ -118,7 +144,7 @@ namespace DustyPig.Server.HostedServices
                     {
                         var dataLst = new List<byte[]>();
                         foreach (var key in art.Keys)
-                            dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], cancellationToken));
+                            dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], _cancellationToken));
 
                         int idx_tl = 0;
                         int idx_tr = 0;
@@ -179,24 +205,20 @@ namespace DustyPig.Server.HostedServices
                             outputImage.SaveAsJpeg(ms);
                         }
 
-                        await S3.UploadPlaylistArtAsync(ms, artId, cancellationToken);
+                        await S3.UploadFileAsync(ms, $"{Constants.DEFAULT_PLAYLIST_PATH}/{artId}.jpg", _cancellationToken);
 
+                        //Do this first
                         if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
-                            if (playlist.ArtworkUrl.ICStartsWith(Constants.DEFAULT_PLAYLIST_URL_ROOT))
-                                if (!playlist.ArtworkUrl.ICEquals(Constants.DEFAULT_PLAYLIST_IMAGE))
-                                {
-                                    string oldKey = new Uri(playlist.ArtworkUrl).LocalPath.Trim('/');
-                                    _toDelete.Enqueue(oldKey);
-                                }
+                            db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
 
-                        //Set AFTER deleting old one above
+                        //Then this
                         playlist.ArtworkUrl = calcArt;
                     }
 
                 }
 
                 playlist.ArtworkUpdateNeeded = false;
-                await db.SaveChangesAsync(cancellationToken);
+                await db.SaveChangesAsync(_cancellationToken);
             }
             catch (Exception ex)
             {
@@ -204,18 +226,88 @@ namespace DustyPig.Server.HostedServices
             }
         }
    
-        private async Task DeleteNext(CancellationToken cancellationToken)
+        private async Task DeleteNextAsync()
         {
             try
             {
-                if (_toDelete.TryDequeue(out string key))
+                using var db = new AppDbContext();
+                var entry = await db.S3ArtFilesToDelete.FirstOrDefaultAsync();
+                if (entry == null)
+                    return;
+
+                if (!string.IsNullOrWhiteSpace(entry.Url))
                 {
-                    if (key.ICStartsWith(Constants.DEFAULT_PLAYLIST_PATH))
-                        if (!key.ICEndsWith("default.jpg"))
-                            await S3.DeletePlaylistArtAsync(key, cancellationToken);
+                    bool delete = false;
+                    if (entry.Url.ICStartsWith(Constants.DEFAULT_PLAYLIST_URL_ROOT))
+                    {
+                        if (!entry.Url.ICEndsWith("/default.png"))
+                            if (!entry.Url.ICEndsWith("/default.jpg"))
+                                delete = true;
+                    }
+                    else if (entry.Url.ICStartsWith(Constants.DEFAULT_PROFILE_URL_ROOT))
+                    {
+                        var lst = Constants.DefaultProfileImages();
+                        delete = true;
+                        foreach (string defaultImg in lst)
+                            if (entry.Url.ICEquals(defaultImg))
+                            {
+                                delete = false;
+                                break;
+                            }
+                    }
+
+                    if (delete)
+                        try
+                        {
+                            await S3.DeleteFileAsync(new Uri(entry.Url).LocalPath.Trim('/'), _cancellationToken);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, ex.Message);
+                        }
                 }
+
+                db.S3ArtFilesToDelete.Remove(entry);
+                await db.SaveChangesAsync(_cancellationToken);
             }
             catch { }
         }
+
+
+
+        /// <summary>
+        /// To avoid timing bugs, call this AFTER other changes to the database
+        /// </summary>
+        public static async Task SetNeedsUpdateAsync(int id)
+        {
+            using var db = new AppDbContext();
+            string query = $"UPDATE {nameof(db.Playlists)} SET {nameof(Data.Models.Playlist.ArtworkUpdateNeeded)} = 1 WHERE {nameof(Data.Models.Playlist.Id)} = {id}";
+            await db.Database.ExecuteSqlRawAsync(query);
+        }
+
+
+        /// <summary>
+        /// To avoid timing bugs, call this AFTER other changes to the database
+        /// </summary>
+        public static async Task SetNeedsUpdateAsync(List<int> ids)
+        {
+            if (ids == null || ids.Count == 0)
+                return;
+
+            using var db = new AppDbContext();
+
+            while (ids.Count > 100)
+            {
+                string idStr = string.Join(',', ids.Take(100));
+                ids = ids.Skip(100).ToList();
+                string query = $"UPDATE {nameof(db.Playlists)} SET {nameof(Data.Models.Playlist.ArtworkUpdateNeeded)} = 1 WHERE {nameof(Data.Models.Playlist.Id)} IN ({idStr})";
+                await db.Database.ExecuteSqlRawAsync(query);
+            }
+        }
+
     }
 }

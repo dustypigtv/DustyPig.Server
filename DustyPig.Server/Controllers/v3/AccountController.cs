@@ -1,10 +1,12 @@
-﻿using DustyPig.API.v3;
+﻿using AsyncAwaitBestPractices;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -12,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -123,9 +126,36 @@ namespace DustyPig.Server.Controllers.v3
             if (!profile.IsMain)
                 return CommonResponses.RequireMainProfile;
 
+            //Images to cleanup from Wasabi
+            var profileIds = account.Profiles.Select(item => item.Id).ToList();
+            var playlistArtworkUrls = new List<string>();
+            try
+            {
+                playlistArtworkUrls = await DB.Playlists
+                    .AsNoTracking()
+                    .Where(item => profileIds.Contains(item.ProfileId))
+                    .Where(item => item.ArtworkUrl != Constants.DEFAULT_PLAYLIST_IMAGE)
+                    .Select(item => item.ArtworkUrl)
+                    .ToListAsync();
+            }
+            catch { }
+
             await _client.DeleteAccountAsync(account.FirebaseId);
             DB.Entry(UserAccount).State = EntityState.Deleted;
             await DB.SaveChangesAsync();
+
+            //Try to clean up, but ok if it fails
+            try
+            {
+                foreach (var profileId in profileIds)
+                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = Profile.CalculateS3Url(profileId) });
+
+                foreach (var playlistArtworkUrl in playlistArtworkUrls.Where(item => !string.IsNullOrWhiteSpace(item)))
+                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = playlistArtworkUrl });
+
+                await DB.SaveChangesAsync();
+            }
+            catch { }
 
             return Ok();
         }

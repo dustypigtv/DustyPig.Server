@@ -18,8 +18,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             if (string.IsNullOrWhiteSpace(s))
             {
-                string color = new string[] { "blue", "gold", "green", "grey", "red" }[new Random().Next(0, 5)];
-                s = Constants.DEFAULT_PROFILE_URL_ROOT + color + ".png";
+                var lst = Constants.DefaultProfileImages();
+                s = lst[new Random().Next(0, lst.Count)];
             }
             return s;
         }

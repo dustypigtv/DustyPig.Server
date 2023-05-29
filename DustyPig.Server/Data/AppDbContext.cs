@@ -40,6 +40,7 @@ namespace DustyPig.Server.Data
         public DbSet<Profile> Profiles { get; set; }
         public DbSet<ProfileLibraryShare> ProfileLibraryShares { get; set; }
         public DbSet<ProfileMediaProgress> ProfileMediaProgresses { get; set; }
+        public DbSet<S3ArtFileToDelete> S3ArtFilesToDelete { get; set; }
         public DbSet<SearchTerm> SearchTerms { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<Subtitle> Subtitles { get; set; }

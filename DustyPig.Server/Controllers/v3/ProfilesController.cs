@@ -262,7 +262,19 @@ namespace DustyPig.Server.Controllers.v3
             if (profile.IsMain)
                 return BadRequest("Cannot delete main profile");
 
+            var playlistArtworkUrls = await DB.Playlists
+                .AsNoTracking()
+                .Where(item => item.ProfileId == id)
+                .Select(item => item.ArtworkUrl)
+                .ToListAsync();
+
+            foreach (string url in playlistArtworkUrls)
+                if(!string.IsNullOrWhiteSpace(url))
+                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url });
+
+            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = Profile.CalculateS3Url(id) });
             DB.Entry(profile).State = EntityState.Deleted;
+            
             await DB.SaveChangesAsync();
 
             return Ok();

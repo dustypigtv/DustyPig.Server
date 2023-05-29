@@ -1,5 +1,6 @@
 ﻿using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -54,7 +55,20 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 ProfileId = profileId
             });
 
+
+            //Scenario: Linked lib has items in a playlist. Then
+            //Lib is unlinked, artwork is updated, then relinked - need
+            //to update the artwork again
+            var playlistIds = await db.Playlists
+                .AsNoTracking()
+                .Where(item => item.ProfileId == profileId)
+                .Select(item => item.Id)
+                .Distinct()
+                .ToListAsync();
+
             await db.SaveChangesAsync();
+
+            await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
             return new OkResult();
         }
@@ -74,8 +88,17 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             if (rec != null)
             {
+                var playlistIds = await db.Playlists
+                    .AsNoTracking()
+                    .Where(item => item.ProfileId == profileId)
+                    .Select(item => item.Id)
+                    .Distinct()
+                    .ToListAsync();
+
                 db.ProfileLibraryShares.Remove(rec);
                 await db.SaveChangesAsync();
+
+                await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
             return new OkResult();

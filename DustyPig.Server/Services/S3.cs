@@ -32,15 +32,7 @@ namespace DustyPig.Server.Services
             _transferUtility = new TransferUtility(_client);
         }
 
-        public static Task UploadProfileArtAsync(MemoryStream ms, int id, CancellationToken cancellationToken = default) =>
-            UploadFileAsync(ms, $"{Constants.DEFAULT_PROFILE_PATH}/{id}.jpg", cancellationToken);
-        
-
-        public static Task UploadPlaylistArtAsync(MemoryStream ms, string id, CancellationToken cancellationToken = default) =>
-            UploadFileAsync(ms, $"{Constants.DEFAULT_PLAYLIST_PATH}/{id}.jpg", cancellationToken);
-        
-
-        static Task UploadFileAsync(MemoryStream ms, string key, CancellationToken cancellationToken)
+        public static Task UploadFileAsync(MemoryStream ms, string key, CancellationToken cancellationToken)
         {
             ms.Seek(0, SeekOrigin.Begin);
             var req = new TransferUtilityUploadRequest
@@ -52,11 +44,8 @@ namespace DustyPig.Server.Services
             return _transferUtility.UploadAsync(req, cancellationToken);
         }
 
-
-        public static Task DeleteProfileArtAsync(int id, CancellationToken cancellationToken = default) =>
-            _client.DeleteObjectAsync(Constants.DEFAULT_HOST, $"{Constants.DEFAULT_PROFILE_PATH}/{id}.jpg", cancellationToken);
-
-        public static Task DeletePlaylistArtAsync(string key, CancellationToken cancellationToken = default) =>
+        public static Task DeleteFileAsync(string key, CancellationToken cancellationToken) =>
             _client.DeleteObjectAsync(Constants.DEFAULT_HOST, key, cancellationToken);
+
     }
 }

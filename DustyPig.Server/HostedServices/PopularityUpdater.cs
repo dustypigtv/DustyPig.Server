@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
+using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -38,11 +39,7 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-
-#if !DEBUG
             _timer.Change(0, Timeout.Infinite);
-#endif
-
             return Task.CompletedTask;
         }
 
@@ -97,7 +94,8 @@ namespace DustyPig.Server.HostedServices
                     var movie = await _client.GetMovieAsync(id.Value, _cancellationToken);
                     double popularity = movie.Success ? movie.Data.Popularity : 0;
                     string ts = DateTime.UtcNow.ToString("yyyy-MM-dd H:mm:ss");
-                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE MediaEntries SET Popularity={popularity}, PopularityUpdated={ts} WHERE TMDB_Id={id} AND EntryType={MediaTypes.Movie}", _cancellationToken);
+                    string query = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Popularity)}={popularity}, {nameof(MediaEntry.PopularityUpdated)}='{ts}' WHERE {nameof(MediaEntry.TMDB_Id)}={id} AND {nameof(MediaEntry.EntryType)}={(int)MediaTypes.Movie}";
+                    await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
                     await Task.Delay(1000, _cancellationToken);
                 }
 
@@ -129,7 +127,8 @@ namespace DustyPig.Server.HostedServices
                     var series = await _client.GetSeriesAsync(id.Value, _cancellationToken);
                     double popularity = series.Success ? series.Data.Popularity : 0;
                     string ts = DateTime.UtcNow.ToString("yyyy-MM-dd H:mm:ss");
-                    await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE MediaEntries SET Popularity={popularity}, PopularityUpdated={ts} WHERE TMDB_Id={id} AND EntryType={MediaTypes.Series}", _cancellationToken);
+                    string query = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Popularity)}={popularity}, {nameof(MediaEntry.PopularityUpdated)}='{ts}' WHERE {nameof(MediaEntry.TMDB_Id)}={id} AND {nameof(MediaEntry.EntryType)}={(int)MediaTypes.Series}";
+                    await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
                     await Task.Delay(1000, _cancellationToken);
                 }
 
