@@ -6,7 +6,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DustyPig.Server.Data.Models
 {
     [Table("S3ArtFilesToDelete")]
-    [Index(nameof(Url), IsUnique = true)]
     public class S3ArtFileToDelete
     {
         public int Id { get; set; }
