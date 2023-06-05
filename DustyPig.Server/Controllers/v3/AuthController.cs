@@ -505,6 +505,7 @@ namespace DustyPig.Server.Controllers.v3
                 throw new ArgumentNullException(nameof(newFCM));
 
             int? currentFCM = User.GetFCMTokenId();
+            
 
             //Check if the token value is in the db
             var dbNewToken = await DB.FCMTokens
@@ -538,7 +539,11 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                var dbOldToken = profile.FCMTokens.FirstOrDefault(item => item.Id == currentFCM);
+                FCMToken dbOldToken =
+                    currentFCM == null ?
+                    null :
+                    profile.FCMTokens.FirstOrDefault(item => item.Id == currentFCM);
+
                 if (dbOldToken != null)
                 {
                     if (dbOldToken.Token == newFCM)
