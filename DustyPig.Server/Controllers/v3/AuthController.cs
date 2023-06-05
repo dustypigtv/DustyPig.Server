@@ -434,23 +434,20 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                int? fcmId = null;
+                int? newFCMId = null;
+                string newFCMVal = fcmToken == null ? null : fcmToken.Value;               
 
-                if (string.IsNullOrWhiteSpace(fcmToken.Value))
-                {
+                if (string.IsNullOrWhiteSpace(newFCMVal))
                     await DeleteCurrentFCMToken(profile);
-                }
                 else
-                {
-                    int? oldId = User.GetFCMTokenId();
-                    fcmId = await EnsureFCMTokenAssociatedWithProfile(profile, fcmToken.Value);
-                }
+                    newFCMId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMVal);
 
                 var authId = User.GetAuthTokenId();
                 var oldAuthToken = await DB.AccountTokens
                     .AsNoTracking()
                     .Where(item => item.Id == authId)
                     .FirstOrDefaultAsync();
+
                 if (oldAuthToken != null)
                 {
                     DB.AccountTokens.Remove(oldAuthToken);
@@ -461,7 +458,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
                     ProfileId = profile.Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMId)
                 });
             }
         }
@@ -547,9 +544,12 @@ namespace DustyPig.Server.Controllers.v3
                 if (dbOldToken != null)
                 {
                     if (dbOldToken.Token == newFCM)
+                 
                         //Same token, all good
                         return dbOldToken.Id;
+
                     else
+                    
                         //Delete the old token
                         DB.FCMTokens.Remove(dbOldToken);
                 }
@@ -568,7 +568,7 @@ namespace DustyPig.Server.Controllers.v3
             if (currentFCM == null)
                 return false;
            
-            var dbToken = profile.FCMTokens.FirstOrDefault(item => item.Id != currentFCM);
+            var dbToken = profile.FCMTokens.FirstOrDefault(item => item.Id == currentFCM.Value);
             if (dbToken == null)
                 return false;
 
