@@ -559,6 +559,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
+                .Include(item => item.Library)
                 .Where(item => item.Id == id)
                 .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType))
                 .SingleOrDefaultAsync();
@@ -576,30 +577,71 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => !item.IsMain)
                 .OrderBy(item => item.Name)
                 .ToListAsync();
-            
 
-            foreach(var profile in profiles)
+
+            if (mediaEntry.Library.AccountId == UserAccount.Id)
             {
-                var profInfo = new ProfileTitlePermissionInfo
+                var friends = await DB.Friendships
+                    .AsNoTracking()
+                    .Include(item => item.Account1)
+                    .ThenInclude(item => item.Profiles)
+                    .ThenInclude(item => item.ProfileLibraryShares)
+                    .Include(item => item.Account1)
+                    .ThenInclude(item => item.Profiles)
+                    .ThenInclude(item => item.TitleOverrides)
+                    .Include(item => item.Account2)
+                    .ThenInclude(item => item.Profiles)
+                    .ThenInclude(item => item.ProfileLibraryShares)
+                    .Include(item => item.Account2)
+                    .ThenInclude(item => item.Profiles)
+                    .ThenInclude(item => item.TitleOverrides)
+                    .Where(item => item.Accepted)
+                    .ToListAsync();
+
+                foreach(var friend in friends)
+                {
+                    var profileLst = friend.Account1Id == UserAccount.Id ? friend.Account2.Profiles :  friend.Account1.Profiles;
+                    var profile = profileLst.FirstOrDefault(item => item.IsMain);
+                    profile.Name = friend.GetFriendDisplayNameForAccount(UserAccount.Id);                    
+                    profiles.Add(profile);
+                }
+            }
+
+
+            foreach (var profile in profiles)
+            {
+                var profInfo = new ProfileTitleOverrideInfo
                 {
                     AvatarUrl = profile.AvatarUrl,
-                    HasPin = profile.PinNumber != null && profile.PinNumber > 999,
-                    Id = profile.Id,
-                    IsMain = profile.IsMain,
+                    ProfileId = profile.Id,
                     Name = profile.Name
                 };
 
-                profInfo.HasLibraryAccess = profile.ProfileLibraryShares.Any(item => item.LibraryId == mediaEntry.LibraryId);
-                if(profInfo.HasLibraryAccess)
-                    profInfo.CanWatchByDefault = profile.AllowedRatings == Ratings.All || (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated;
-                    
-
+                
                 var ovrride = profile
                     .TitleOverrides
-                    .FirstOrDefault(item => item.MediaEntryId == mediaEntry.Id);
-          
-                if (ovrride != null)
-                    profInfo.Override = ovrride.State;
+                    .Where(item => item.MediaEntryId == mediaEntry.Id)
+                    .Where(item => item.State == OverrideState.Allow || item.State == OverrideState.Block)
+                    .FirstOrDefault();
+
+                if (ovrride == null)
+                {
+                    if(profile.ProfileLibraryShares.Any(item => item.LibraryId == mediaEntry.LibraryId))
+                    {
+                        if (profile.IsMain || profile.AllowedRatings == Ratings.All || (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated)
+                            profInfo.State = OverrideState.Allow;
+                        else
+                            profInfo.State = OverrideState.Block;
+                    }
+                    else
+                    {
+                        profInfo.State = OverrideState.Block;
+                    }
+                }
+                else
+                {
+                    profInfo.State = ovrride.State;
+                }
 
                 ret.Profiles.Add(profInfo);
             }
@@ -758,6 +800,9 @@ namespace DustyPig.Server.Controllers.v3
                 if (existingOverride.State == OverrideState.Allow)
                     return new ResponseWrapper($"You already have access to this {media.EntryType.ToString().ToLower()}");
 
+                if (existingOverride.State == OverrideState.Block)
+                    return new ResponseWrapper($"Access to this {media.EntryType.ToString().ToLower()} has been blocked");
+
                 if (existingOverride.Status != OverrideRequestStatus.NotRequested)
                     return new ResponseWrapper($"You have already requested access to this {media.EntryType.ToString().ToLower()}");
 
@@ -810,28 +855,68 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Set access override for a specific movie</remarks>
         [HttpPost]
         [RequireMainProfile]
-        public async Task<ResponseWrapper> SetAccessOverride(API.v3.Models.TitleOverride info)
+        public async Task<ResponseWrapper> SetTitlePermissions(API.v3.Models.TitlePermissionInfo info)
         {
             //Validate
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
 
-            // Check the profiles
-            foreach (var ptoi in info.Overrides)
-                if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
-                    return CommonResponses.NotFound("Profile");
+            // Don't try to set for self
+            info.Profiles.RemoveAll(item => item.ProfileId == UserProfile.Id);
+            if (info.Profiles.Count == 0)
+                return new ResponseWrapper();
+
 
             //Get the media entry
             var media = await DB.MediaEntriesPlayableByProfile(UserProfile)
                 .Include(item => item.TitleOverrides)
-                .Where(item => item.Id == info.MediaEntryId)
+                .Where(item => item.Id == info.TitleId)
                 .FirstOrDefaultAsync();
 
             if (media == null)
                 return CommonResponses.NotFound();
 
-            foreach (var ptoi in info.Overrides)
+
+
+            //Check if each profile is owned or the main profile of a friend
+            List<Friendship> friends = null;
+            foreach (var ptoi in info.Profiles)
+                if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
+                {
+                    if(friends == null)
+                        friends = await DB.Friendships
+                          .AsNoTracking()
+                          .Include(item => item.Account1)
+                          .ThenInclude(item => item.Profiles)
+                          .Include(item => item.Account2)
+                          .ThenInclude(item => item.Profiles)
+                          .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                          .Where(item => item.Accepted)
+                          .ToListAsync();
+
+
+                    bool found = false;
+                    foreach (var friend in friends)
+                    {
+                        var profileLst = friend.Account1Id == UserAccount.Id ? friend.Account2.Profiles : friend.Account1.Profiles;
+                        var profile = profileLst
+                            .Where(item => item.Id == ptoi.ProfileId)
+                            .Where(item => item.IsMain)
+                            .FirstOrDefault();
+                        if (profile != null)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                        return CommonResponses.NotFound($"Profile: {ptoi.ProfileId}");
+                }
+
+            
+            foreach (var ptoi in info.Profiles)
             {
                 var overrideEntity = media.TitleOverrides
                     .Where(item => item.ProfileId == ptoi.ProfileId)
@@ -839,60 +924,67 @@ namespace DustyPig.Server.Controllers.v3
 
                 if (overrideEntity == null)
                 {
-                    if (ptoi.NewState != OverrideState.Default)
+                    overrideEntity = new Data.Models.TitleOverride
                     {
-                        overrideEntity = new Data.Models.TitleOverride
+                        ProfileId = ptoi.ProfileId,
+                        MediaEntryId = info.TitleId,
+                        State = ptoi.State,
+                        Status = ptoi.State == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied
+                    };
+                    media.TitleOverrides.Add(overrideEntity);
+
+                    if (ptoi.State == OverrideState.Allow)
+                    {
+                        //Notify
+                        DB.Notifications.Add(new Data.Models.Notification
                         {
+                            MediaEntryId = info.TitleId,
+                            TitleOverride = overrideEntity,
+                            Message = $"{UserAccount.Profiles.First(item => item.Id == ptoi.ProfileId).Name} has granted access to \"{media.FormattedTitle()}\"",
+                            NotificationType = NotificationType.OverrideRequest,
                             ProfileId = ptoi.ProfileId,
-                            MediaEntryId = info.MediaEntryId,
-                            State = ptoi.NewState
-                        };
-                        media.TitleOverrides.Add(overrideEntity);
-                    
-                        if(ptoi.NewState == OverrideState.Allow)
-                            DB.Notifications.Add(new Data.Models.Notification
-                            {
-                                MediaEntryId = info.MediaEntryId,
-                                TitleOverride = overrideEntity,
-                                Message = $"{UserAccount.Profiles.First(item => item.Id == ptoi.ProfileId).Name} has granted access to \"{media.FormattedTitle()}\"",
-                                NotificationType = NotificationType.OverrideRequest,
-                                ProfileId = ptoi.ProfileId,
-                                Title = "Access Granted",
-                                Timestamp = DateTime.UtcNow
-                            });
+                            Title = "Access Granted",
+                            Timestamp = DateTime.UtcNow
+                        });
+                    }
+                    else
+                    {
+                        //Title is being blocked, but since no override previously existed, there are no
+                        //sub overrides for friends kids to worry about
                     }
                 }
                 else
                 {
-                    if (overrideEntity.Status == OverrideRequestStatus.Requested)
-                    {
-                        if (ptoi.NewState == OverrideState.Allow)
+                    bool doNotification = overrideEntity.Status == OverrideRequestStatus.Requested || ptoi.State == OverrideState.Allow;
+
+                    overrideEntity.Status = ptoi.State == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied;
+                    overrideEntity.State = ptoi.State;
+
+                    if(ptoi.State == OverrideState.Block)
+                        if(!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
                         {
-                            overrideEntity.Status = OverrideRequestStatus.Granted;
-                        }
-                        else if (ptoi.NewState == OverrideState.Block)
-                        {
-                            overrideEntity.Status = OverrideRequestStatus.Denied;
-                        }
-                        else
-                        {
-                            //Default
-                            var profile = UserAccount.Profiles.Single(item => item.Id == ptoi.ProfileId);
-                            if (profile.AllowedRatings == Ratings.All)
-                                overrideEntity.Status = OverrideRequestStatus.Granted;
+                            //This profile is a friend, delete all their sub-profile overrides
+                            foreach (var friend in friends)
+                            {
+                                var profileLst = friend.Account1Id == UserAccount.Id ? friend.Account2.Profiles : friend.Account1.Profiles;
+                                if (profileLst.Any(item => item.Id == ptoi.ProfileId))
+                                {
+                                    foreach (var profile in profileLst.Where(item => !item.IsMain))
+                                    {
+                                        var subOverride = media.TitleOverrides.FirstOrDefault(item => item.ProfileId == profile.Id);
+                                        if (subOverride != null)
+                                            DB.TitleOverrides.Remove(subOverride);
+                                    }
 
-                            else if (media.Rated.HasValue && ((profile.AllowedRatings & media.Rated) == media.Rated))
-                                overrideEntity.Status = OverrideRequestStatus.Granted;
-
-                            else
-                                overrideEntity.Status = OverrideRequestStatus.Denied;
+                                    break;
+                                }
+                            }
                         }
 
-                        overrideEntity.State = ptoi.NewState;
-
+                    if (doNotification)
                         DB.Notifications.Add(new Data.Models.Notification
                         {
-                            MediaEntryId = info.MediaEntryId,
+                            MediaEntryId = info.TitleId,
                             TitleOverrideId = overrideEntity.Id,
                             Message = $"{UserAccount.Profiles.First(item => item.Id == ptoi.ProfileId).Name} has {overrideEntity.Status.ToString().ToLower()} access to \"{media.FormattedTitle()}\"",
                             NotificationType = NotificationType.OverrideRequest,
@@ -900,11 +992,7 @@ namespace DustyPig.Server.Controllers.v3
                             Title = "Access Request",
                             Timestamp = DateTime.UtcNow
                         });
-                    }
-                    else if(ptoi.NewState == OverrideState.Default)
-                    {
-                        DB.Entry(overrideEntity).State = EntityState.Deleted;
-                    }
+
                 }                
             }
 
