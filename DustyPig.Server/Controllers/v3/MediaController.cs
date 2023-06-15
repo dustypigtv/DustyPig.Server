@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
             //Then take LIST_SIZE for the popular list,
             //and process by genre for the other lists
             var popTask = PopularQuery(new AppDbContext())
-                //.Take(LIST_SIZE)
+                .Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(popTask);
 
@@ -334,7 +334,7 @@ namespace DustyPig.Server.Controllers.v3
 
             mediaEntriesQ =
                 from mediaEntry in mediaEntriesQ
-                join dummy in DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile) on mediaEntry.Id equals dummy.Id
+                join dummy in DB.MediaEntriesSearchableByProfile(UserProfile) on mediaEntry.Id equals dummy.Id
                 select mediaEntry;
 
             mediaEntries = await mediaEntriesQ
@@ -591,12 +591,15 @@ namespace DustyPig.Server.Controllers.v3
 
                 profInfo.HasLibraryAccess = profile.ProfileLibraryShares.Any(item => item.LibraryId == mediaEntry.LibraryId);
                 if(profInfo.HasLibraryAccess)
-                {
                     profInfo.CanWatchByDefault = profile.AllowedRatings == Ratings.All || (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated;
-                    var ovrride = profile.TitleOverrides.FirstOrDefault(item => item.MediaEntryId == mediaEntry.Id);
-                    if (ovrride != null)
-                        profInfo.Override = ovrride.State;
-                }
+                    
+
+                var ovrride = profile
+                    .TitleOverrides
+                    .FirstOrDefault(item => item.MediaEntryId == mediaEntry.Id);
+          
+                if (ovrride != null)
+                    profInfo.Override = ovrride.State;
 
                 ret.Profiles.Add(profInfo);
             }
@@ -739,7 +742,7 @@ namespace DustyPig.Server.Controllers.v3
             if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
                 return CommonResponses.Forbid();
 
-            var media = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.MediaEntriesSearchableByProfile(UserProfile)
                 .AsNoTracking()
                 .Include(item => item.TitleOverrides)
                 .Where(item => item.Id == id)
@@ -846,9 +849,22 @@ namespace DustyPig.Server.Controllers.v3
                         overrideEntity = new Data.Models.TitleOverride
                         {
                             ProfileId = ptoi.ProfileId,
-                            MediaEntryId = info.MediaEntryId
+                            MediaEntryId = info.MediaEntryId,
+                            State = ptoi.NewState
                         };
                         media.TitleOverrides.Add(overrideEntity);
+                    
+                        if(ptoi.NewState == OverrideState.Allow)
+                            DB.Notifications.Add(new Data.Models.Notification
+                            {
+                                MediaEntryId = info.MediaEntryId,
+                                TitleOverride = overrideEntity,
+                                Message = $"{UserAccount.Profiles.First(item => item.Id == ptoi.ProfileId).Name} has granted access to \"{media.FormattedTitle()}\"",
+                                NotificationType = NotificationType.OverrideRequest,
+                                ProfileId = ptoi.ProfileId,
+                                Title = "Access Granted",
+                                Timestamp = DateTime.UtcNow
+                            });
                     }
                 }
                 else

@@ -34,7 +34,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ResponseWrapper<DetailedEpisode>> Details(int id)
         {
             //Get the media entry
-            var media = await DB.MediaEntriesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.MediaEntriesSearchableByProfile(UserProfile)
                 .AsNoTracking()
                 .Include(Item => Item.Library)
                 .ThenInclude(item => item.Account)

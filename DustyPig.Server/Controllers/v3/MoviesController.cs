@@ -82,7 +82,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{id}")]
         public async Task<ResponseWrapper<DetailedMovie>> Details(int id)
         {
-            var media = await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.MoviesSearchableByProfile(UserProfile)
                 .AsNoTracking()
                 
                 .Include(item => item.TitleOverrides.Where(subItem => subItem.ProfileId == UserProfile.Id))

@@ -84,7 +84,7 @@ namespace DustyPig.Server.Controllers.v3
 
             FillCredits(movie.Data.Credits, ret);
 
-            ret.Available = (await DB.MoviesSearchableByProfile(UserAccount, UserProfile)
+            ret.Available = (await DB.MoviesSearchableByProfile(UserProfile)
                 .AsNoTracking()
                 .Where(item => item.TMDB_Id == id)
                 .OrderBy(item => item.SortTitle)
@@ -140,7 +140,7 @@ namespace DustyPig.Server.Controllers.v3
 
             FillCredits(series.Data.Credits, ret);
 
-            ret.Available = (await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
+            ret.Available = (await DB.SeriesSearchableByProfile(UserProfile)
                 .AsNoTracking()
                 .Where(item => item.TMDB_Id == id)
                 .OrderBy(item => item.SortTitle)

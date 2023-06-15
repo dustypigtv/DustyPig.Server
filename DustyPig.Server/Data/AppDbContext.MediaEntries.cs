@@ -50,8 +50,96 @@ namespace DustyPig.Server.Data
         /// </summary>
         public IQueryable<Models.TitleOverride> TitleOverridesForProfile(Profile profile) =>
             TitleOverrides
-            .Where(item => item.ProfileId == profile.Id);
+            .Where(item => item.ProfileId == profile.Id && item.State != OverrideState.Default);
 
+
+
+
+
+        private IQueryable<MediaEntry> MediaEntriesPlayableByMainProfile(Profile profile)
+        {
+            var sharedLibIds =
+                (
+                    from friend in Friendships
+                    join share in FriendLibraryShares on friend.Id equals share.FriendshipId
+                    join library in Libraries on share.LibraryId equals library.Id
+                    where
+                        friend.Account1Id == profile.AccountId || friend.Account2Id == profile.AccountId
+
+                    select library.Id
+                ).Distinct();
+
+            var ownedLibIds =
+                (
+                    from library in Libraries
+                    where library.AccountId == profile.AccountId
+                    select library.Id
+                ).Distinct();
+
+
+            return
+                from mediaEntry in MediaEntries
+
+                join titleOverride in TitleOverridesForProfile(profile)
+                    on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLJ
+                from titleOverride in titleOverridesLJ.DefaultIfEmpty()
+
+                where
+                    ownedLibIds.Contains(mediaEntry.LibraryId)
+                    ||
+                    sharedLibIds.Contains(mediaEntry.LibraryId)
+                    ||
+                    (
+                        titleOverride != null &&
+                        titleOverride.State == OverrideState.Allow
+                    )
+
+                select mediaEntry;
+        }
+
+
+
+        private IQueryable<MediaEntry> MediaEntriesPlayableBySubProfile(Profile profile)
+        {
+            return
+                from mediaEntry in MediaEntries
+
+                join library in Libraries on mediaEntry.LibraryId equals library.Id
+
+                join share in ProfilLibrarySharesForProfile(profile)
+                    on library.Id equals share.LibraryId into shareLJ
+                from share in shareLJ.DefaultIfEmpty()
+
+                join titleOverride in TitleOverridesForProfile(profile)
+                    on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLJ
+                from titleOverride in titleOverridesLJ.DefaultIfEmpty()
+
+                where
+
+                    (
+                        titleOverride != null &&
+                        titleOverride.State == OverrideState.Allow
+                    )
+                    ||
+                    (
+                        share != null
+                        &&
+                        (
+                            titleOverride == null ||
+                            titleOverride.State != OverrideState.Block
+                        )
+                        &&
+                        (
+                            profile.AllowedRatings == Ratings.All ||
+                            (
+                                mediaEntry.Rated.HasValue &&
+                                (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated
+                            )
+                        )
+                    )
+
+                select mediaEntry;
+        }
 
 
 
@@ -59,79 +147,28 @@ namespace DustyPig.Server.Data
         /// <summary>
         /// All media than can be searched by the specified profile.
         /// </summary>
-        public IQueryable<MediaEntry> MediaEntriesSearchableByProfile(Account account, Profile profile)
+        public IQueryable<MediaEntry> MediaEntriesSearchableByProfile(Profile profile)
         {
             /*
                 If the profile is the main profile, or is allowed to request titles
-                    return all media the profile within the possible access path
+                    return all media the profile within the possible access path, or with an override
                 else
-                    return all media in libraries shared with profile, withing allowed ratings or with an override
+                    return all media in libraries shared with profile (within allowed ratings), or with an override
             */
 
 
             if (profile.IsMain || profile.TitleRequestPermission != TitleRequestPermissions.Disabled)
-            {
-                var libs =
-                    (from library in Libraries
-                    join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
-                    from share in LJ.DefaultIfEmpty()
-                    where library.AccountId == account.Id ||
-                    (
-                        share.Library.AccountId != account.Id &&
-                        share.ProfileId == profile.Id
-                    )
-                    select library.Id).Distinct();
-
-                return
-                    from mediaEntry in MediaEntries
-
-                    join libid in libs on mediaEntry.LibraryId equals libid
-
-                    join titleOverride in TitleOverridesForProfile(profile)
-                        on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLeftJoin
-                    from titleOverride in titleOverridesLeftJoin.DefaultIfEmpty()
-
-                    where
-                        titleOverride == null
-                        ||
-                        titleOverride.State == OverrideState.Allow
-                        
-                    select mediaEntry;
-            }
+                 return MediaEntriesPlayableByMainProfile(profile);
             else
-            {
-                return
-                    from mediaEntry in MediaEntries
-
-                    join library in Libraries on mediaEntry.LibraryId equals library.Id
-
-                    join share in ProfilLibrarySharesForProfile(profile) on library.Id equals share.LibraryId
-
-                    join titleOverride in TitleOverridesForProfile(profile)
-                        on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLeftJoin
-                    from titleOverride in titleOverridesLeftJoin.DefaultIfEmpty()
-
-                    where                       
-                        profile.AllowedRatings == Ratings.All 
-                        ||
-                        (
-                            mediaEntry.Rated.HasValue 
-                            &&
-                            (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated
-                        )
-                        ||
-                        titleOverride.State == OverrideState.Allow
-                                              
-                    select mediaEntry;
-            }
+                return MediaEntriesPlayableBySubProfile(profile);
         }
 
-        public IQueryable<MediaEntry> MoviesSearchableByProfile(Account account, Profile profile) =>
-            MediaEntriesSearchableByProfile(account, profile)
+        public IQueryable<MediaEntry> MoviesSearchableByProfile(Profile profile) =>
+            MediaEntriesSearchableByProfile(profile)
             .Where(item => item.EntryType == MediaTypes.Movie);
 
-        public IQueryable<MediaEntry> SeriesSearchableByProfile(Account account, Profile profile) =>
-            MediaEntriesSearchableByProfile(account, profile)
+        public IQueryable<MediaEntry> SeriesSearchableByProfile(Profile profile) =>
+            MediaEntriesSearchableByProfile(profile)
             .Where(item => item.EntryType == MediaTypes.Series);
 
 
@@ -147,55 +184,15 @@ namespace DustyPig.Server.Data
         {
             /*
                 If the profile is the main profile
-                    return all media the profile within the possible access path
+                    return all media the profile within the possible access path, or with an override
                 else
-                    return all media in libraries shared with profile, withing allowed ratings or with an override
+                    return all media in libraries shared with profile (within allowed ratings), or with an override
             */
 
             if (profile.IsMain)
-            {
-                var libs = 
-                    (from library in Libraries
-                    join share in ProfileLibraryShares.Include(item => item.Library) on library.Id equals share.LibraryId into LJ
-                    from share in LJ.DefaultIfEmpty()
-                    where library.AccountId == profile.AccountId || 
-                    (
-                        share.Library.AccountId != profile.AccountId &&
-                        share.ProfileId == profile.Id
-                    )
-                    select library.Id).Distinct();
-
-                return
-                    from mediaEntry in MediaEntries
-                    join libid in libs on mediaEntry.LibraryId equals libid
-                    select mediaEntry;
-            }
+                return MediaEntriesPlayableByMainProfile(profile);
             else
-            {
-                return
-                    from mediaEntry in MediaEntries
-
-                    join library in Libraries on mediaEntry.LibraryId equals library.Id
-
-                    join share in ProfilLibrarySharesForProfile(profile) on library.Id equals share.LibraryId
-
-                    join titleOverride in TitleOverridesForProfile(profile)
-                        on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLeftJoin
-                    from titleOverride in titleOverridesLeftJoin.DefaultIfEmpty()
-
-                    where
-                        profile.AllowedRatings == Ratings.All
-                        ||
-                        (
-                            mediaEntry.Rated.HasValue
-                            &&
-                            (profile.AllowedRatings & mediaEntry.Rated) == mediaEntry.Rated
-                        )
-                        ||
-                        titleOverride.State == OverrideState.Allow
-
-                    select mediaEntry;
-            }
+                return MediaEntriesPlayableBySubProfile(profile);
         }
 
         public IQueryable<MediaEntry> MoviesAndSeriesPlayableByProfile(Profile profile) =>

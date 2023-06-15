@@ -91,7 +91,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{id}")]
         public async Task<ResponseWrapper<DetailedSeries>> Details(int id)
         {
-            var media = await DB.SeriesSearchableByProfile(UserAccount, UserProfile)
+            var media = await DB.SeriesSearchableByProfile(UserProfile)
                 .AsNoTracking()
 
                 .Include(item => item.TitleOverrides.Where(subItem => subItem.ProfileId == UserProfile.Id))
