@@ -50,7 +50,7 @@ namespace DustyPig.Server.Data
         /// </summary>
         public IQueryable<Models.TitleOverride> TitleOverridesForProfile(Profile profile) =>
             TitleOverrides
-            .Where(item => item.ProfileId == profile.Id && item.State != OverrideState.Default);
+            .Where(item => item.ProfileId == profile.Id);
 
 
 
@@ -58,7 +58,7 @@ namespace DustyPig.Server.Data
 
         private IQueryable<MediaEntry> MediaEntriesPlayableByMainProfile(Profile profile)
         {
-            var sharedLibIds =
+            var sharedLibs =
                 (
                     from friend in Friendships
                     join share in FriendLibraryShares on friend.Id equals share.FriendshipId
@@ -66,32 +66,39 @@ namespace DustyPig.Server.Data
                     where
                         friend.Account1Id == profile.AccountId || friend.Account2Id == profile.AccountId
 
-                    select library.Id
-                ).Distinct();
+                    select library
+                );
 
-            var ownedLibIds =
+            var ownedLibs =
                 (
                     from library in Libraries
                     where library.AccountId == profile.AccountId
-                    select library.Id
-                ).Distinct();
+                    select library
+                );
 
 
             return
                 from mediaEntry in MediaEntries
 
-                join titleOverride in TitleOverridesForProfile(profile)
-                    on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLJ
+                join sharedLib in sharedLibs on mediaEntry.LibraryId equals sharedLib.Id into sharedLibsLJ
+                from sharedLib in sharedLibsLJ.DefaultIfEmpty()
+
+                join ownedLib in ownedLibs on mediaEntry.LibraryId equals ownedLib.Id into ownedLibsLJ
+                from ownedLib in ownedLibsLJ.DefaultIfEmpty()
+
+                join titleOverride in TitleOverridesForProfile(profile) on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLJ
                 from titleOverride in titleOverridesLJ.DefaultIfEmpty()
 
                 where
-                    ownedLibIds.Contains(mediaEntry.LibraryId)
-                    ||
-                    sharedLibIds.Contains(mediaEntry.LibraryId)
+                    titleOverride.State == OverrideState.Allow 
                     ||
                     (
-                        titleOverride != null &&
-                        titleOverride.State == OverrideState.Allow
+                        titleOverride.State != OverrideState.Block
+                        &&
+                        (
+                            sharedLib != null
+                            || ownedLib != null
+                        )
                     )
 
                 select mediaEntry;
@@ -106,28 +113,19 @@ namespace DustyPig.Server.Data
 
                 join library in Libraries on mediaEntry.LibraryId equals library.Id
 
-                join share in ProfilLibrarySharesForProfile(profile)
-                    on library.Id equals share.LibraryId into shareLJ
+                join share in ProfilLibrarySharesForProfile(profile) on library.Id equals share.LibraryId into shareLJ
                 from share in shareLJ.DefaultIfEmpty()
 
-                join titleOverride in TitleOverridesForProfile(profile)
-                    on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLJ
+                join titleOverride in TitleOverridesForProfile(profile) on mediaEntry.Id equals titleOverride.MediaEntryId into titleOverridesLJ
                 from titleOverride in titleOverridesLJ.DefaultIfEmpty()
 
                 where
 
-                    (
-                        titleOverride != null &&
-                        titleOverride.State == OverrideState.Allow
-                    )
+                    titleOverride.State == OverrideState.Allow
                     ||
                     (
                         share != null
-                        &&
-                        (
-                            titleOverride == null ||
-                            titleOverride.State != OverrideState.Block
-                        )
+                        && titleOverride.State != OverrideState.Block
                         &&
                         (
                             profile.AllowedRatings == Ratings.All ||
@@ -194,6 +192,8 @@ namespace DustyPig.Server.Data
             else
                 return MediaEntriesPlayableBySubProfile(profile);
         }
+
+
 
         public IQueryable<MediaEntry> MoviesAndSeriesPlayableByProfile(Profile profile) =>
             MediaEntriesPlayableByProfile(profile)

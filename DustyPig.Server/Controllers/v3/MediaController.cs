@@ -839,12 +839,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 if (overrideEntity == null)
                 {
-                    if (ptoi.NewState == OverrideState.Default)
-                    {
-                        if (overrideEntity != null)
-                            media.TitleOverrides.Remove(overrideEntity);
-                    }
-                    else
+                    if (ptoi.NewState != OverrideState.Default)
                     {
                         overrideEntity = new Data.Models.TitleOverride
                         {
