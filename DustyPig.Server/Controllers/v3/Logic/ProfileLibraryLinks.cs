@@ -26,7 +26,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .SingleOrDefaultAsync();
 
             if (rec != null)
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             //See if the lib is owned by the account
             bool owned = await db.Libraries
@@ -71,7 +71,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
         public static async Task<ResponseWrapper> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
@@ -102,7 +102,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
     }
 }

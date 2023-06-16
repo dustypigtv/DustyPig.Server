@@ -366,7 +366,7 @@ namespace DustyPig.Server.Controllers.v3
             //Moment of truth!
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

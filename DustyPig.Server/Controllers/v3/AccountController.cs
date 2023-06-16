@@ -153,7 +153,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             catch { }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
     }
 }

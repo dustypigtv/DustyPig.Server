@@ -72,7 +72,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

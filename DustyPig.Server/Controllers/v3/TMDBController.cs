@@ -352,7 +352,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -380,7 +380,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

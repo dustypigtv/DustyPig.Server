@@ -240,7 +240,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -263,7 +263,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -294,7 +294,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -397,7 +397,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -425,7 +425,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -461,7 +461,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -510,7 +510,7 @@ namespace DustyPig.Server.Controllers.v3
             playlist.ArtworkUpdateNeeded = true;
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
         private static bool SortPlaylist(List<Data.Models.PlaylistItem> playlistItems)

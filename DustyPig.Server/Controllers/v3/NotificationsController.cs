@@ -67,13 +67,13 @@ namespace DustyPig.Server.Controllers.v3
 
             //Don't throw an error, just return
             if (dbNotification.Seen)
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             dbNotification.Seen = true;
             dbNotification.Timestamp = DateTime.UtcNow;
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -93,7 +93,7 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Notifications.Remove(dbNotification);
                 await DB.SaveChangesAsync();
             }
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
     }
 }

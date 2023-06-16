@@ -327,7 +327,7 @@ namespace DustyPig.Server.Controllers.v3
             lib.Name = info.Name;
 
             await DB.SaveChangesAsync();
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -360,7 +360,7 @@ namespace DustyPig.Server.Controllers.v3
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

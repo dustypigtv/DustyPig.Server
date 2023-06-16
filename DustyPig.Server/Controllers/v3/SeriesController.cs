@@ -533,7 +533,7 @@ namespace DustyPig.Server.Controllers.v3
             //Playlists
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -601,7 +601,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -624,7 +624,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -644,13 +644,13 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (prog == null)
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             DB.ProfileMediaProgresses.Remove(prog);
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
         /// <summary>
@@ -713,7 +713,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
  }

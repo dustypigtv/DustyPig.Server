@@ -189,7 +189,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.Entry(profile).State = EntityState.Modified;
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -244,7 +244,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             var profile = UserAccount.Profiles.SingleOrDefault(item => item.Id == id);
             if (profile == null)
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             if (profile.IsMain)
                 return new ResponseWrapper("Cannot delete main profile");
@@ -264,7 +264,7 @@ namespace DustyPig.Server.Controllers.v3
             
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

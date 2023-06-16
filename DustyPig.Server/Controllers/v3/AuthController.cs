@@ -115,7 +115,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!sendVerificationEmailResponse.Success)
                 return new ResponseWrapper(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -137,7 +137,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!ret.Success)
                 return new ResponseWrapper(ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset));
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -290,7 +290,7 @@ namespace DustyPig.Server.Controllers.v3
             rec.AccountId = account.Id;
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -378,7 +378,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -408,7 +408,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.FCMTokens.RemoveRange(profile.FCMTokens);
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

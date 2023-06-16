@@ -409,7 +409,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
         /// <summary>
@@ -429,7 +429,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -466,7 +466,7 @@ namespace DustyPig.Server.Controllers.v3
             if (prog == null)
             {
                 if (hist.Seconds < 1 && mediaEntry.EntryType == MediaTypes.Movie)
-                    return new ResponseWrapper();
+                    return CommonResponses.Ok();
 
                 //Add
                 DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
@@ -498,7 +498,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -844,7 +844,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 
@@ -865,7 +865,7 @@ namespace DustyPig.Server.Controllers.v3
             // Don't try to set for self
             info.Profiles.RemoveAll(item => item.ProfileId == UserProfile.Id);
             if (info.Profiles.Count == 0)
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
 
             //Get the media entry
@@ -998,7 +998,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
 

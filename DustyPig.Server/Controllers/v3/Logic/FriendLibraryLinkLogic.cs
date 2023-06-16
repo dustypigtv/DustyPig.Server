@@ -26,7 +26,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             //Check if already shared
             if (friend.FriendLibraryShares.Any(item => item.LibraryId == libraryId))
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             //Check if this account owns the library
             var myAcct = friend.Account1Id == account.Id ? friend.Account1 : friend.Account2;
@@ -46,7 +46,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             await db.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
         public static async Task<ResponseWrapper> UnLinkLibraryAndFriend(Account account, int friendId, int libraryId)
@@ -56,16 +56,16 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var friend = await GetFriend(db, account);
 
             if (friend == null)
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             //Check if link exists
             if (!friend.FriendLibraryShares.Any(item => item.LibraryId == libraryId))
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             //Check if this account owns the library
             var myAcct = friend.Account1Id == account.Id ? friend.Account1 : friend.Account2;
             if (myAcct.Libraries.Any(item => item.Id == libraryId))
-                return new ResponseWrapper();
+                return CommonResponses.Ok();
 
             var share = new FriendLibraryShare
             {
@@ -78,7 +78,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             await db.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return new ResponseWrapper();
+            return CommonResponses.Ok();
         }
 
         static Task<Friendship> GetFriend(AppDbContext db, Account account) => 
