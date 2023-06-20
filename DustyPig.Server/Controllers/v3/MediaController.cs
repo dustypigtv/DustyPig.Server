@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
             //Then take LIST_SIZE for the popular list,
             //and process by genre for the other lists
             var popTask = PopularQuery(new AppDbContext())
-                .Take(LIST_SIZE)
+                //.Take(LIST_SIZE)
                 .ToListAsync();
             allTasks.Add(popTask);
 
