@@ -98,7 +98,7 @@ namespace DustyPig.Server.Data
 
 
             //Not sure what the deal is with MediaPersonBridge, but if I don't do this then it tries to create a unique index on PersonId - which is bad
-            modelBuilder.Entity<MediaPersonBridge>().HasIndex(e => e.PersonId).IsUnique(false);
+            //modelBuilder.Entity<MediaPersonBridge>().HasIndex(e => e.PersonId).IsUnique(false);
 
 
 

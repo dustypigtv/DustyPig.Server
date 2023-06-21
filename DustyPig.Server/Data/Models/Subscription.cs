@@ -1,5 +1,9 @@
-﻿namespace DustyPig.Server.Data.Models
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace DustyPig.Server.Data.Models
 {
+    [Index(nameof(ProfileId), IsUnique = false)]
+    [Index(nameof(MediaEntryId), IsUnique = false)]
     public class Subscription
     {
         public int ProfileId { get; set; }

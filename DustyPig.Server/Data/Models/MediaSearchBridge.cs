@@ -1,5 +1,9 @@
-﻿namespace DustyPig.Server.Data.Models
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace DustyPig.Server.Data.Models
 {
+    [Index(nameof(MediaEntryId), IsUnique = false)]
+    [Index(nameof(SearchTermId), IsUnique = false)]
     public class MediaSearchBridge
     {
         public int MediaEntryId { get; set; }

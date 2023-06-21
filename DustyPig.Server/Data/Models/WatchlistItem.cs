@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace DustyPig.Server.Data.Models
 {
+    [Index(nameof(ProfileId), IsUnique = false)]
+    [Index(nameof(MediaEntryId), IsUnique = false)]
     public class WatchlistItem
     {
         public int ProfileId { get; set; }

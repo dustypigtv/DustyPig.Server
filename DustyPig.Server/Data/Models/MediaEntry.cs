@@ -10,6 +10,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(LibraryId), nameof(EntryType), nameof(TMDB_Id), nameof(Hash), IsUnique = true)]
+    [Index(nameof(LibraryId), IsUnique = false)]
+    [Index(nameof(TMDB_Id), IsUnique = false)]
     public class MediaEntry
     {
         public int Id { get; set; }

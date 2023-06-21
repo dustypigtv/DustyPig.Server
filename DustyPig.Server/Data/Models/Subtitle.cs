@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(MediaEntryId), nameof(Name), IsUnique = true)]
+    [Index(nameof(MediaEntryId), IsUnique = false)]
     public class Subtitle : IComparable
     {
         public int Id { get; set; }

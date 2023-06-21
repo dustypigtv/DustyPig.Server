@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 
 namespace DustyPig.Server.Data.Models
@@ -11,7 +12,8 @@ namespace DustyPig.Server.Data.Models
         Writer = 4
     }
 
-
+    [Index(nameof(MediaEntryId), IsUnique = false)]
+    [Index(nameof(PersonId), IsUnique = false)]
     public class MediaPersonBridge : IEquatable<MediaPersonBridge>
     {
         public int MediaEntryId { get; set; }

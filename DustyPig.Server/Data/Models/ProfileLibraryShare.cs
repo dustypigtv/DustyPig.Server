@@ -1,5 +1,9 @@
-﻿namespace DustyPig.Server.Data.Models
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace DustyPig.Server.Data.Models
 {
+    [Index(nameof(ProfileId), IsUnique = false)]
+    [Index(nameof(LibraryId), IsUnique = false)]
     public class ProfileLibraryShare
     {
         public int ProfileId { get; set; }

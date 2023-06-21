@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(AccountId), nameof(Name), IsUnique = true)]
+    [Index(nameof(AccountId), IsUnique = false)]
     public class Profile : IComparable
     {
         public int Id { get; set; }

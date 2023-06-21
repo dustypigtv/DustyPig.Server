@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(ProfileId), nameof(MediaEntryId), IsUnique = true)]
+    [Index(nameof(ProfileId), IsUnique = false)]
+    [Index(nameof(MediaEntryId), IsUnique = false)]
     public class TitleOverride
     {
         public int Id { get; set; }
