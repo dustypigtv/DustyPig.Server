@@ -51,6 +51,10 @@ namespace DustyPig.Server.Data.Models
 
         public List<FCMToken> FCMTokens { get; set; }
 
+        public MovieRatings MaxMovieRating { get; set; }
+
+        public TVRatings MaxTVRating { get; set; }
+
         public int CompareTo(object obj)
         {
             var comp = (Profile)obj;

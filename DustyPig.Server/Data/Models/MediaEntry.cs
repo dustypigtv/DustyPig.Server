@@ -12,6 +12,47 @@ namespace DustyPig.Server.Data.Models
     [Index(nameof(LibraryId), nameof(EntryType), nameof(TMDB_Id), nameof(Hash), IsUnique = true)]
     [Index(nameof(LibraryId), IsUnique = false)]
     [Index(nameof(TMDB_Id), IsUnique = false)]
+    [Index(nameof(MovieRating))]
+    [Index(nameof(TVRating))]
+    [Index(nameof(LinkedToId))]
+    [Index(nameof(Genre_Action))]
+    [Index(nameof(Genre_Adventure))]
+    [Index(nameof(Genre_Animation))]
+    [Index(nameof(Genre_Anime))]
+    [Index(nameof(Genre_Awards_Show))]
+    [Index(nameof(Genre_Children))]
+    [Index(nameof(Genre_Comedy))]
+    [Index(nameof(Genre_Crime))]
+    [Index(nameof(Genre_Documentary))]
+    [Index(nameof(Genre_Drama))]
+    [Index(nameof(Genre_Family))]
+    [Index(nameof(Genre_Fantasy))]
+    [Index(nameof(Genre_Food))]
+    [Index(nameof(Genre_Game_Show))]
+    [Index(nameof(Genre_History))]
+    [Index(nameof(Genre_Home_and_Garden))]
+    [Index(nameof(Genre_Horror))]
+    [Index(nameof(Genre_Indie))]
+    [Index(nameof(Genre_Martial_Arts))]
+    [Index(nameof(Genre_Mini_Series))]
+    [Index(nameof(Genre_Music))]
+    [Index(nameof(Genre_Musical))]
+    [Index(nameof(Genre_Mystery))]
+    [Index(nameof(Genre_News))]
+    [Index(nameof(Genre_Podcast))]
+    [Index(nameof(Genre_Political))]
+    [Index(nameof(Genre_Reality))]
+    [Index(nameof(Genre_Romance))]
+    [Index(nameof(Genre_Science_Fiction))]
+    [Index(nameof(Genre_Soap))]
+    [Index(nameof(Genre_Sports))]
+    [Index(nameof(Genre_Suspense))]
+    [Index(nameof(Genre_Talk_Show))]
+    [Index(nameof(Genre_Thriller))]
+    [Index(nameof(Genre_Travel))]
+    [Index(nameof(Genre_TV_Movie))]
+    [Index(nameof(Genre_War))]
+    [Index(nameof(Genre_Western))]
     public class MediaEntry
     {
         public int Id { get; set; }
@@ -37,12 +78,8 @@ namespace DustyPig.Server.Data.Models
         [DataType(DataType.Date)]
         public DateTime? Date { get; set; }
 
-        public Ratings? Rated { get; set; }
-
         [MaxLength(Constants.MAX_DESCRIPTION_LENGTH)]
         public string Description { get; set; }
-
-        public Genres? Genres { get; set; }
 
         public int? LinkedToId { get; set; }
         public MediaEntry LinkedTo { get; set; }
@@ -101,6 +138,87 @@ namespace DustyPig.Server.Data.Models
         public double? Popularity { get; set; }
 
         public DateTime? PopularityUpdated { get; set; }
+
+        public MovieRatings? MovieRating { get; set; }
+
+        public TVRatings? TVRating { get; set; }
+
+        public bool Genre_Action { get; set; }
+
+        public bool Genre_Adventure { get; set; }
+
+        public bool Genre_Animation { get; set; }
+
+        public bool Genre_Anime { get; set; }
+
+        public bool Genre_Awards_Show { get; set; }
+
+        public bool Genre_Children { get; set; }
+
+        public bool Genre_Comedy { get; set; }
+
+        public bool Genre_Crime { get; set; }
+
+        public bool Genre_Documentary { get; set; }
+
+        public bool Genre_Drama { get; set; }
+
+        public bool Genre_Family { get; set; }
+
+        public bool Genre_Fantasy { get; set; }
+
+        public bool Genre_Food { get; set; }
+
+        public bool Genre_Game_Show { get; set; }
+
+        public bool Genre_History { get; set; }
+
+        public bool Genre_Home_and_Garden { get; set; }
+
+        public bool Genre_Horror { get; set; }
+
+        public bool Genre_Indie { get; set; }
+
+        public bool Genre_Martial_Arts { get; set; }
+
+        public bool Genre_Mini_Series { get; set; }
+
+        public bool Genre_Music { get; set; }
+
+        public bool Genre_Musical { get; set; }
+
+        public bool Genre_Mystery { get; set; }
+
+        public bool Genre_News { get; set; }
+
+        public bool Genre_Podcast { get; set; }
+
+        public bool Genre_Political { get; set; }
+
+        public bool Genre_Reality { get; set; }
+
+        public bool Genre_Romance { get; set; }
+
+        public bool Genre_Science_Fiction { get; set; }
+
+        public bool Genre_Soap { get; set; }
+
+        public bool Genre_Sports { get; set; }
+
+        public bool Genre_Suspense { get; set; }
+
+        public bool Genre_Talk_Show { get; set; }
+
+        public bool Genre_Thriller { get; set; }
+
+        public bool Genre_Travel { get; set; }
+
+        public bool Genre_TV_Movie { get; set; }
+
+        public bool Genre_War { get; set; }
+
+        public bool Genre_Western { get; set; }
+
 
         public List<PlaylistItem> PlaylistItems { get; set; } = new List<PlaylistItem>();
 
