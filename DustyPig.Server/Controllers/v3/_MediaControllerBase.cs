@@ -15,9 +15,10 @@ namespace DustyPig.Server.Controllers.v3
 {
     public abstract class _MediaControllerBase : _BaseProfileController
     {
-        internal const int LIST_SIZE = 25;
+        internal const int HOME_SCREEN_LIST_SIZE = 25;
+        internal int MIN_HOME_SCREEN_LIST_SIZE = 10;
 
-        
+
         internal readonly Services.TMDBClient _tmdbClient;
 
 

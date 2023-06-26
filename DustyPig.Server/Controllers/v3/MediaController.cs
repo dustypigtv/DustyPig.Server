@@ -26,6 +26,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(MediaController))]
     public class MediaController : _MediaControllerBase
     {
+        
         public MediaController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
         {
         }
@@ -92,21 +93,8 @@ namespace DustyPig.Server.Controllers.v3
                        DustyPig.API.v3.Clients.MediaClient.ID_POPULAR,
                        DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE
                    ),
-                   PopularAsync(new AppDbContext(), 0)
+                   PopularAsync(new AppDbContext(), 0, false)
                );
-
-
-            foreach(Genres g in Enum.GetValues(typeof(Genres)))
-                if(g != Genres.Unknown)
-                    taskDict.Add
-                       (
-                           new KeyValuePair<long, string>
-                           (
-                               (long)g,
-                               g.AsString()
-                           ),
-                           GenresAsync(new AppDbContext(), g, 0, SortOrder.Popularity_Descending)
-                       );
 
 
             await Task.WhenAll(taskDict.Values);
@@ -123,6 +111,82 @@ namespace DustyPig.Server.Controllers.v3
                             Title = query.Key.Value,
                             Items = result.Select(item => item.ToBasicMedia()).ToList()
                         });
+                }
+                else if(query.Key.Key == DustyPig.API.v3.Clients.MediaClient.ID_POPULAR)
+                {
+                    var result = (query.Value as Task<List<MediaEntry>>).Result;
+                    if(result.Count > 0)
+                        ret.Sections.Add(new HomeScreenList
+                        {
+                            ListId = query.Key.Key,
+                            Title = query.Key.Value,
+                            Items = result.Take(HOME_SCREEN_LIST_SIZE).Select(item => item.ToBasicMedia()).ToList()
+                        });
+
+                    var gd = new Dictionary<Genres, List<BasicMedia>>();
+                    foreach (Genres g in Enum.GetValues<Genres>().Where(item => item != Genres.Unknown))
+                        gd.Add(g, new List<BasicMedia>());
+                    foreach(var me in result)
+                    {
+                        if (me.Genre_Action && gd[Genres.Action].Count < 25) gd[Genres.Action].Add(me.ToBasicMedia());
+                        if (me.Genre_Adventure && gd[Genres.Adventure].Count < 25) gd[Genres.Adventure].Add(me.ToBasicMedia());
+                        if (me.Genre_Animation && gd[Genres.Animation].Count < 25) gd[Genres.Animation].Add(me.ToBasicMedia());
+                        if (me.Genre_Anime && gd[Genres.Anime].Count < 25) gd[Genres.Anime].Add(me.ToBasicMedia());
+                        if (me.Genre_Awards_Show && gd[Genres.Awards_Show].Count < 25) gd[Genres.Awards_Show].Add(me.ToBasicMedia());
+                        if (me.Genre_Children && gd[Genres.Children].Count < 25) gd[Genres.Children].Add(me.ToBasicMedia());
+                        if (me.Genre_Comedy && gd[Genres.Comedy].Count < 25) gd[Genres.Comedy].Add(me.ToBasicMedia());
+                        if (me.Genre_Crime && gd[Genres.Crime].Count < 25) gd[Genres.Crime].Add(me.ToBasicMedia());
+                        if (me.Genre_Documentary && gd[Genres.Documentary].Count < 25) gd[Genres.Documentary].Add(me.ToBasicMedia());
+                        if (me.Genre_Drama && gd[Genres.Drama].Count < 25) gd[Genres.Drama].Add(me.ToBasicMedia());
+                        if (me.Genre_Family && gd[Genres.Family].Count < 25) gd[Genres.Family].Add(me.ToBasicMedia());
+                        if (me.Genre_Fantasy && gd[Genres.Fantasy].Count < 25) gd[Genres.Fantasy].Add(me.ToBasicMedia());
+                        if (me.Genre_Food && gd[Genres.Food].Count < 25) gd[Genres.Food].Add(me.ToBasicMedia());
+                        if (me.Genre_Game_Show && gd[Genres.Game_Show].Count < 25) gd[Genres.Game_Show].Add(me.ToBasicMedia());
+                        if (me.Genre_History && gd[Genres.History].Count < 25) gd[Genres.History].Add(me.ToBasicMedia());
+                        if (me.Genre_Home_and_Garden && gd[Genres.Home_and_Garden].Count < 25) gd[Genres.Home_and_Garden].Add(me.ToBasicMedia());
+                        if (me.Genre_Horror && gd[Genres.Horror].Count < 25) gd[Genres.Horror].Add(me.ToBasicMedia());
+                        if (me.Genre_Indie && gd[Genres.Indie].Count < 25) gd[Genres.Indie].Add(me.ToBasicMedia());
+                        if (me.Genre_Martial_Arts && gd[Genres.Martial_Arts].Count < 25) gd[Genres.Martial_Arts].Add(me.ToBasicMedia());
+                        if (me.Genre_Mini_Series && gd[Genres.Mini_Series].Count < 25) gd[Genres.Mini_Series].Add(me.ToBasicMedia());
+                        if (me.Genre_Music && gd[Genres.Music].Count < 25) gd[Genres.Music].Add(me.ToBasicMedia());
+                        if (me.Genre_Musical && gd[Genres.Musical].Count < 25) gd[Genres.Musical].Add(me.ToBasicMedia());
+                        if (me.Genre_Mystery && gd[Genres.Mystery].Count < 25) gd[Genres.Mystery].Add(me.ToBasicMedia());
+                        if (me.Genre_News && gd[Genres.News].Count < 25) gd[Genres.News].Add(me.ToBasicMedia());
+                        if (me.Genre_Podcast && gd[Genres.Podcast].Count < 25) gd[Genres.Podcast].Add(me.ToBasicMedia());
+                        if (me.Genre_Political && gd[Genres.Political].Count < 25) gd[Genres.Political].Add(me.ToBasicMedia());
+                        if (me.Genre_Reality && gd[Genres.Reality].Count < 25) gd[Genres.Reality].Add(me.ToBasicMedia());
+                        if (me.Genre_Romance && gd[Genres.Romance].Count < 25) gd[Genres.Romance].Add(me.ToBasicMedia());
+                        if (me.Genre_Science_Fiction && gd[Genres.Science_Fiction].Count < 25) gd[Genres.Science_Fiction].Add(me.ToBasicMedia());
+                        if (me.Genre_Soap && gd[Genres.Soap].Count < 25) gd[Genres.Soap].Add(me.ToBasicMedia());
+                        if (me.Genre_Sports && gd[Genres.Sports].Count < 25) gd[Genres.Sports].Add(me.ToBasicMedia());
+                        if (me.Genre_Suspense && gd[Genres.Suspense].Count < 25) gd[Genres.Suspense].Add(me.ToBasicMedia());
+                        if (me.Genre_Talk_Show && gd[Genres.Talk_Show].Count < 25) gd[Genres.Talk_Show].Add(me.ToBasicMedia());
+                        if (me.Genre_Thriller && gd[Genres.Thriller].Count < 25) gd[Genres.Thriller].Add(me.ToBasicMedia());
+                        if (me.Genre_Travel && gd[Genres.Travel].Count < 25) gd[Genres.Travel].Add(me.ToBasicMedia());
+                        if (me.Genre_TV_Movie && gd[Genres.TV_Movie].Count < 25) gd[Genres.TV_Movie].Add(me.ToBasicMedia());
+                        if (me.Genre_War && gd[Genres.War].Count < 25) gd[Genres.War].Add(me.ToBasicMedia());
+                        if (me.Genre_Western && gd[Genres.Western].Count < 25) gd[Genres.Western].Add(me.ToBasicMedia());
+
+                        bool doneScanning = true;
+                        foreach(List<BasicMedia> lst in gd.Values)
+                            if(lst.Count < MIN_HOME_SCREEN_LIST_SIZE)
+                            {
+                                doneScanning = false;
+                                break;
+                            }
+                        if (doneScanning)
+                            break;
+                    }
+
+                    foreach (Genres g in gd.Keys)
+                        if (gd[g].Count >= HOME_SCREEN_LIST_SIZE / 2)
+                            ret.Sections.Add(new HomeScreenList
+                            {
+                                ListId = (long)g,
+                                Title = g.AsString(),
+                                Items = gd[g]
+                            });
+
                 }
                 else
                 {
@@ -240,7 +304,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .ApplySortOrder(request.Sort)
                 .Skip(request.Start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(entries.Select(item => item.ToBasicMedia()).ToList());
@@ -373,7 +437,7 @@ namespace DustyPig.Server.Controllers.v3
                 return ret;
             });
 
-            ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()).Take(LIST_SIZE));
+            ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()).Take(HOME_SCREEN_LIST_SIZE));
 
 
             /****************************************
@@ -385,7 +449,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var response = await _tmdbClient.SearchAsync(request.Query, cancellationToken);
                 if (response.Success)
-                    ret.OtherTitles.AddRange(response.Data.Select(item => item.ToBasicTMDBInfo()).Take(LIST_SIZE));
+                    ret.OtherTitles.AddRange(response.Data.Select(item => item.ToBasicTMDBInfo()).Take(HOME_SCREEN_LIST_SIZE));
             }
 
             return new ResponseWrapper<SearchResults>(ret);
@@ -1322,7 +1386,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .ApplySortOrder(request.Sort)
                 .Skip(request.Start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(ret.Select(item => item.ToBasicMedia()).ToList());
@@ -1929,7 +1993,7 @@ namespace DustyPig.Server.Controllers.v3
                 .OrderByDescending(item => item.Timestamp)
                 .Select(item => item.MediaEntry)
                 .Skip(start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
         }
 
@@ -2006,7 +2070,7 @@ namespace DustyPig.Server.Controllers.v3
             return q
                 .AsNoTracking()
                 .Skip(start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
         }
 
@@ -2083,18 +2147,21 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Added_Descending)
                 .Skip(start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
         }
 
-        Task<List<MediaEntry>> PopularAsync(AppDbContext dbInstance, int start)
+        Task<List<MediaEntry>> PopularAsync(AppDbContext dbInstance, int start, bool limit = true)
         {
-            return TopLevelWatchableByProfileQuery(dbInstance)
+            var q = TopLevelWatchableByProfileQuery(dbInstance)
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Popularity_Descending)
-                .Skip(start)
-                .Take(LIST_SIZE)
-                .ToListAsync();
+                .Skip(start);
+
+            if (limit)
+                q = q.Take(HOME_SCREEN_LIST_SIZE);
+
+            return q.ToListAsync();
         }
 
         Task<List<MediaEntry>> GenresAsync(AppDbContext dbInstance, Genres genre, int start, SortOrder orderBy)
@@ -2296,7 +2363,7 @@ namespace DustyPig.Server.Controllers.v3
             return q.ApplySortOrder(orderBy)
                 .AsNoTracking()
                 .Skip(start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
         }
 
@@ -2306,7 +2373,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Name)
                 .Skip(start)
-                .Take(LIST_SIZE)
+                .Take(HOME_SCREEN_LIST_SIZE)
                 .ToListAsync();
         }
 
