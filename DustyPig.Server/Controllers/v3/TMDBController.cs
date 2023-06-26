@@ -84,13 +84,67 @@ namespace DustyPig.Server.Controllers.v3
 
             FillCredits(movie.Data.Credits, ret);
 
-            ret.Available = (await DB.MoviesSearchableByProfile(UserProfile)
+
+            var q =
+                from me in DB.MediaEntries
+                join lib in DB.Libraries on me.LibraryId equals lib.Id
+
+                join fls in DB.FriendLibraryShares
+                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
+                    .Select(t => (int?)t.LibraryId)
+                    on lib.Id equals fls into fls_lj
+                from fls in fls_lj.DefaultIfEmpty()
+
+                join pls in DB.ProfileLibraryShares
+                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
+                    equals new { pls.LibraryId, pls.ProfileId }
+                    into pls_lj
+                from pls in pls_lj.DefaultIfEmpty()
+
+                join ovrride in DB.TitleOverrides
+                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
+                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
+                    into ovrride_lj
+                from ovrride in ovrride_lj.DefaultIfEmpty()
+
+                where
+
+                    //Allow to play filters
+                    me.EntryType == MediaTypes.Movie
+                    && me.TMDB_Id.HasValue
+                    && me.TMDB_Id == id
+                    &&
+                    (
+                        ovrride.State == OverrideState.Allow
+                        ||
+                        (
+                            UserProfile.IsMain
+                            &&
+                            (
+                                lib.AccountId == UserAccount.Id
+                                ||
+                                (
+                                    fls.HasValue
+                                    && ovrride.State != OverrideState.Block
+                                )
+                            )
+                        )
+                        ||
+                        (
+                            pls != null
+                            && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                            && ovrride.State != OverrideState.Block
+                        )
+                    )
+
+                orderby me.SortTitle
+
+                select me;
+
+            ret.Available = (await q
                 .AsNoTracking()
-                .Where(item => item.TMDB_Id == id)
-                .OrderBy(item => item.SortTitle)
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
-
 
             var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Movie);
             ret.RequestPermission = reqPerm.Permission;
@@ -140,13 +194,66 @@ namespace DustyPig.Server.Controllers.v3
 
             FillCredits(series.Data.Credits, ret);
 
-            ret.Available = (await DB.SeriesSearchableByProfile(UserProfile)
+            var q =
+                from me in DB.MediaEntries
+                join lib in DB.Libraries on me.LibraryId equals lib.Id
+
+                join fls in DB.FriendLibraryShares
+                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
+                    .Select(t => (int?)t.LibraryId)
+                    on lib.Id equals fls into fls_lj
+                from fls in fls_lj.DefaultIfEmpty()
+
+                join pls in DB.ProfileLibraryShares
+                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
+                    equals new { pls.LibraryId, pls.ProfileId }
+                    into pls_lj
+                from pls in pls_lj.DefaultIfEmpty()
+
+                join ovrride in DB.TitleOverrides
+                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
+                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
+                    into ovrride_lj
+                from ovrride in ovrride_lj.DefaultIfEmpty()
+
+                where
+
+                    //Allow to play filters
+                    me.EntryType == MediaTypes.Series
+                    && me.TMDB_Id.HasValue
+                    && me.TMDB_Id == id
+                    &&
+                    (
+                        ovrride.State == OverrideState.Allow
+                        ||
+                        (
+                            UserProfile.IsMain
+                            &&
+                            (
+                                lib.AccountId == UserAccount.Id
+                                ||
+                                (
+                                    fls.HasValue
+                                    && ovrride.State != OverrideState.Block
+                                )
+                            )
+                        )
+                        ||
+                        (
+                            pls != null
+                            && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
+                            && ovrride.State != OverrideState.Block
+                        )
+                    )
+
+                orderby me.SortTitle
+
+                select me;
+
+            ret.Available = (await q
                 .AsNoTracking()
-                .Where(item => item.TMDB_Id == id)
-                .OrderBy(item => item.SortTitle)
                 .ToListAsync())
                 .Select(item => item.ToBasicMedia()).ToList();
-
 
             var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Series);
             ret.RequestPermission = reqPerm.Permission;

@@ -70,7 +70,8 @@ namespace DustyPig.Server.Controllers.v3
                     var profile = DB.Profiles.Add(new Profile
                     {
                         Account = account,
-                        AllowedRatings = API.v3.MPAA.Ratings.All,
+                        MaxMovieRating = MovieRatings.NotRated,
+                        MaxTVRating = TVRatings.NotRated,
                         AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
                         IsMain = true,
                         Name = Utils.Coalesce(info.DisplayName, signupResponse.Data.Email[..signupResponse.Data.Email.IndexOf("@")]),

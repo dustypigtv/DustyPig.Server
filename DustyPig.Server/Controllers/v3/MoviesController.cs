@@ -37,8 +37,61 @@ namespace DustyPig.Server.Controllers.v3
             try { request.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
-            var movies = await ApplySortOrder(DB.MoviesPlayableByProfile(UserProfile), request.Sort)
+            var q =
+                 from me in DB.MediaEntries
+                 join lib in DB.Libraries on me.LibraryId equals lib.Id
+
+                 join fls in DB.FriendLibraryShares
+                     .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
+                     .Select(t => (int?)t.LibraryId)
+                     on lib.Id equals fls into fls_lj
+                 from fls in fls_lj.DefaultIfEmpty()
+
+                 join pls in DB.ProfileLibraryShares
+                     on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
+                     equals new { pls.LibraryId, pls.ProfileId }
+                     into pls_lj
+                 from pls in pls_lj.DefaultIfEmpty()
+
+                 join ovrride in DB.TitleOverrides
+                     on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
+                     equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
+                     into ovrride_lj
+                 from ovrride in ovrride_lj.DefaultIfEmpty()
+
+                 where
+
+                     //Allow to play filters
+                     me.EntryType == MediaTypes.Movie
+                     &&
+                     (
+                         ovrride.State == OverrideState.Allow
+                         ||
+                         (
+                             UserProfile.IsMain
+                             &&
+                             (
+                                 lib.AccountId == UserAccount.Id
+                                 ||
+                                 (
+                                     fls.HasValue
+                                     && ovrride.State != OverrideState.Block
+                                 )
+                             )
+                         )
+                         ||
+                         (
+                             pls != null
+                             && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                             && ovrride.State != OverrideState.Block
+                         )
+                     )
+
+                 select me;
+
+            var movies = await q
                 .AsNoTracking()
+                .ApplySortOrder(SortOrder.Alphabetical)
                 .Skip(request.Start)
                 .Take(LIST_SIZE)
                 .ToListAsync();
@@ -55,21 +108,20 @@ namespace DustyPig.Server.Controllers.v3
         [RequireMainProfile]
         public async Task<ResponseWrapper<List<BasicMedia>>> AdminList(int start, int libId)
         {
-            var moviesQ = DB.MediaEntries
+            var q = DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.Library)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie);
 
             if (libId > 0)
-                moviesQ = moviesQ.Where(item => item.LibraryId == libId);
+                q = q.Where(item => item.LibraryId == libId);
 
-            moviesQ = moviesQ
-                .OrderBy(item => item.SortTitle)
-                .Skip(start)
-                .Take(100);
-
-            var movies = await moviesQ.ToListAsync();
+            var movies = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(LIST_SIZE)
+                 .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(movies.Select(item => item.ToBasicMedia()).ToList());
         }
@@ -82,58 +134,73 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{id}")]
         public async Task<ResponseWrapper<DetailedMovie>> Details(int id)
         {
-            var media = await DB.MoviesSearchableByProfile(UserProfile)
+            var media = await DB.MediaEntries
                 .AsNoTracking()
-                
-                .Include(item => item.TitleOverrides.Where(subItem => subItem.ProfileId == UserProfile.Id))
-
-                .Include(item => item.Subtitles)
-                
-                .Include(Item => Item.Library)
+                .Include(item => item.Library)
                 .ThenInclude(item => item.Account)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account1)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account2)
                 .ThenInclude(item => item.Profiles)
-                
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.ProfileLibraryShares.Where(item2 => item2.Profile.Id == UserProfile.Id))
+
+                .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
+
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
 
-                .Include(item => item.TitleOverrides)
-                
-                .Include(item => item.ProfileMediaProgress)
+                .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
 
-                .Include(item => item.WatchlistItems)
-                
+                .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
+
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
-
                 .FirstOrDefaultAsync();
 
             if (media == null)
                 return CommonResponses.NotFound<DetailedMovie>();
 
+            if (media.Library.AccountId != UserAccount.Id)
+                if (!media.Library.FriendLibraryShares.Any())
+                    if (!media.TitleOverrides.Any())
+                        if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
+                            return CommonResponses.NotFound<DetailedMovie>();
 
-            bool playable = UserProfile.IsMain
-                || UserProfile.AllowedRatings == API.v3.MPAA.Ratings.All
-                || (media.Rated.HasValue && (UserProfile.AllowedRatings & media.Rated) == media.Rated)
-                || media.TitleOverrides.Where(item => item.State == OverrideState.Allow).Any(item => item.ProfileId == UserProfile.Id);
+            bool playable = (UserProfile.IsMain && media.Library.AccountId == UserAccount.Id)
+                || media.TitleOverrides.Any(item => item.State == OverrideState.Allow)
+                ||
+                (
+                    !media.TitleOverrides.Any(item => item.State == OverrideState.Block)
+                    &&
+                    (
+                        UserProfile.IsMain
+                        && media.Library.FriendLibraryShares.Any()
+                    )
+                    &&
+                    (
+                        media.Library.ProfileLibraryShares.Any()
+                        && UserProfile.MaxMovieRating >= (media.MovieRating ?? MovieRatings.NotRated)
+                    )
+                );
+
 
 
             //Build the response
             var ret = media.ToDetailedMovie(playable);
 
             if (playable)
-                ret.InWatchlist = media.WatchlistItems.Any(item => item.ProfileId == UserProfile.Id);
+                ret.InWatchlist = media.WatchlistItems.Any();
 
             //Get the media owner
             if (media.Library.AccountId == UserAccount.Id)
@@ -152,7 +219,7 @@ namespace DustyPig.Server.Controllers.v3
             // If playable
             if (playable)
             {
-                var progress = media.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
+                var progress = media.ProfileMediaProgress.FirstOrDefault();
                 if (progress != null)
                     if (progress.Played >= 1 && progress.Played < (media.CreditsStartTime ?? media.Length.Value * 0.9))
                         ret.Played = progress.Played;
@@ -181,17 +248,17 @@ namespace DustyPig.Server.Controllers.v3
             //Get the media entry
             var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.Library)
-                .Include(item => item.Subtitles)
+                .Include(Item => Item.Library)
                 .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Series)
                 .SingleOrDefaultAsync();
 
-
+            if (mediaEntry == null)
+                return CommonResponses.NotFound<DetailedMovie>();
 
             var ret = mediaEntry.ToDetailedMovie(true);
 
@@ -242,18 +309,17 @@ namespace DustyPig.Server.Controllers.v3
                 Date = movieInfo.Date,
                 Description = movieInfo.Description,
                 EntryType = MediaTypes.Movie,
-                Genres = movieInfo.Genres,
                 IntroEndTime = movieInfo.IntroEndTime,
                 IntroStartTime = movieInfo.IntroStartTime,
                 Length = movieInfo.Length,
                 LibraryId = movieInfo.LibraryId,
-                Rated = movieInfo.Rated,
+                MovieRating = movieInfo.Rated.ToMovieRatings(),
                 SortTitle = StringUtils.SortTitle(movieInfo.Title),
                 Title = movieInfo.Title,
                 TMDB_Id = movieInfo.TMDB_Id,
                 VideoUrl = movieInfo.VideoUrl
             };
-
+            newItem.SetGenreFlags(movieInfo.Genres);
             newItem.Hash = newItem.ComputeHash();
 
 
@@ -367,7 +433,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             if (!ownedLibs.Contains(existingItem.LibraryId))
-                return new ResponseWrapper("This account does not own this movie");
+                return CommonResponses.NotFound(nameof(movieInfo.Id));
 
             if (!ownedLibs.Contains(movieInfo.LibraryId))
                 return CommonResponses.NotFound(nameof(movieInfo.LibraryId));
@@ -378,6 +444,7 @@ namespace DustyPig.Server.Controllers.v3
             bool tmdb_changed = existingItem.TMDB_Id != movieInfo.TMDB_Id;
             bool artwork_changed = existingItem.ArtworkUrl != movieInfo.ArtworkUrl;
             
+            //Don't update Added
 
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
             existingItem.BackdropUrl = movieInfo.BackdropUrl;
@@ -385,18 +452,17 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
             existingItem.Date = movieInfo.Date;
             existingItem.Description = movieInfo.Description;
-            existingItem.EntryType = MediaTypes.Movie;
-            existingItem.Genres = movieInfo.Genres;
+            existingItem.SetGenreFlags(movieInfo.Genres);
             existingItem.IntroEndTime = movieInfo.IntroEndTime;
             existingItem.IntroStartTime = movieInfo.IntroStartTime;
             existingItem.Length = movieInfo.Length;
             existingItem.LibraryId = movieInfo.LibraryId;
-            existingItem.Rated = movieInfo.Rated;
+            existingItem.MovieRating = movieInfo.Rated.ToMovieRatings();
             existingItem.SortTitle = StringUtils.SortTitle(movieInfo.Title);
             existingItem.Title = movieInfo.Title;
             existingItem.TMDB_Id = movieInfo.TMDB_Id;
             existingItem.VideoUrl = movieInfo.VideoUrl;
-
+            
             existingItem.Hash = existingItem.ComputeHash();
 
             //Dup check

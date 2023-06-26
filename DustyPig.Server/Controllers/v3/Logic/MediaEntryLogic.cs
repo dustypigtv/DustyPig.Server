@@ -34,11 +34,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if (lst == null)
                 return new List<string>();
 
-            lst = lst.Select(item => (item + string.Empty).NormalizeMiscCharacters().Trim()).Distinct().ToList();
-            lst.RemoveAll(item => string.IsNullOrWhiteSpace(item));
-            lst = lst.Select(item => item.Substring(0, Math.Min(item.Length, Constants.MAX_NAME_LENGTH))).Distinct().ToList();
-
-            return lst;
+            return lst.Select(item => (item + string.Empty).NormalizeMiscCharacters().Trim())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Select(item => item.Substring(0, Math.Min(item.Length, Constants.MAX_NAME_LENGTH)))
+                .Distinct()
+                .ToList();
         }
 
         /// <summary>
@@ -78,9 +78,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Find existing terms based on hash
             var dbSearchTerms = hashes.Count > 0 ?
                 await ctx.SearchTerms
-                .AsNoTracking()
-                .Where(item => hashes.Contains(item.Hash))
-                .ToListAsync() :
+                    .AsNoTracking()
+                    .Where(item => hashes.Contains(item.Hash))
+                    .ToListAsync() :
                 new List<SearchTerm>();
 
             //Add any new terms needed
@@ -152,9 +152,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             var dbPeople = hashes.Count > 0 ?
                 await ctx.People
-                .AsNoTracking()
-                .Where(item => hashes.Contains(item.Hash))
-                .ToListAsync() :
+                    .AsNoTracking()
+                    .Where(item => hashes.Contains(item.Hash))
+                    .ToListAsync() :
                 new List<Person>();
 
 
@@ -218,8 +218,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 {
                     MediaEntryId = mediaEntryId,
                     PersonId = dbPeople.First(item => item.Hash == normItem.Hash).Id,
-                    Role = role,
-                    //SortOrder = sort++
+                    Role = role
                 };
              
                 if (!newBridges.Contains(bridge))

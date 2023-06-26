@@ -6,8 +6,6 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
-using FirebaseAdmin.Auth;
-using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -185,20 +183,24 @@ namespace DustyPig.Server.Controllers.v3
 
             var rand = new Random();
 
-            string code;
             while (true)
             {
-                code = new string(Enumerable.Repeat(chars, 5).Select(s => s[rand.Next(s.Length)]).ToArray());
-                if (!await DB.ActivationCodes.AnyAsync(item => item.Code == code))
-                    break;
+                var activationCode = new ActivationCode
+                {
+                    Code = new string(Enumerable.Repeat(chars, 5).Select(s => s[rand.Next(s.Length)]).ToArray())
+                };
+
+                try
+                {
+                    DB.ActivationCodes.Add(activationCode);
+                    await DB.SaveChangesAsync();
+                    return new ResponseWrapper<SimpleValue<string>>(new SimpleValue<string>(activationCode.Code));
+                }
+                catch
+                {
+                    DB.Entry(activationCode).State = EntityState.Detached;
+                }
             }
-
-            var activationToken = new ActivationCode { Code = code };
-
-            DB.ActivationCodes.Add(activationToken);
-            await DB.SaveChangesAsync();
-
-            return new ResponseWrapper<SimpleValue<string>>(new SimpleValue<string>(code));
         }
 
 
@@ -214,28 +216,28 @@ namespace DustyPig.Server.Controllers.v3
 
             code.Value = code.Value.Trim();
             if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
-                return new ResponseWrapper<DeviceCodeStatus>("value is invalid");
+                return CommonResponses.BadRequest<DeviceCodeStatus>($"Invalid {nameof(code)}");
 
             var rec = await DB.ActivationCodes
+                .AsNoTracking()
+                .Include(item => item.Account)
+                .ThenInclude(item => item.Profiles)
                 .Where(item => item.Code == code.Value)
                 .SingleOrDefaultAsync();
 
             if (rec == null)
-                return new ResponseWrapper<DeviceCodeStatus>("Not found");
+                return CommonResponses.NotFound<DeviceCodeStatus>(nameof(code));
 
 
             var ret = new DeviceCodeStatus { Activated = rec.AccountId != null };
             if (ret.Activated)
             {
-                var account = await DB.Accounts
-                    .AsNoTracking()
-                    .Include(item => item.Profiles)
-                    .Where(item => item.Id == rec.AccountId)
-                    .FirstAsync();
+                DB.ActivationCodes.Remove(rec);
+                await DB.SaveChangesAsync();
 
-                if (account.Profiles.Count == 1)
+                if (rec.Account.Profiles.Count == 1)
                 {
-                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, account.Profiles[0].Id, null);
+                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, rec.Account.Profiles[0].Id, null);
                     ret.LoginType = LoginType.MainProfile;
                 }
                 else
@@ -243,9 +245,6 @@ namespace DustyPig.Server.Controllers.v3
                     ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null);
                     ret.LoginType = LoginType.Account;
                 }
-
-                DB.ActivationCodes.Remove(rec);
-                await DB.SaveChangesAsync();
             }
 
             return new ResponseWrapper<DeviceCodeStatus>(ret);
@@ -262,30 +261,28 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         public async Task<ResponseWrapper> LoginDeviceWithCode(SimpleValue<string> code)
         {
-            if (string.IsNullOrWhiteSpace(code.Value))
-                return new ResponseWrapper($"You must specify value");
-
-            code.Value = code.Value.Trim();
-            if (code.Value.Length != 5)
-                return new ResponseWrapper($"Invalid value");
-
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
                 return CommonResponses.Unauthorized();
 
-
             if (profile.Locked)
                 return CommonResponses.ProfileIsLocked();
 
+
+            if (string.IsNullOrWhiteSpace(code.Value))
+                return CommonResponses.BadRequest($"Invalid {nameof(code)}");
+
+            code.Value = code.Value.Trim();
+            if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
+                return CommonResponses.BadRequest($"Invalid {nameof(code)}");
+
             var rec = await DB.ActivationCodes
                 .Where(item => item.Code == code.Value)
+                .Where(item => item.AccountId == null)
                 .SingleOrDefaultAsync();
 
             if (rec == null)
-                return new ResponseWrapper("Invalid value");
-
-            if (rec.AccountId != null)
-                return new ResponseWrapper("Value has already been claimed");
+                return CommonResponses.BadRequest($"Invalid {nameof(code)}");
 
             rec.AccountId = account.Id;
             await DB.SaveChangesAsync();
@@ -319,15 +316,15 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .Where(item => item.AccountId == account.Id)
                 .Where(item => item.Id == credentials.Id)
-                .SingleOrDefaultAsync();
+                .FirstOrDefaultAsync();
 
             if (profile == null)
-                return new ResponseWrapper<LoginResponse>("Profile does not exist");
+                return CommonResponses.BadRequest<LoginResponse>("Profile does not exist");
 
             if (profile.PinNumber != null)
             {
                 if (credentials.Pin == null || credentials.Pin != profile.PinNumber)
-                    return new ResponseWrapper<LoginResponse>("Invalid pin");
+                    return CommonResponses.BadRequest<LoginResponse>("Invalid pin");
             }
 
             if (!profile.IsMain && profile.Locked)
@@ -375,7 +372,6 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-
             await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();
@@ -390,12 +386,30 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         public async Task<ResponseWrapper> SignoutEverywhere()
         {
-            var (account, profile) = await User.VerifyAsync();
+            var acctId = User.GetAccountId();
+            var authTokenId = User.GetAuthTokenId();
+            var profId = User.GetProfileId();
+            var fcmTokenId = User.GetFCMTokenId();
+
+            if (acctId == null || authTokenId == null)
+                return CommonResponses.Unauthorized();
+
+            var account = await DB.Accounts
+                .AsNoTracking()
+                .Where(item => item.Id == acctId)
+                .Include(item => item.Profiles)
+                .ThenInclude(item => item.FCMTokens)
+                .Include(item => item.AccountTokens)
+                .FirstOrDefaultAsync();
 
             if (account == null)
                 return CommonResponses.Unauthorized();
 
-            if (profile == null)
+            var profile = account.Profiles
+                .Where(item => item.Id == profId)
+                .FirstOrDefault();
+           
+            if(profile == null)
                 return CommonResponses.Unauthorized();
 
             if (!profile.IsMain)
@@ -405,7 +419,8 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.ProhibitTestUser();
 
             DB.AccountTokens.RemoveRange(account.AccountTokens);
-            DB.FCMTokens.RemoveRange(profile.FCMTokens);
+            DB.FCMTokens.RemoveRange(account.Profiles.SelectMany(item => item.FCMTokens));
+
             await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();
@@ -594,7 +609,8 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Profiles.Add(new Profile
                 {
                     Account = account,
-                    AllowedRatings = API.v3.MPAA.Ratings.All,
+                    MaxMovieRating = MovieRatings.NotRated,
+                    MaxTVRating = TVRatings.NotRated,
                     AvatarUrl = Utils.EnsureProfilePic(photoUrl),
                     IsMain = true,
                     Name = Utils.Coalesce(name, email[..email.IndexOf("@")]),

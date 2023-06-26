@@ -83,30 +83,27 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
         static Task<Friendship> GetFriend(AppDbContext db, Account account) => 
             db.Friendships
-            .AsNoTracking()
-            .Include(item => item.FriendLibraryShares)
-            .Include(item => item.Account1)
-            .ThenInclude(item => item.Libraries)
-            .Include(item => item.Account2)
-            .ThenInclude(item => item.Libraries)
-            .Where(item => item.Account1Id == account.Id || item.Account2Id == account.Id)
-            .SingleOrDefaultAsync();
+                .AsNoTracking()
+                .Include(item => item.FriendLibraryShares)
+                .Include(item => item.Account1)
+                .ThenInclude(item => item.Libraries)
+                .Include(item => item.Account2)
+                .ThenInclude(item => item.Libraries)
+                .Where(item => item.Account1Id == account.Id || item.Account2Id == account.Id)
+                .FirstOrDefaultAsync();
 
 
         static Task<List<int>> GetPlaylistIds(AppDbContext db, Account account, Friendship friend, int libraryId)
         {
             var friendAcct = friend.Account1Id == account.Id ? friend.Account2 : friend.Account1;
 
-            var q =
-                from me in db.MediaEntries.Where(item => item.LibraryId == libraryId)
-                join pi in db.PlaylistItems
-                    .Include(item => item.Playlist)
-                    .ThenInclude(item => item.Profile)
-                    .Where(item => item.Playlist.Profile.AccountId == friendAcct.Id)
-                        on me.Id equals pi.MediaEntryId
-                select pi.PlaylistId;
-
-            return q.Distinct().ToListAsync();
+            return db.Playlists
+                .AsNoTracking()
+                .Where(item => item.Profile.AccountId == friendAcct.Id)
+                .Where(item => item.PlaylistItems.Any(item2 => item2.MediaEntry.LibraryId == libraryId))
+                .Select(item => item.Id)
+                .Distinct()
+                .ToListAsync();
         }
     
     }

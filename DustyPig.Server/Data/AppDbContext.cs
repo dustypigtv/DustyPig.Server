@@ -3,7 +3,6 @@ using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 namespace DustyPig.Server.Data
 {
@@ -23,6 +22,7 @@ namespace DustyPig.Server.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<AccountToken> AccountTokens { get; set; }
         public DbSet<ActivationCode> ActivationCodes { get; set; }
+        public DbSet<AvailableGenresResult> AvailableGenresResults { get; set; }
         public DbSet<FCMToken> FCMTokens { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<FriendLibraryShare> FriendLibraryShares { get; set; }
@@ -121,7 +121,8 @@ namespace DustyPig.Server.Data
                     AccountId = TestAccount.AccountId,
                     Name = TestAccount.Name,
                     IsMain = true,
-                    AllowedRatings = (API.v3.MPAA.Ratings)8191,
+                    MaxTVRating = TVRatings.NotRated,
+                    MaxMovieRating = MovieRatings.NotRated,
                     TitleRequestPermission = API.v3.Models.TitleRequestPermissions.Disabled,
                     AvatarUrl = TestAccount.AvatarUrl
                 }
@@ -152,9 +153,11 @@ namespace DustyPig.Server.Data
                     Hash = Crypto.HashMovieTitle("Agent 327: Operation Barbershop", 2017),
                     SortTitle = "agent 327: operation barbershop",
                     Date = DateTime.Parse("2017-05-12"),
-                    Rated = API.v3.MPAA.Ratings.G,
+                    MovieRating = MovieRatings.G,
                     Description = "Agent 327 is investigating a clue that leads him to a shady barbershop in Amsterdam. Little does he know that he is being tailed by mercenary Boris Kloris.",
-                    Genres = (API.v3.MPAA.Genres)4195332,
+                    Genre_Action = true,
+                    Genre_Animation = true,
+                    Genre_Comedy = true,
                     Length = 231.480,
                     CreditsStartTime = 205.875,
                     VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4",
@@ -173,9 +176,11 @@ namespace DustyPig.Server.Data
                     Hash = Crypto.HashMovieTitle("Big Buck Bunny", 2008),
                     SortTitle = "big buck bunny",
                     Date = DateTime.Parse("2008-04-10"),
-                    Rated = API.v3.MPAA.Ratings.G,
+                    MovieRating = MovieRatings.G,
                     Description = "Follow a day of the life of Big Buck Bunny when he meets three bullying rodents: Frank, Rinky, and Gamera. The rodents amuse themselves by harassing helpless creatures by throwing fruits, nuts and rocks at them. After the deaths of two of Bunny's favorite butterflies, and an offensive attack on Bunny himself, Bunny sets aside his gentle nature and orchestrates a complex plan for revenge.",
-                    Genres = (API.v3.MPAA.Genres)1092,
+                    Genre_Animation = true,
+                    Genre_Comedy = true,
+                    Genre_Family = true,
                     Length = 596.474,
                     CreditsStartTime = 490.250,
                     VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4",
@@ -194,9 +199,9 @@ namespace DustyPig.Server.Data
                     Hash = Crypto.HashMovieTitle("Coffee Run", 2020),
                     SortTitle = "coffee run",
                     Date = DateTime.Parse("2020-05-29"),
-                    Rated = API.v3.MPAA.Ratings.G,
+                    MovieRating = MovieRatings.G,
                     Description = "Fueled by caffeine, a young woman runs through the bittersweet memories of her past relationship.",
-                    Genres = (API.v3.MPAA.Genres)1029,
+                    Genre_Animation = true,
                     Length = 184.599,
                     IntroStartTime = 0,
                     IntroEndTime = 6.792,
@@ -217,9 +222,10 @@ namespace DustyPig.Server.Data
                     Hash = Crypto.HashMovieTitle("Hero", 2018),
                     SortTitle = "hero",
                     Date = DateTime.Parse("2018-04-16"),
-                    Rated = API.v3.MPAA.Ratings.G,
+                    MovieRating = MovieRatings.G,
                     Description = "Hero is a showcase for the updated Grease Pencil tools in Blender 2.80. Grease Pencil means 2D animation tools within a full 3D pipeline.",
-                    Genres = (API.v3.MPAA.Genres)1030,
+                    Genre_Animation = true,
+                    Genre_Fantasy = true,
                     Length = 236.658,
                     IntroStartTime = 0,
                     IntroEndTime = 4.838,
@@ -240,9 +246,11 @@ namespace DustyPig.Server.Data
                     Hash = Crypto.HashMovieTitle("Spring", 2019),
                     SortTitle = "spring",
                     Date = DateTime.Parse("2019-04-04"),
-                    Rated = API.v3.MPAA.Ratings.G,
+                    MovieRating = MovieRatings.G,
                     Description = "The story of a shepherd girl and her dog who face ancient spirits in order to continue the cycle of life.",
-                    Genres = (API.v3.MPAA.Genres)3076,
+                    Genre_Adventure = true,
+                    Genre_Animation = true,
+                    Genre_Fantasy = true,
                     Length = 464.098,
                     CreditsStartTime = 427.792,
                     VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.mp4",
@@ -259,9 +267,11 @@ namespace DustyPig.Server.Data
                     Title = "Caminandes",
                     Hash = Crypto.NormalizedHash("Caminandes"),
                     SortTitle = "caminandes",
-                    Rated = API.v3.MPAA.Ratings.TV_G,
+                    TVRating = TVRatings.G,
                     Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
-                    Genres = (API.v3.MPAA.Genres)1060,
+                    Genre_Animation = true,
+                    Genre_Children = true,
+                    Genre_Family = true,
                     ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/show.jpg",
                     BackdropUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/backdrop.jpg"
                 },
@@ -411,6 +421,16 @@ namespace DustyPig.Server.Data
         }
 
 
+
+
+
+
+
+
+
+
+
+
         public static (bool Valid, string Fixed, string Error) CheckStringConstrants(string name, bool required, int maxLen, string val)
         {
             val += string.Empty;
@@ -433,6 +453,13 @@ namespace DustyPig.Server.Data
 
             return (true, val, null);
         }
+    
+    
+    
+    
+    
+    
+    
     }
 }
 

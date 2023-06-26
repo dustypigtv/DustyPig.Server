@@ -3,6 +3,7 @@ using System;
 using DustyPig.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230622042901_NewRatingsSystem")]
+    partial class NewRatingsSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -294,28 +296,13 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<bool>("Action")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<DateTime?>("Added")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<bool>("Adventure")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Animation")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Anime")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("ArtworkUrl")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
-
-                    b.Property<bool>("Awards_Show")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("BackdropUrl")
                         .HasMaxLength(1000)
@@ -325,17 +312,8 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
-                    b.Property<bool>("Children")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Comedy")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<double?>("CreditsStartTime")
                         .HasColumnType("double");
-
-                    b.Property<bool>("Crime")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime?>("Date")
                         .HasColumnType("datetime(6)");
@@ -343,12 +321,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(10000)
                         .HasColumnType("varchar(10000)");
-
-                    b.Property<bool>("Documentary")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Drama")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("EntryType")
                         .HasColumnType("int");
@@ -359,18 +331,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int?>("ExtraSortOrder")
                         .HasColumnType("int");
 
-                    b.Property<bool>("Family")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Fantasy")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Food")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Game_Show")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<long?>("Genres")
                         .HasColumnType("bigint");
 
@@ -378,18 +338,6 @@ namespace DustyPig.Server.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)");
-
-                    b.Property<bool>("History")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Home_and_Garden")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Horror")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Indie")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<double?>("IntroEndTime")
                         .HasColumnType("double");
@@ -406,32 +354,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int?>("LinkedToId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("Martial_Arts")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Mini_Series")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<int?>("MovieRating")
                         .HasColumnType("int");
-
-                    b.Property<bool>("Music")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Musical")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Mystery")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("News")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Podcast")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Political")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<double?>("Popularity")
                         .HasColumnType("double");
@@ -442,30 +366,12 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int?>("Rated")
                         .HasColumnType("int");
 
-                    b.Property<bool>("Reality")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Romance")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Science_Fiction")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<int?>("Season")
                         .HasColumnType("int");
-
-                    b.Property<bool>("Soap")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("SortTitle")
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("Sports")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Suspense")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("TMDB_Id")
                         .HasColumnType("int");
@@ -473,32 +379,14 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int?>("TVRating")
                         .HasColumnType("int");
 
-                    b.Property<bool>("TV_Movie")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Talk_Show")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Thriller")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<bool>("Travel")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<string>("VideoUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
-
-                    b.Property<bool>("War")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("Western")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<long?>("Xid")
                         .HasColumnType("bigint");
@@ -520,530 +408,188 @@ namespace DustyPig.Server.Data.Migrations
                         new
                         {
                             Id = 1,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 399, DateTimeKind.Unspecified).AddTicks(9293),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.jpg",
-                            Awards_Show = false,
                             BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.backdrop.jpg",
                             BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 205.875,
-                            Crime = false,
                             Date = new DateTime(2017, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Agent 327 is investigating a clue that leads him to a shady barbershop in Amsterdam. Little does he know that he is being tailed by mercenary Boris Kloris.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 1,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Genres = 4195332L,
                             Hash = "4EA15C97603CE91602141FB1D5D04F5705311AEA6BB1FFD3B0AF4801BB7FE5A9B867B08AD8E2E90BBFCF70583E85EC20D9D0816E6B55FD34D16123A9F03624B1",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             Length = 231.47999999999999,
                             LibraryId = 1,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
                             Rated = 1,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
-                            Soap = false,
                             SortTitle = "agent 327: operation barbershop",
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 457784,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Agent 327: Operation Barbershop",
-                            Travel = false,
-                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4",
-                            War = false,
-                            Western = false
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Agent%20327_%20Operation%20Barbershop%20%282017%29.mp4"
                         },
                         new
                         {
                             Id = 2,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 454, DateTimeKind.Unspecified).AddTicks(1594),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.jpg",
-                            Awards_Show = false,
                             BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.backdrop.jpg",
                             BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 490.25,
-                            Crime = false,
                             Date = new DateTime(2008, 4, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Follow a day of the life of Big Buck Bunny when he meets three bullying rodents: Frank, Rinky, and Gamera. The rodents amuse themselves by harassing helpless creatures by throwing fruits, nuts and rocks at them. After the deaths of two of Bunny's favorite butterflies, and an offensive attack on Bunny himself, Bunny sets aside his gentle nature and orchestrates a complex plan for revenge.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 1,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Genres = 1092L,
                             Hash = "9646997A1E9CDA5FC57353A2F7A6CEE4B58BBCADDBE9D921E09F75396C1F07682CACE518417BB111644EE79D2C0ECBAFB52F21BB652D7FF2B8A231ADB40C8015",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             Length = 596.47400000000005,
                             LibraryId = 1,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
                             Rated = 1,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
-                            Soap = false,
                             SortTitle = "big buck bunny",
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 10378,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Big Buck Bunny",
-                            Travel = false,
-                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4",
-                            War = false,
-                            Western = false
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Big%20Buck%20Bunny%20%282008%29.mp4"
                         },
                         new
                         {
                             Id = 3,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 506, DateTimeKind.Unspecified).AddTicks(3620),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.jpg",
-                            Awards_Show = false,
                             BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.backdrop.jpg",
                             BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 164.083,
-                            Crime = false,
                             Date = new DateTime(2020, 5, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Fueled by caffeine, a young woman runs through the bittersweet memories of her past relationship.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 1,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Genres = 1029L,
                             Hash = "6BEC6E139049C49C2FF1C531876D0D7F79D8FFAB42F8F29074388B50FE045A09003E4F87E677A842D6D35A6D3DF30B3274BF17E40A613A5155804566BF2E4DFD",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             IntroEndTime = 6.7919999999999998,
                             IntroStartTime = 0.0,
                             Length = 184.59899999999999,
                             LibraryId = 1,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
                             Rated = 1,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
-                            Soap = false,
                             SortTitle = "coffee run",
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 717986,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Coffee Run",
-                            Travel = false,
-                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.mp4",
-                            War = false,
-                            Western = false
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Coffee%20Run%20%282020%29.mp4"
                         },
                         new
                         {
                             Id = 4,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 554, DateTimeKind.Unspecified).AddTicks(5793),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.jpg",
-                            Awards_Show = false,
                             BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.backdrop.jpg",
                             BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 147.31399999999999,
-                            Crime = false,
                             Date = new DateTime(2018, 4, 16, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Hero is a showcase for the updated Grease Pencil tools in Blender 2.80. Grease Pencil means 2D animation tools within a full 3D pipeline.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 1,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Genres = 1030L,
                             Hash = "B79323E58B71C58E7A256FE320B5791941DE97A3F748EF1AEBA6DA8D7D38E875557D3553F0D1AEAD359F5AA8DDE4DED456484F9F7D5483D05836B17F81C54581",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             IntroEndTime = 4.8380000000000001,
                             IntroStartTime = 0.0,
                             Length = 236.65799999999999,
                             LibraryId = 1,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
                             Rated = 1,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
-                            Soap = false,
                             SortTitle = "hero",
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 615324,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Hero",
-                            Travel = false,
-                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.mp4",
-                            War = false,
-                            Western = false
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Hero%20%282018%29.mp4"
                         },
                         new
                         {
                             Id = 5,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 601, DateTimeKind.Unspecified).AddTicks(9560),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.jpg",
-                            Awards_Show = false,
                             BackdropUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.backdrop.jpg",
                             BifUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 427.79199999999997,
-                            Crime = false,
                             Date = new DateTime(2019, 4, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "The story of a shepherd girl and her dog who face ancient spirits in order to continue the cycle of life.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 1,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Genres = 3076L,
                             Hash = "027B24E5D65C5FA431D54AD24F16DD801851CE3F95615CDD3951A5141D79AFD7B01688C0B2E83060948888B339160411DD1E116FFB018E440943BFD99B022291",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             Length = 464.09800000000001,
                             LibraryId = 1,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
                             Rated = 1,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
-                            Soap = false,
                             SortTitle = "spring",
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 593048,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Spring",
-                            Travel = false,
-                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.mp4",
-                            War = false,
-                            Western = false
+                            VideoUrl = "https://s3.dustypig.tv/demo-media/Movies/Spring%20%282019%29.mp4"
                         },
                         new
                         {
                             Id = 6,
-                            Action = false,
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/show.jpg",
-                            Awards_Show = false,
                             BackdropUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/backdrop.jpg",
-                            Children = false,
-                            Comedy = false,
-                            Crime = false,
                             Description = "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the pesky penguin.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 2,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Genres = 1060L,
                             Hash = "E47A2E93157FE103F49F71DE1D04CA6E31F47F6DFFADAA2CDA654B71C61BB0E4038235F5C97C09323590BB084EF5BD30C58B555689FE835668A2DC68232C548F",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             LibraryId = 2,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
                             Rated = 256,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
-                            Soap = false,
                             SortTitle = "caminandes",
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 276116,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
-                            Title = "Caminandes",
-                            Travel = false,
-                            War = false,
-                            Western = false
+                            Title = "Caminandes"
                         },
                         new
                         {
                             Id = 7,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 39, 559, DateTimeKind.Unspecified).AddTicks(3737),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.jpg",
-                            Awards_Show = false,
                             BifUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 139.5,
-                            Crime = false,
                             Date = new DateTime(2013, 12, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Koro meets Oti, a pesky Magellanic penguin, in an epic battle over tasty red berries during the winter.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 3,
                             Episode = 3,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Hash = "41B2658FEE67627A1F641E585A1AABAE1267C2E2331FD4101A8EE2743A9E9B67A0EC7F20DE6A3CD9E22BD8BFAD3CA3CF2BA27F2236DE25C2413611D2A930DA6A",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             Length = 150.048,
                             LibraryId = 2,
                             LinkedToId = 6,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
                             Season = 1,
-                            Soap = false,
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 0,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Llamigos",
-                            Travel = false,
                             VideoUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e03%20-%20Llamigos.mp4",
-                            War = false,
-                            Western = false,
                             Xid = 10003L
                         },
                         new
                         {
                             Id = 8,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 38, 559, DateTimeKind.Unspecified).AddTicks(3102),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.jpg",
-                            Awards_Show = false,
                             BifUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 119.25,
-                            Crime = false,
                             Date = new DateTime(2013, 11, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Koro hunts for food on the other side of a fence and is once again inspired by the Armadillo but this time to a shocking effect.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 3,
                             Episode = 2,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Hash = "94A2E1F9E973552DB73220BED6842AD4EED820B3F530A387177EAC70189A4F50A2B6D4A0E705DC728F613E43BF2C87E19E6B44ABE003A12B1F1384A68DFB8614",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             Length = 146.00800000000001,
                             LibraryId = 2,
                             LinkedToId = 6,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
                             Season = 1,
-                            Soap = false,
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 0,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Gran Dillama",
-                            Travel = false,
                             VideoUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e02%20-%20Gran%20Dillama.mp4",
-                            War = false,
-                            Western = false,
                             Xid = 10002L
                         },
                         new
                         {
                             Id = 9,
-                            Action = false,
                             Added = new DateTime(2021, 9, 6, 5, 20, 37, 559, DateTimeKind.Unspecified).AddTicks(1031),
-                            Adventure = false,
-                            Animation = false,
-                            Anime = false,
                             ArtworkUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.jpg",
-                            Awards_Show = false,
                             BifUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.bif",
-                            Children = false,
-                            Comedy = false,
                             CreditsStartTime = 87.917000000000002,
-                            Crime = false,
                             Date = new DateTime(2013, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Koro has trouble crossing an apparent desolate road, a problem that an unwitting Armadillo does not share.",
-                            Documentary = false,
-                            Drama = false,
                             EntryType = 3,
                             Episode = 1,
-                            Family = false,
-                            Fantasy = false,
-                            Food = false,
-                            Game_Show = false,
                             Hash = "32B523CD69F065EB37CDE5C1BD8A18E6C1367A27608F450A3479A6AF5F98D0391A3D9ACB869614815F6D0A01954F89412390DC60A85161FC65398C3D91960DD8",
-                            History = false,
-                            Home_and_Garden = false,
-                            Horror = false,
-                            Indie = false,
                             Length = 90.001000000000005,
                             LibraryId = 2,
                             LinkedToId = 6,
-                            Martial_Arts = false,
-                            Mini_Series = false,
-                            Music = false,
-                            Musical = false,
-                            Mystery = false,
-                            News = false,
-                            Podcast = false,
-                            Political = false,
-                            Reality = false,
-                            Romance = false,
-                            Science_Fiction = false,
                             Season = 1,
-                            Soap = false,
-                            Sports = false,
-                            Suspense = false,
                             TMDB_Id = 0,
-                            TV_Movie = false,
-                            Talk_Show = false,
-                            Thriller = false,
                             Title = "Llama Drama",
-                            Travel = false,
                             VideoUrl = "https://s3.dustypig.tv/demo-media/TV%20Shows/Caminandes/Season%2001/Caminandes%20-%20s01e01%20-%20Llama%20Drama.mp4",
-                            War = false,
-                            Western = false,
                             Xid = 10001L
                         });
                 });

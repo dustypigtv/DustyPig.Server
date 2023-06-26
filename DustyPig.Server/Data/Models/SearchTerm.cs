@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(Hash), IsUnique = true)]
+    [Index(nameof(Term))]
     public class SearchTerm
     {
         public int Id { get; set; }

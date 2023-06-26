@@ -15,11 +15,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
         ///     .Include(item => item.Account2)
         ///     .ThenInclude(item => item.Profiles)
         /// </summary>
-        public static BasicFriend ToBasicFriendInfo(this Friendship @this, int accountId) => new BasicFriend
+        public static BasicFriend ToBasicFriendInfo(this Friendship self, int accountId) => new BasicFriend
         {
-            Id = @this.Id,
-            DisplayName = @this.GetFriendDisplayNameForAccount(accountId),
-            AvatarUrl = @this.GetFriendAvatar(accountId)
+            Id = self.Id,
+            DisplayName = self.GetFriendDisplayNameForAccount(accountId),
+            AvatarUrl = self.GetFriendAvatar(accountId)
         };
 
 

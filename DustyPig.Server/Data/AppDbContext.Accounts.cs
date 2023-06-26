@@ -1,4 +1,5 @@
 ﻿using DustyPig.API.v3.MPAA;
+using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -43,7 +44,8 @@ namespace DustyPig.Server.Data
                 {
                     Account = account,
                     AccountId = account.Id,
-                    AllowedRatings = allowedRatings,
+                    MaxMovieRating = allowedRatings.ToMovieRatings(),
+                    MaxTVRating = allowedRatings.ToTVRatings(),
                     AvatarUrl = avatarUrl,
                     Locked = locked,
                     Name = name,
@@ -55,7 +57,8 @@ namespace DustyPig.Server.Data
             }
             else
             {
-                profile.AllowedRatings = allowedRatings;
+                profile.MaxMovieRating = allowedRatings.ToMovieRatings();
+                profile.MaxTVRating = allowedRatings.ToTVRatings();
                 profile.AvatarUrl = avatarUrl;
                 profile.Locked = !profile.IsMain && locked;
                 profile.Name = name;

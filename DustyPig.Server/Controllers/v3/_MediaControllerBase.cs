@@ -29,45 +29,40 @@ namespace DustyPig.Server.Controllers.v3
 
         internal async Task<ResponseWrapper> DeleteMedia(int id)
         {
+            if (!UserProfile.IsMain)
+                return CommonResponses.RequireMainProfile();
+
+
             //Get the object, making sure it's owned
             var mediaEntry = await DB.MediaEntries
                 .Include(item => item.Library)
-                .Include(item => item.Subtitles)
                 .Where(item => item.Id == id)
-                .SingleOrDefaultAsync();
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .FirstOrDefaultAsync();
 
-            if (mediaEntry == null || mediaEntry.Library.AccountId != UserAccount.Id)
-                return new ResponseWrapper ("Either the specified item does not exist or is not owned by this account");
+            if (mediaEntry == null)
+                return CommonResponses.NotFound(nameof(id));
 
-            if(mediaEntry.EntryType == MediaTypes.Series)
-            {
-                var episodeIds = await DB.MediaEntries
-                    .AsNoTracking()
+            // Flag playlist artwork for updates
+            var playlists = mediaEntry.EntryType == MediaTypes.Series ?
+                await DB.MediaEntries
                     .Where(item => item.LinkedToId == id)
-                    .Select(item => item.Id)
-                    .Distinct()
-                    .ToListAsync();
-
-                var playlists = await DB.PlaylistItems
-                    .Where(item => episodeIds.Contains(item.MediaEntryId))
-                    .Include(item => item.Playlist)
+                    .Include(item => item.PlaylistItems)
+                    .ThenInclude(item => item.Playlist)
+                    .SelectMany(item => item.PlaylistItems)
                     .Select(item => item.Playlist)
                     .Distinct()
-                    .ToListAsync();
+                    .ToListAsync() :
 
-                playlists.ForEach(item => item.ArtworkUpdateNeeded = true); 
-            }
-            else
-            {
-                var playlists = await DB.PlaylistItems
+                await DB.PlaylistItems
                     .Where(item => item.MediaEntryId == id)
                     .Include(item => item.Playlist)
                     .Select(item => item.Playlist)
                     .Distinct()
                     .ToListAsync();
 
-                playlists.ForEach(item => item.ArtworkUpdateNeeded = true);
-            }
+            playlists.ForEach(item => item.ArtworkUpdateNeeded = true); 
+            
 
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
@@ -90,6 +85,7 @@ namespace DustyPig.Server.Controllers.v3
             try
             {
                 me.Popularity = await DB.MediaEntries
+                    .Where(item => item.Id != me.Id)
                     .Where(item => item.TMDB_Id == me.TMDB_Id)
                     .Where(item => item.EntryType == me.EntryType)
                     .Where(item => item.Popularity != null)
@@ -121,55 +117,60 @@ namespace DustyPig.Server.Controllers.v3
 
         internal static List<string> GetSearchTerms(MediaEntry me, List<string> extraSearchTerms)
         {
-            var ret = me.Title.NormalizedQueryString().Tokenize();
+            var ret = (me.Title + string.Empty).NormalizedQueryString().Tokenize();
 
             //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
-            var squished = me.Title.Replace("-", null).Replace(".", null).NormalizedQueryString().Tokenize();
-            ret.AddRange(squished);
+            ret.AddRange
+                (
+                    (me.Title + string.Empty)
+                        .Replace("-", null)
+                        .Replace(".", null)
+                        .NormalizedQueryString()
+                        .Tokenize()
+                        .Where(item => !string.IsNullOrWhiteSpace(item))
+                        .Select(item => item.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
+                        .Distinct()
+                );
 
             //Add genres
-            if (me.Genres.HasValue)
-                ret.AddRange(me.Genres.Value.AsString().NormalizedQueryString().Tokenize());
-            
+            ret.AddRange(me.ToGenres().AsString().NormalizedQueryString().Tokenize());
 
             if (extraSearchTerms != null)
-                ret.AddRange(extraSearchTerms.Select(item => (item + string.Empty).Trim().NormalizeMiscCharacters()));
+            {
+                ret.AddRange
+                    (
+                        extraSearchTerms.SelectMany(item =>
+                            (item + string.Empty)
+                            .Trim()
+                            .NormalizeMiscCharacters()
+                            .Tokenize()
+                            .Where(item2 => !string.IsNullOrWhiteSpace(item2))
+                            .Select(item2 => item2.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
+                            .Distinct()
+                    ));
+                
+                
+                ret.AddRange
+                    (
+                        extraSearchTerms.SelectMany(item =>
+                            (item + string.Empty)
+                            .Trim()
+                            .Replace("-", null)
+                            .Replace(".", null)
+                            .NormalizeMiscCharacters()
+                            .Tokenize()
+                            .Where(item2 => !string.IsNullOrWhiteSpace(item2))
+                            .Select(item2 => item2.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
+                            .Distinct()
+                    ));
+            }
 
-            ret.RemoveAll(item => string.IsNullOrWhiteSpace(item));
-
-            return ret.Distinct().ToList();
+            return ret
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct()
+                .ToList();
         }
 
-
-
-        internal static IOrderedQueryable<MediaEntry> ApplySortOrder(IQueryable<MediaEntry> q, SortOrder sortOrder)
-        {
-            if (sortOrder == SortOrder.Alphabetical)
-                return q.OrderBy(item => item.SortTitle);
-
-            if (sortOrder == SortOrder.Alphabetical_Descending)
-                return q.OrderByDescending(item => item.SortTitle);
-
-            if (sortOrder == SortOrder.Added)
-                return q.OrderBy(item => item.Added);
-
-            if (sortOrder == SortOrder.Added_Descending)
-                return q.OrderByDescending(item => item.Added);
-
-            if (sortOrder == SortOrder.Released)
-                return q.OrderBy(item => item.Date);
-
-            if (sortOrder == SortOrder.Released_Descending)
-                return q.OrderByDescending(item => item.Date);
-
-            if (sortOrder == SortOrder.Popularity)
-                return q.OrderBy(item => item.Popularity);
-
-            if (sortOrder == SortOrder.Popularity_Descending)
-                return q.OrderByDescending(item => item.Popularity);
-
-            throw new ArgumentOutOfRangeException(nameof(sortOrder));
-        }
 
 
     }

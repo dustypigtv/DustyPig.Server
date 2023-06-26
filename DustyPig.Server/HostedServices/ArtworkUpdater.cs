@@ -14,6 +14,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SixLabors.ImageSharp.Processing;
+using DustyPig.Server.Data.Models;
 
 namespace DustyPig.Server.HostedServices
 {
@@ -85,53 +86,113 @@ namespace DustyPig.Server.HostedServices
 
         private async Task ProcessNextAsync()
         {
+            using var db = new AppDbContext();
+
+            var playlist = await db.Playlists
+                .Include(item => item.Profile)
+                .Include(item => item.PlaylistItems)
+                .Where(item => item.ArtworkUpdateNeeded)
+                .FirstOrDefaultAsync(_cancellationToken);
+
+            if (playlist == null)
+                return;
+
             try
             {
-                using var db = new AppDbContext();
-              
-                var playlist = await db.Playlists
-                    .Include(item => item.Profile)
-                    .ThenInclude(item => item.Account)
-                    .Include(item => item.PlaylistItems)
-                    .ThenInclude(item => item.MediaEntry)
-                    .ThenInclude(item => item.LinkedTo)
-                    .Where(item => item.ArtworkUpdateNeeded)
-                    .FirstOrDefaultAsync(_cancellationToken);
+               
+                var q = 
+                    from me in db.MediaEntries
+                    join lib in db.Libraries on me.LibraryId equals lib.Id
+                    join pli in db.PlaylistItems on me.Id equals pli.MediaEntryId
 
-                if (playlist == null)
-                    return;
+                    join series in db.MediaEntries on me.LinkedToId equals series.Id into series_lj
+                    from series in series_lj.DefaultIfEmpty()
 
-                var mediaIds = playlist.PlaylistItems.Select(item => item.MediaEntryId).ToList();
-                var playable = await db.MediaEntriesPlayableByProfile(playlist.Profile)
-                    .Where(item => mediaIds.Contains(item.Id))
-                    .Select(item => item.Id)
+                    join fls in db.FriendLibraryShares
+                        .Where(t => t.Friendship.Account1Id == playlist.Profile.AccountId || t.Friendship.Account2Id == playlist.Profile.AccountId)
+                        .Select(t => (int?)t.LibraryId)
+                        on lib.Id equals fls into fls_lj
+                    from fls in fls_lj.DefaultIfEmpty()
+
+                    join pls in db.ProfileLibraryShares
+                        on new { LibraryId = lib.Id, ProfileId = playlist.Profile.Id }
+                        equals new { pls.LibraryId, pls.ProfileId }
+                        into pls_lj
+                    from pls in pls_lj.DefaultIfEmpty()
+
+                    join ovrride in db.TitleOverrides
+                        on new { MediaEntryId = me.EntryType == MediaTypes.Episode ? series.Id : me.Id, ProfileId = playlist.Profile.Id, Valid = true }
+                        equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
+                        into ovrride_lj
+                    from ovrride in ovrride_lj.DefaultIfEmpty()
+
+                    where
+
+                        //Allow to play filters
+                        Constants.PLAYABLE_MEDIA_TYPES.Contains(me.EntryType)
+                        && pli.PlaylistId == playlist.Id
+                        &&
+                        (
+                            ovrride.State == OverrideState.Allow
+                            ||
+                            (
+                                playlist.Profile.IsMain
+                                &&
+                                (
+                                    lib.AccountId == playlist.Profile.AccountId
+                                    ||
+                                    (
+                                        fls.HasValue
+                                        && ovrride.State != OverrideState.Block
+                                    )
+                                )
+                            )
+                            ||
+                            (
+                                pls != null
+                                && ovrride.State != OverrideState.Block
+                                &&
+                                (
+                                    (
+                                        me.EntryType == MediaTypes.Movie
+                                        && playlist.Profile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                                    )
+                                    ||
+                                    (
+                                        me.EntryType == MediaTypes.Episode
+                                        && playlist.Profile.MaxTVRating >= (series.TVRating ?? TVRatings.NotRated)
+                                    )
+                                )
+                            )
+                        )
+
+                    select new
+                    {
+                        me.Id,
+                        ArtworkId = me.EntryType == MediaTypes.Episode ? series.Id : me.Id,
+                        ArtworkUrl = me.EntryType == MediaTypes.Episode ? series.ArtworkUrl : me.ArtworkUrl
+                    };
+
+                var playable = await q
+                    .AsNoTracking()
+                    .Distinct()
                     .ToListAsync(_cancellationToken);
 
 
+                
                 playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
                 var art = new Dictionary<int, string>();
-                foreach(var playlistItem in playlist.PlaylistItems.Where(item => playable.Contains(item.MediaEntryId)))
+                foreach (var playlistItem in playlist.PlaylistItems)
                 {
-                    if (playlistItem.MediaEntry.EntryType == MediaTypes.Movie)
-                    {
-                        if (!art.ContainsKey(playlistItem.MediaEntryId))
+                    var playableME = playable.FirstOrDefault(item => item.Id == playlistItem.MediaEntryId);
+                    if (playableME != null)
+                        if (!art.ContainsKey(playableME.ArtworkId))
                         {
-                            art.Add(playlistItem.MediaEntryId, playlistItem.MediaEntry.ArtworkUrl);
+                            art.Add(playableME.ArtworkId, playableME.ArtworkUrl);
                             if (art.Count > 3)
                                 break;
                         }
-                    }
-                    else if (playlistItem.MediaEntry.EntryType == MediaTypes.Episode)
-                    {
-                        if (playlistItem.MediaEntry.LinkedToId.HasValue)
-                            if (!art.ContainsKey(playlistItem.MediaEntry.LinkedToId.Value))
-                            {
-                                art.Add(playlistItem.MediaEntry.LinkedToId.Value, playlistItem.MediaEntry.LinkedTo.ArtworkUrl);
-                                if (art.Count > 3)
-                                    break;
-                            }
-                    }
                 }
 
                 if (art.Count == 0)
@@ -209,6 +270,10 @@ namespace DustyPig.Server.HostedServices
             }
             catch (Exception ex)
             {
+                //Otherwise, the next playlist in the database will never get updated
+                playlist.ArtworkUpdateNeeded = false;
+                await db.SaveChangesAsync();
+
                 _logger.LogError(ex, ex.Message);
             }
         }

@@ -1,6 +1,4 @@
 ﻿using DustyPig.API.v3.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
@@ -12,6 +10,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static ResponseWrapper Ok() => new ResponseWrapper { Success = true };
 
 
+        public static ResponseWrapper BadRequest() => new ResponseWrapper("Bad Request");
+        public static ResponseWrapper BadRequest(string msg) => new ResponseWrapper("Bad Request: " + msg);
+        public static ResponseWrapper<T> BadRequest<T>() => new ResponseWrapper<T>("Bad Request");
+        public static ResponseWrapper<T> BadRequest<T>(string msg) => new ResponseWrapper<T>("Bad Request: " + msg);
+
         public static ResponseWrapper NotFound() => new ResponseWrapper("Not found");
         public static ResponseWrapper NotFound(string name) => new ResponseWrapper($"{name} not found");
         public static ResponseWrapper<T> NotFound<T>() => new ResponseWrapper<T>("Not found");
@@ -19,8 +22,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
 
 
-        public static ResponseWrapper Forbid() => new ResponseWrapper("Forbidden");
-        public static ResponseWrapper<T> Forbid<T>() => new ResponseWrapper<T>("Forbidden");
+        public static ResponseWrapper Forbid(string msg) => new ResponseWrapper("Forbidden: " + msg);
+        public static ResponseWrapper<T> Forbid<T>(string msg) => new ResponseWrapper<T>("Forbidden: " + msg);
+        public static ResponseWrapper Forbid() => Forbid("Forbidden");
+        public static ResponseWrapper<T> Forbid<T>() => Forbid<T>("Forbidden");
+
 
 
         public static ResponseWrapper ProhibitTestUser() => new ResponseWrapper("Test account is not authorized to to perform this action");

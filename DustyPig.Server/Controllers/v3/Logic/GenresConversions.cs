@@ -5,9 +5,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     static class GenresConversions
     {
-        public static void SetBits(this MediaEntry self, Genres genres)
+        public static void SetGenreFlags(this MediaEntry self, Genres? genres)
         {
-            long lg = (long)genres;
+            long lg = (long)(genres ?? Genres.Unknown);
             self.Genre_Action = (lg & (long)Genres.Action) != 0;
             self.Genre_Adventure = (lg & (long)Genres.Adventure) != 0;
             self.Genre_Animation = (lg & (long)Genres.Animation) != 0;
@@ -48,7 +48,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             self.Genre_Western = (lg & (long)Genres.Western) != 0;
         }
 
-        public static Genres GetBits(this MediaEntry self)
+        public static Genres ToGenres(this MediaEntry self)
         {
             var ret = Genres.Unknown;
             if (self.Genre_Action) ret |= Genres.Action;

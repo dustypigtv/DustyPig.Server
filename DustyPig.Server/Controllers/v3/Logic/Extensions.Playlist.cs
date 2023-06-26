@@ -8,14 +8,14 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     public static partial class Extensions
     {
-        public static BasicMedia ToBasicMedia(this Data.Models.Playlist @this)
+        public static BasicMedia ToBasicMedia(this Data.Models.Playlist self)
         {
             var ret = new BasicMedia
             {
-                Id = @this.Id,
+                Id = self.Id,
                 MediaType = MediaTypes.Playlist,
-                Title = @this.Name,
-                ArtworkUrl = @this.ArtworkUrl,
+                Title = self.Name,
+                ArtworkUrl = self.ArtworkUrl,
             };
 
             

@@ -6,11 +6,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     public static partial class Extensions
     {
-        public static BasicLibrary ToBasicLibraryInfo(this Library @this) => new BasicLibrary
+        public static BasicLibrary ToBasicLibraryInfo(this Library self) => new BasicLibrary
         {
-            Id = @this.Id,
-            IsTV = @this.IsTV,
-            Name = @this.Name
+            Id = self.Id,
+            IsTV = self.IsTV,
+            Name = self.Name
         };
 
         /// <summary>
@@ -29,22 +29,22 @@ namespace DustyPig.Server.Controllers.v3.Logic
         ///     .ThenInclude(item => item.Account2)
         ///     .ThenInclude(item => item.Profiles)
         /// </summary>
-        public static DetailedLibrary ToDetailedLibraryInfo(this Library @this)
+        public static DetailedLibrary ToDetailedLibraryInfo(this Library self)
         {
             //This acct owns the lib
             var ret = new DetailedLibrary
             {
-                Id = @this.Id,
-                IsTV = @this.IsTV,
-                Name = @this.Name
+                Id = self.Id,
+                IsTV = self.IsTV,
+                Name = self.Name
             };
 
-            foreach (var share in @this.ProfileLibraryShares)
-                if (@this.Account.Profiles.Select(item => item.Id).Contains(share.ProfileId))
+            foreach (var share in self.ProfileLibraryShares)
+                if (self.Account.Profiles.Select(item => item.Id).Contains(share.ProfileId))
                     ret.Profiles.Add(share.Profile.ToBasicProfileInfo());
 
-            foreach (var friendship in @this.FriendLibraryShares.Select(item => item.Friendship))
-                ret.SharedWith.Add(friendship.ToBasicFriendInfo(@this.AccountId));
+            foreach (var friendship in self.FriendLibraryShares.Select(item => item.Friendship))
+                ret.SharedWith.Add(friendship.ToBasicFriendInfo(self.AccountId));
 
             return ret;
         }

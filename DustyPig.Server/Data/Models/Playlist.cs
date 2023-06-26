@@ -24,6 +24,8 @@ namespace DustyPig.Server.Data.Models
         /// </summary>
         public int CurrentIndex { get; set; }
 
+        public double CurrentProgress { get; set; }
+
         [Required]
         [DefaultValue(Constants.DEFAULT_PLAYLIST_IMAGE)]
         [MaxLength(Constants.MAX_NAME_LENGTH)]

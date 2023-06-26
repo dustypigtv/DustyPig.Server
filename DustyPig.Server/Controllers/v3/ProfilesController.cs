@@ -73,7 +73,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = new DetailedProfile
             {
-                AllowedRatings = profile.AllowedRatings,
+                AllowedRatings = profile.MaxMovieRating.ToRatings() | profile.MaxTVRating.ToRatings(),
                 AvatarUrl = profile.AvatarUrl,
                 Id = id,
                 IsMain = profile.IsMain,
@@ -181,7 +181,8 @@ namespace DustyPig.Server.Controllers.v3
             if (UserProfile.IsMain)
             {
                 //Update restricted fields
-                profile.AllowedRatings = info.AllowedRatings;
+                profile.MaxTVRating = info.AllowedRatings.ToTVRatings();
+                profile.MaxMovieRating = info.AllowedRatings.ToMovieRatings();
                 profile.Locked = !profile.IsMain && info.Locked;
                 profile.TitleRequestPermission = info.TitleRequestPermissions;
             }
@@ -218,7 +219,8 @@ namespace DustyPig.Server.Controllers.v3
             var profile = new Profile
             {
                 AccountId = UserAccount.Id,
-                AllowedRatings = info.AllowedRatings,
+                MaxMovieRating = info.AllowedRatings.ToMovieRatings(),
+                MaxTVRating = info.AllowedRatings.ToTVRatings(),
                 AvatarUrl = info.AvatarUrl,
                 Locked = info.Locked,
                 Name = info.Name,
