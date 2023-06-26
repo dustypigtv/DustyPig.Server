@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3;
+﻿using Amazon.Runtime.Internal.Transform;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -66,23 +67,124 @@ namespace DustyPig.Server.Controllers.v3
             if (id <= 0)
                 return CommonResponses.NotFound<DetailedPlaylist>(nameof(id));
 
-            try { await DB.UpdatePlaylist(UserAccount, UserProfile, id); }
-            catch { }
+            var q =
+                from me in DB.MediaEntries
+                join lib in DB.Libraries on me.LibraryId equals lib.Id
+                join pli in DB.PlaylistItems on me.Id equals pli.MediaEntryId
+                join pl in DB.Playlists on pli.PlaylistId equals pl.Id
 
-            var playlist = await DB.Playlists
+                join series in DB.MediaEntries on me.LinkedToId equals series.Id into series_lj
+                from series in series_lj.DefaultIfEmpty()
+
+                join sub in DB.Subtitles on me.Id equals sub.MediaEntryId into sub_lj
+                from sub in sub_lj.DefaultIfEmpty()
+
+                join fls in DB.FriendLibraryShares
+                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
+                    .Select(t => (int?)t.LibraryId)
+                    on lib.Id equals fls into fls_lj
+                from fls in fls_lj.DefaultIfEmpty()
+
+                join pls in DB.ProfileLibraryShares
+                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
+                    equals new { pls.LibraryId, pls.ProfileId }
+                    into pls_lj
+                from pls in pls_lj.DefaultIfEmpty()
+
+                join ovrride in DB.TitleOverrides
+                    on new { MediaEntryId = me.EntryType == MediaTypes.Episode ? series.Id : me.Id, ProfileId = UserProfile.Id, Valid = true }
+                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
+                    into ovrride_lj
+                from ovrride in ovrride_lj.DefaultIfEmpty()
+
+                where
+                    pl.Id == id
+                    && pl.ProfileId == UserProfile.Id
+                    && Constants.PLAYABLE_MEDIA_TYPES.Contains(me.EntryType)
+                    &&
+                    (
+                        (
+                            UserProfile.IsMain
+                            &&
+                            (
+                                lib.AccountId == UserAccount.Id
+                                ||
+                                (
+                                    fls.HasValue
+                                    && ovrride.State != OverrideState.Block
+                                )
+                            )
+                        )
+                        ||
+                        (
+                            pls != null
+                            && ovrride.State != OverrideState.Block
+                            &&
+                            (
+                                (
+                                    me.EntryType == MediaTypes.Movie
+                                    && me.MovieRating <= UserProfile.MaxMovieRating
+                                )
+                                ||
+                                (
+                                    me.EntryType == MediaTypes.Episode
+                                    && me.TVRating <= UserProfile.MaxTVRating
+                                )
+                            )
+                        )
+                        || ovrride.State == OverrideState.Allow
+                    )
+
+                orderby
+                    pli.Index,
+                    sub.Name
+
+                select new
+                {
+                    pl,
+                    pli,
+                    me,
+                    sub,
+                    series
+                };
+
+            var data = await q
                 .AsNoTracking()
-                .Include(item => item.PlaylistItems)
-                .ThenInclude(item => item.MediaEntry)
-                .ThenInclude(item => item.LinkedTo)
-                .Include(item => item.PlaylistItems)
-                .ThenInclude(item => item.MediaEntry)
-                .ThenInclude(item => item.Subtitles)
-                .Where(item => item.Id == id)
-                .Where(item => item.ProfileId == UserProfile.Id)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (playlist == null)
-                return CommonResponses.NotFound<DetailedPlaylist>();
+            if (data.Count == 0)
+                return CommonResponses.NotFound<DetailedPlaylist>(nameof(id));
+
+            var playlist = data.First().pl;
+            playlist.PlaylistItems = new();
+            Data.Models.PlaylistItem newPLI = null;
+            foreach (var item in data)
+            {
+                if(newPLI != null)
+                {
+                    if (newPLI.Id == item.pli.Id)
+                    {
+                        if (item.sub != null)
+                            newPLI.MediaEntry.Subtitles.Add(item.sub);
+                    }
+                    else
+                    {
+                        playlist.PlaylistItems.Add(newPLI);
+                        newPLI = null;
+                    }
+                }
+
+                if (newPLI == null)
+                {
+                    newPLI = item.pli;
+                    newPLI.MediaEntry = item.me;
+                    newPLI.MediaEntry.LinkedTo = item.series;
+                    newPLI.MediaEntry.Subtitles ??= new();
+                    if (item.sub != null)
+                        newPLI.MediaEntry.Subtitles.Add(item.sub);
+                }
+            }
+
 
             var ret = new DetailedPlaylist
             {
@@ -176,9 +278,34 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-            try { await DB.UpdatePlaylist(UserAccount, UserProfile, info.Id, info.Name); }
-            catch (ModelValidationException ex) { return CommonResponses.BadRequest(ex.Errors[0]); }
-            catch (Exception ex) { return CommonResponses.BadRequest(ex.Message); }
+            var playlist = await DB.Playlists
+                .Where(item => item.Id == info.Id)
+                .Where(item => item.ProfileId == UserProfile.Id)
+                .FirstOrDefaultAsync();
+
+            if (playlist == null)
+                return CommonResponses.NotFound();
+
+            info.Name = info.Name.Trim();
+            if (playlist.Name == info.Name)
+                return CommonResponses.Ok();
+
+            //Make sure name is unique
+            if (playlist.Name != info.Name)
+            {
+                var exists = await DB.Playlists
+                    .AsNoTracking()
+                    .Where(item => item.Id != info.Id)
+                    .Where(item => item.ProfileId == UserProfile.Id)
+                    .Where(item => item.Name == info.Name)
+                    .AnyAsync();
+
+                if (exists)
+                    return new ResponseWrapper("Another playlist with the specified name already exists");
+            }
+
+            playlist.Name = info.Name;
+            await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();
         }
@@ -218,12 +345,6 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-            //Don't call UpdatePlaylist here: the logic get's really insane.
-            //The info passed in is based on the client's most recent understanding
-            //of the data after the last Details call, if UpdatePlaylist changes
-            //the data here, the client will be out of sync.  It's ok if this
-            //info here is wrong, it self corrects on the next Details call
-
             var playlist = await DB.Playlists
                 .Where(item => item.Id == info.PlaylistId)
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -252,9 +373,6 @@ namespace DustyPig.Server.Controllers.v3
             //Validate
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
-
-            try { await DB.UpdatePlaylist(UserAccount, UserProfile, info.PlaylistId); }
-            catch { }
 
             var qMax =
                 from pli in DB.PlaylistItems
@@ -371,9 +489,6 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-            try { await DB.UpdatePlaylist(UserAccount, UserProfile, info.PlaylistId); }
-            catch { }
-
             var qMax =
                 from pli in DB.PlaylistItems
                 where pli.PlaylistId == info.PlaylistId
@@ -443,6 +558,9 @@ namespace DustyPig.Server.Controllers.v3
                         )
                     )
 
+                orderby
+                    meEpisode.Xid
+
                 select new
                 {
                     meEpisode.Id,
@@ -454,15 +572,13 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.NotFound("Series");
 
             int idx = playlist.MaxIndex;
-            foreach (var episode in response.OrderBy(item => item.Xid))
-            {
+            foreach (var episode in response)
                 DB.PlaylistItems.Add(new Data.Models.PlaylistItem
                 {
                     Index = ++idx,
                     MediaEntryId = episode.Id,
                     PlaylistId = info.PlaylistId
                 });
-            }
 
             await DB.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(info.PlaylistId);
@@ -526,6 +642,9 @@ namespace DustyPig.Server.Controllers.v3
             if (pli == null)
                 return CommonResponses.NotFound(nameof(info.MediaId));
 
+            if (pli.Index == info.Index)
+                return CommonResponses.Ok();
+
             foreach (var item in playlist.PlaylistItems)
                 if (item.Index >= info.Index)
                     item.Index++;
@@ -534,9 +653,6 @@ namespace DustyPig.Server.Controllers.v3
             playlist.ArtworkUpdateNeeded = true;
 
             await DB.SaveChangesAsync();
-
-            try { await DB.UpdatePlaylist(UserAccount, UserProfile, info.Id); }
-            catch { }
 
             return CommonResponses.Ok();
         }
@@ -551,7 +667,7 @@ namespace DustyPig.Server.Controllers.v3
             //Validate
             try { data.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
-
+            
             var playlist = await DB.Playlists
                 .AsNoTracking()
                 .Include(item => item.PlaylistItems)
@@ -579,6 +695,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Now add/update
+            //Don't worry about filtering on playable here, that happens when reading the playlist
             for (int i = 0; i < data.MediaIds.Count; i++)
             {
                 var pli = playlist.PlaylistItems.FirstOrDefault(item => item.Id == data.MediaIds[i]);
@@ -618,17 +735,9 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
                 await DB.SaveChangesAsync();
-
-                try { await DB.UpdatePlaylist(UserAccount, UserProfile, playlist.Id); }
-                catch { }
             }
 
             return CommonResponses.Ok();
         }
-
-
-
-        
-
     }
 }
