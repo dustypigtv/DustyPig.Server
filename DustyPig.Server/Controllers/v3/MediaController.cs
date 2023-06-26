@@ -2153,15 +2153,14 @@ namespace DustyPig.Server.Controllers.v3
 
         Task<List<MediaEntry>> PopularAsync(AppDbContext dbInstance, int start, bool limit = true)
         {
-            var q = TopLevelWatchableByProfileQuery(dbInstance)
+            int take = limit ? HOME_SCREEN_LIST_SIZE : UNLIMITED_HOME_SCREEN_SCAN_SIZE;
+
+            return TopLevelWatchableByProfileQuery(dbInstance)
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Popularity_Descending)
-                .Skip(start);
-
-            if (limit)
-                q = q.Take(HOME_SCREEN_LIST_SIZE);
-
-            return q.ToListAsync();
+                .Skip(start)
+                .Take(HOME_SCREEN_LIST_SIZE)
+                .ToListAsync();
         }
 
         Task<List<MediaEntry>> GenresAsync(AppDbContext dbInstance, Genres genre, int start, SortOrder orderBy)
