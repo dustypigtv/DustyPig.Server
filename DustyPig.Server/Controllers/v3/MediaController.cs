@@ -237,7 +237,7 @@ namespace DustyPig.Server.Controllers.v3
                 results = (await PopularAsync(DB, request.Start)).Select(item => item.ToBasicMedia()).ToList();
 
             //Genres
-            if (request.ListId > 0 && request.ListId <= Enum.GetValues(typeof(Genres)).OfType<long>().Max())
+            if (request.ListId > 0 && request.ListId <= Enum.GetValues(typeof(Genres)).Cast<long>().Max())
                 results = (await GenresAsync(DB, (Genres)request.ListId, request.Start, SortOrder.Popularity_Descending)).Select(item => item.ToBasicMedia()).ToList();
 
             return new ResponseWrapper<List<BasicMedia>>(results);
