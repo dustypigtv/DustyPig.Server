@@ -24,7 +24,6 @@ namespace DustyPig.Server.Controllers.v3
     [Route("api/v{version:apiVersion}/profiles/[action]")]
     [Produces("application/json")]
     [ExceptionLogger(typeof(ProfilesListController))]
-    [SwaggerResponse((int)HttpStatusCode.InternalServerError)]
     public class ProfilesListController : _BaseAccountController
     {
         public ProfilesListController(AppDbContext db) : base(db) { }

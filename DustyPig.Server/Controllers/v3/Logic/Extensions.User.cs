@@ -64,6 +64,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 account = await db.Accounts
                     .AsNoTracking()
                     .Include(a => a.AccountTokens.Where(t => t.Id == authTokenId))
+                    .Include(a => a.Profiles)
                     .Where(a => a.Id == acctId.Value)
                     .FirstOrDefaultAsync();
             }
@@ -75,7 +76,10 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if (!account.AccountTokens.Any(item => item.Id == authTokenId.Value))
                 return (null, null);
 
-            Profile profile = account.Profiles?.FirstOrDefault(item => item.Id == profId.Value);
+            if (!profId.HasValue)
+                return (account, null);
+
+            Profile profile = account.Profiles.FirstOrDefault(item => item.Id == profId.Value);
             if (profile != null && fcmTokenId != null)
             {
                 var dbToken = profile.FCMTokens?.FirstOrDefault(item => item.Id == fcmTokenId);
