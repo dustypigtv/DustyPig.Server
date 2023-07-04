@@ -254,7 +254,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.Person)
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
-                .Where(item => item.EntryType == MediaTypes.Series)
+                .Where(item => item.EntryType == MediaTypes.Movie)
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null)
