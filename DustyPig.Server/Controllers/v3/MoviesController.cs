@@ -250,6 +250,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .Include(Item => Item.Library)
                 .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
                 .Where(item => item.Id == id)
