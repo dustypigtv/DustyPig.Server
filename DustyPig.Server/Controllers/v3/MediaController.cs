@@ -169,7 +169,7 @@ namespace DustyPig.Server.Controllers.v3
 
                         bool doneScanning = true;
                         foreach(List<BasicMedia> lst in gd.Values)
-                            if(lst.Count < MIN_HOME_SCREEN_LIST_SIZE)
+                            if(lst.Count < HOME_SCREEN_LIST_SIZE)
                             {
                                 doneScanning = false;
                                 break;
@@ -179,7 +179,7 @@ namespace DustyPig.Server.Controllers.v3
                     }
 
                     foreach (Genres g in gd.Keys)
-                        if (gd[g].Count >= HOME_SCREEN_LIST_SIZE / 2)
+                        if (gd[g].Count >= MIN_HOME_SCREEN_LIST_SIZE)
                             ret.Sections.Add(new HomeScreenList
                             {
                                 ListId = (long)g,
