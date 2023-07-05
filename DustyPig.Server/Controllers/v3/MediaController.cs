@@ -2159,7 +2159,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Popularity_Descending)
                 .Skip(start)
-                .Take(HOME_SCREEN_LIST_SIZE)
+                .Take(take)
                 .ToListAsync();
         }
 
