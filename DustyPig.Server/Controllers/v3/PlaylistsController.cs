@@ -638,7 +638,7 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return CommonResponses.NotFound("Playlist");
 
-            var pli = playlist.PlaylistItems.FirstOrDefault(item => item.Id == info.MediaId);
+            var pli = playlist.PlaylistItems.FirstOrDefault(item => item.MediaEntryId == info.MediaId);
             if (pli == null)
                 return CommonResponses.NotFound(nameof(info.MediaId));
 
