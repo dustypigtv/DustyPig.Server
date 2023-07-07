@@ -669,7 +669,6 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
             
             var playlist = await DB.Playlists
-                .AsNoTracking()
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .Where(item => item.Id == data.Id)
@@ -698,7 +697,7 @@ namespace DustyPig.Server.Controllers.v3
             //Don't worry about filtering on playable here, that happens when reading the playlist
             for (int i = 0; i < data.MediaIds.Count; i++)
             {
-                var pli = playlist.PlaylistItems.FirstOrDefault(item => item.Id == data.MediaIds[i]);
+                var pli = playlist.PlaylistItems.FirstOrDefault(item => item.MediaEntryId == data.MediaIds[i]);
                 if (pli == null)
                 {
                     DB.PlaylistItems.Add(new Data.Models.PlaylistItem
@@ -722,18 +721,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (changed)
             {
-                //Not tracking, so use stub
-                DB.Playlists.Update(new Data.Models.Playlist
-                {
-                    Id = playlist.Id,
-                    ArtworkUpdateNeeded = true,
-                    ArtworkUrl = playlist.ArtworkUrl,
-                    CurrentIndex = playlist.CurrentIndex,
-                    CurrentProgress = playlist.CurrentProgress,
-                    Name = playlist.Name,
-                    ProfileId = playlist.ProfileId,
-                });
-
+                DB.Playlists.Update(playlist);
                 await DB.SaveChangesAsync();
             }
 
