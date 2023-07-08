@@ -164,7 +164,7 @@ namespace DustyPig.Server.Controllers.v3
                 ArtworkUrl = playlist.ArtworkUrl
             };
 
-            foreach (var dbPlaylistItem in playlist.PlaylistItems)
+            foreach (var dbPlaylistItem in playlist.PlaylistItems.OrderBy(p => p.Index))
             {
                 var pli = new API.v3.Models.PlaylistItem
                 {
