@@ -605,11 +605,29 @@ namespace DustyPig.Server.Controllers.v3
             if (pli.Index == info.Index)
                 return CommonResponses.Ok();
 
-            foreach (var item in playlist.PlaylistItems)
-                if (item.Index >= info.Index)
-                    item.Index++;
-          
-            pli.Index = info.Index;
+
+
+            /*
+                Just can't see this in my head. So... notes
+
+                If 3 wants to move to 5 (oldIndex < newIndex), then moving down the list
+                    4 & 5 (> oldIndex, <= newIndex) move to 3 & 4, then set orig 3 to 5
+
+                if 5 wants to move to 3 (oldIndex > newIndex), then moving up the list
+                    3 & 4 (< oldIndex, >= newIndex) move to 4 & 5, then set orig 5 to 3
+              
+            */
+
+            int oldIndex = pli.Index;
+            int newIndex = info.Index;
+            foreach(var p in playlist.PlaylistItems)
+                if(oldIndex < newIndex && p.Index > oldIndex && p.Index <= newIndex)
+                    p.Index--;
+                else if(oldIndex > newIndex && p.Index < oldIndex && p.Index >= newIndex)
+                    p.Index++;
+
+            //Set the orig to the new index
+            pli.Index = newIndex;
             playlist.ArtworkUpdateNeeded = true;
 
             await DB.SaveChangesAsync();
