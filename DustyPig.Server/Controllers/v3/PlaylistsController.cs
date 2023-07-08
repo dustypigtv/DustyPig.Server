@@ -590,7 +590,6 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
             var playlist = await DB.Playlists
-                .AsNoTracking()
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .Where(item => item.PlaylistItems.Select(p => p.Id).Contains(info.Id))
