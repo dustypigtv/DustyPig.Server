@@ -583,26 +583,27 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        public async Task<ResponseWrapper> MoveItemToNewIndex(ManagePlaylistItem info)
+        public async Task<ResponseWrapper> MoveItemToNewIndex(MovePlaylistItem info)
         {
             //Validate
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
             var playlist = await DB.Playlists
+                .AsNoTracking()
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.ProfileId == UserProfile.Id)
-                .Where(item => item.Id == info.Id)
+                .Where(item => item.PlaylistItems.Select(p => p.Id).Contains(info.Id))
                 .FirstOrDefaultAsync();
 
             if (playlist == null)
                 return CommonResponses.NotFound("Playlist");
 
-            var pli = playlist.PlaylistItems.FirstOrDefault(item => item.MediaEntryId == info.MediaId);
+            var pli = playlist.PlaylistItems.FirstOrDefault(item => item.Id == info.Id);
             if (pli == null)
-                return CommonResponses.NotFound(nameof(info.MediaId));
+                return CommonResponses.NotFound(nameof(info.Id));
 
-            if (pli.Index == info.Index)
+            if (pli.Index == info.NewIndex)
                 return CommonResponses.Ok();
 
 
@@ -619,7 +620,7 @@ namespace DustyPig.Server.Controllers.v3
             */
 
             int oldIndex = pli.Index;
-            int newIndex = info.Index;
+            int newIndex = info.NewIndex;
             foreach(var p in playlist.PlaylistItems)
                 if(oldIndex < newIndex && p.Index > oldIndex && p.Index <= newIndex)
                     p.Index--;
