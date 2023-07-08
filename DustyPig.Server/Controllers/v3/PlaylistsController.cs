@@ -374,22 +374,17 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
 
-            var qMax =
-                from pli in DB.PlaylistItems
-                where pli.PlaylistId == info.PlaylistId
-                group pli by pli.PlaylistId into g
-                select new
-                {
-                    Id = g.Key,
-                    MaxIndex = g.Max(item => item.Index)
-                };
-
-            var playlist = await qMax
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
+            var playlist = await DB.Playlists
+                 .AsNoTracking()
+                 .Include(item => item.PlaylistItems)
+                 .Where(item => item.Id == info.PlaylistId)
+                 .Where(item => item.ProfileId == UserProfile.Id)
+                 .FirstOrDefaultAsync();
 
             if (playlist == null)
                 return CommonResponses.NotFound<SimpleValue<int>>("Playlist");
+
+            int maxIndex = playlist.PlaylistItems.Count > 0 ? playlist.PlaylistItems.Max(p => p.Index) : -1;
 
             var qME =
                 from me in DB.MediaEntries
@@ -465,7 +460,7 @@ namespace DustyPig.Server.Controllers.v3
             
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
-                Index = playlist.MaxIndex + 1,
+                Index = maxIndex + 1,
                 MediaEntryId = mediaEntry.Id,
                 PlaylistId = info.PlaylistId
             }).Entity;
@@ -489,22 +484,17 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-            var qMax =
-                from pli in DB.PlaylistItems
-                where pli.PlaylistId == info.PlaylistId
-                group pli by pli.PlaylistId into g
-                select new
-                {
-                    Id = g.Key,
-                    MaxIndex = g.Max(item => item.Index)
-                };
-
-            var playlist = await qMax
+            var playlist = await DB.Playlists
                 .AsNoTracking()
+                .Include(item => item.PlaylistItems)
+                .Where(item => item.Id == info.PlaylistId)
+                .Where(item => item.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
 
             if (playlist == null)
                 return CommonResponses.NotFound("Playlist");
+
+            int maxIndex = playlist.PlaylistItems.Count > 0 ? playlist.PlaylistItems.Max(p => p.Index) : -1;
 
             var q =
                 from meSeries in DB.MediaEntries
@@ -571,7 +561,7 @@ namespace DustyPig.Server.Controllers.v3
             if (response.Count == 0)
                 return CommonResponses.NotFound("Series");
 
-            int idx = playlist.MaxIndex;
+            int idx = maxIndex;
             foreach (var episode in response)
                 DB.PlaylistItems.Add(new Data.Models.PlaylistItem
                 {
