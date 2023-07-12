@@ -44,7 +44,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{initialCount}")]
-        public Task<ResponseWrapper<HomeScreen>> HomeScreen(int initialCount) => GetHomeScreenAsync(initialCount);
+        public Task<ResponseWrapper<HomeScreen>> HomeScreen(int initialCount) => GetHomeScreenAsync(Math.Min(DEFAULT_LIST_SIZE, Math.Max(2, initialCount)));
 
 
 
