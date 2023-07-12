@@ -98,7 +98,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Alphabetical)
                 .Skip(request.Start)
-                .Take(HOME_SCREEN_LIST_SIZE)
+                .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
@@ -125,7 +125,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Alphabetical)
                 .Skip(start)
-                .Take(HOME_SCREEN_LIST_SIZE)
+                .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());

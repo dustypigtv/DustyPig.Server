@@ -15,9 +15,9 @@ namespace DustyPig.Server.Controllers.v3
 {
     public abstract class _MediaControllerBase : _BaseProfileController
     {
-        internal const int HOME_SCREEN_LIST_SIZE = 25;
-        internal const int MIN_HOME_SCREEN_LIST_SIZE = 10;
-        internal const int UNLIMITED_HOME_SCREEN_SCAN_SIZE = 1000; //This should be approximately # of Genres flags x HOME_SCREEN_LIST_SIZE, which is currently 950
+        internal const int DEFAULT_LIST_SIZE = 25;
+        internal const int MIN_GENRE_LIST_SIZE = 10;
+        internal const int MAX_DB_lIST_sIZE = 1000; //This should be approximately # of Genres flags x DEFAULT_LIST_SIZE, which is currently 950
 
         internal readonly Services.TMDBClient _tmdbClient;
 
