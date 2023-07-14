@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Firebase.Auth;
+using DustyPig.REST;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Security.Principal;
@@ -41,31 +43,42 @@ namespace DustyPig.Server.Controllers.v3
         {
             //For mobile clients that login using the Firebase lib, this will convert the Firebase token to a DustyPig token
 
-            var dataResponse = await _firebaseClient.GetUserDataAsync(token.Value);
-            if (!dataResponse.Success)
-                return new ResponseWrapper<LoginResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
-
-            var user = dataResponse.Data.Users.First();
-            if (!user.EmailVerified)
-                return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
-
-            var account = await GetOrCreateAccountAsync(user.LocalId, null, user.Email, null);
-            if (account.Profiles.Count == 1)
+            try
             {
-                return new ResponseWrapper<LoginResponse>(new LoginResponse
+                var verifyResponse = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token.Value, true);
+
+                bool emailVerified = GetFBClaim(verifyResponse.Claims, "email_verified", false);
+                if (!emailVerified)
+                    return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
+
+                string displayName = GetFBClaim(verifyResponse.Claims, "name", default(string));
+                string email = GetFBClaim(verifyResponse.Claims, "email", default(string));
+                string picture = GetFBClaim(verifyResponse.Claims, "picture", default(string));
+                
+                var account = await GetOrCreateAccountAsync(verifyResponse.Uid, displayName, email, picture);
+                if (account.Profiles.Count == 1)
                 {
-                    LoginType = LoginType.MainProfile,
-                    ProfileId = account.Profiles.First().Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null)
-                });
+                    return new ResponseWrapper<LoginResponse>(new LoginResponse
+                    {
+                        LoginType = LoginType.MainProfile,
+                        ProfileId = account.Profiles.First().Id,
+                        Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null)
+                    });
+                }
+                else
+                {
+                    return new ResponseWrapper<LoginResponse>(new LoginResponse
+                    {
+                        LoginType = LoginType.Account,
+                        Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                    });
+                }
             }
-            else
+            catch (Exception ex)
             {
-                return new ResponseWrapper<LoginResponse>(new LoginResponse
-                {
-                    LoginType = LoginType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
-                });
+                if (ex is AggregateException aex)
+                    ex = aex.InnerException;
+                return new ResponseWrapper<LoginResponse>(ex.Message);
             }
         }
 
@@ -103,8 +116,8 @@ namespace DustyPig.Server.Controllers.v3
                 var user = dataResponse.Data.Users.First();
                 if (!user.EmailVerified)
                     return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
-
-                account = await GetOrCreateAccountAsync(user.LocalId, null, user.Email, null);
+              
+                account = await GetOrCreateAccountAsync(user.LocalId, user.DisplayName, user.Email, user.PhotoUrl);
             }
 
             if (account.Profiles.Count == 1)
@@ -629,5 +642,13 @@ namespace DustyPig.Server.Controllers.v3
 
             return account;
         }
+
+        static T GetFBClaim<T>(IReadOnlyDictionary<string, object> claims, string key, T defVal)
+        {
+            try { return (T)claims.First(item => item.Key == key).Value; }
+            catch { return defVal; }
+        }
+
+        
     }
 }
