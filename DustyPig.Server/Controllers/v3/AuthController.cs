@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,44 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 0
         /// </summary>
-        /// <remarks>Returns an account level bearer token</remarks>
+        [HttpPost]
+        public async Task<ResponseWrapper<LoginResponse>> LoginWithFirebaseToken(SimpleValue<string> token)
+        {
+            //For mobile clients that login using the Firebase lib, this will convert the Firebase token to a DustyPig token
+
+            var dataResponse = await _firebaseClient.GetUserDataAsync(token.Value);
+            if (!dataResponse.Success)
+                return new ResponseWrapper<LoginResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+
+            var user = dataResponse.Data.Users.First();
+            if (!user.EmailVerified)
+                return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
+
+            var account = await GetOrCreateAccountAsync(user.LocalId, null, user.Email, null);
+            if (account.Profiles.Count == 1)
+            {
+                return new ResponseWrapper<LoginResponse>(new LoginResponse
+                {
+                    LoginType = LoginType.MainProfile,
+                    ProfileId = account.Profiles.First().Id,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null)
+                });
+            }
+            else
+            {
+                return new ResponseWrapper<LoginResponse>(new LoginResponse
+                {
+                    LoginType = LoginType.Account,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                });
+            }
+        }
+
+
+
+        /// <summary>
+        /// Level 0
+        /// </summary>
         [HttpPost]
         public async Task<ResponseWrapper<LoginResponse>> PasswordLogin(PasswordCredentials credentials)
         {
@@ -62,11 +100,11 @@ namespace DustyPig.Server.Controllers.v3
                 if (!dataResponse.Success)
                     return new ResponseWrapper<LoginResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
-                var users = dataResponse.Data.Users.Where(item => item.Email.ICEquals(signInResponse.Data.Email));
-                if (!users.Any(item => item.EmailVerified))
+                var user = dataResponse.Data.Users.First();
+                if (!user.EmailVerified)
                     return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
 
-                account = await GetOrCreateAccountAsync(signInResponse.Data.LocalId, null, signInResponse.Data.Email, null);
+                account = await GetOrCreateAccountAsync(user.LocalId, null, user.Email, null);
             }
 
             if (account.Profiles.Count == 1)
@@ -139,39 +177,6 @@ namespace DustyPig.Server.Controllers.v3
 
             return CommonResponses.Ok();
         }
-
-
-        ///// <summary>
-        ///// Level 0
-        ///// </summary>
-        ///// <remarks>Logs into the account using an OAuth token, and returns an account level bearer token</remarks>
-        //[HttpPost]
-        //public async Task<LoginResponse> OAuthLogin(OAuthCredentials credentials)
-        //{
-        //    //Validate
-        //    try { credentials.Validate(); }
-        //    catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
-
-        //    var response = await _firebaseClient.SignInWithOAuthAsync("http://localhost", credentials.Token, credentials.Provider.ToString().ToLower() + ".com");
-        //    if (!response.Success)
-        //        return new ResponseWrapper(response.FirebaseError().TranslateFirebaseError(FirebaseMethods.OauthSignin));
-
-        //    var account = await GetOrCreateAccountAsync(response.Data.LocalId, Utils.Coalesce(response.Data.FirstName, response.Data.FullName), response.Data.Email, response.Data.PhotoUrl);
-
-        //    if (account.Profiles.Count == 1)
-        //        return new ResponseWrapper(new LoginResponse
-        //        {
-        //            LoginType = LoginType.MainProfile,
-        //            Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, credentials.FCMToken)
-        //        });
-        //    else
-        //        return new ResponseWrapper(new LoginResponse
-        //        {
-        //            LoginType = LoginType.Account,
-        //            Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
-        //        });
-        //}
-
 
 
         /// <summary>
