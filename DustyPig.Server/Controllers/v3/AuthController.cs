@@ -6,6 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using FirebaseAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Linq;
 using System.Net;
+using System.Security.Principal;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -58,7 +60,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
                 if (!dataResponse.Success)
-                    return new ResponseWrapper<LoginResponse>(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+                    return new ResponseWrapper<LoginResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
                 var users = dataResponse.Data.Users.Where(item => item.Email.ICEquals(signInResponse.Data.Email));
                 if (!users.Any(item => item.EmailVerified))
