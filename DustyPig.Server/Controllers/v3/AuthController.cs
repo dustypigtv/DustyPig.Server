@@ -35,7 +35,6 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 0
         /// </summary>
-        [EnableCors("AllowCORS")]
         [HttpPost]
         public async Task<ResponseWrapper<LoginResponse>> LoginWithFirebaseToken(SimpleValue<string> token)
         {
