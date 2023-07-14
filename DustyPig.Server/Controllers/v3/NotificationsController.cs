@@ -5,11 +5,9 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using APINotification = DustyPig.API.v3.Models.Notification;
 
@@ -38,7 +36,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(LIST_SIZE)
                 .ToListAsync();
 
-            return new ResponseWrapper<List<APINotification>>( notifications.Select(item => new APINotification
+            return new ResponseWrapper<List<APINotification>>(notifications.Select(item => new APINotification
             {
                 Id = item.Id,
                 Message = item.Message,

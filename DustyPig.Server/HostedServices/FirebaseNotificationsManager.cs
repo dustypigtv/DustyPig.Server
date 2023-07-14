@@ -89,8 +89,8 @@ namespace DustyPig.Server.HostedServices
             string query = $"DELETE FROM {nameof(db.FCMTokens)} WHERE {nameof(FCMToken.LastSeen)} < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
             await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
         }
-             
-        
+
+
 
         private async Task SendNotificationsAsync()
         {

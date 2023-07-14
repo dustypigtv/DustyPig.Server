@@ -34,6 +34,6 @@ namespace DustyPig.Server.Data.Migrations
                 name: "TokenHash",
                 table: "FCMTokens");
 
-           }
+        }
     }
 }

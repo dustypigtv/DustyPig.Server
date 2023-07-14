@@ -56,7 +56,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     .Where(a => a.Id == acctId.Value)
                     .FirstOrDefaultAsync();
 
-            
+
             if (account == null)
                 return (null, null);
 

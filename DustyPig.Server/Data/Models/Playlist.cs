@@ -18,7 +18,7 @@ namespace DustyPig.Server.Data.Models
         [Required]
         [MaxLength(Constants.MAX_NAME_LENGTH)]
         public string Name { get; set; }
-        
+
         /// <summary>
         /// Current Item Index
         /// </summary>

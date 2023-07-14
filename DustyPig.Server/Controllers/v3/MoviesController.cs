@@ -363,7 +363,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             //Notifications
-            if(newItem.TMDB_Id > 0)
+            if (newItem.TMDB_Id > 0)
             {
                 var getRequest = await DB.GetRequests
                     .Include(item => item.NotificationSubscriptions)
@@ -395,7 +395,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-            if(save) 
+            if (save)
                 await DB.SaveChangesAsync();
 
             return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(newItem.Id));
@@ -441,7 +441,7 @@ namespace DustyPig.Server.Controllers.v3
             //Update info
             bool tmdb_changed = existingItem.TMDB_Id != movieInfo.TMDB_Id;
             bool artwork_changed = existingItem.ArtworkUrl != movieInfo.ArtworkUrl;
-            
+
             //Don't update Added
 
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
@@ -460,7 +460,7 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.Title = movieInfo.Title;
             existingItem.TMDB_Id = movieInfo.TMDB_Id;
             existingItem.VideoUrl = movieInfo.VideoUrl;
-            
+
             existingItem.Hash = existingItem.ComputeHash();
 
             //Dup check
@@ -506,8 +506,8 @@ namespace DustyPig.Server.Controllers.v3
             var existingSubtitles = await DB.Subtitles
                 .Where(item => item.MediaEntryId == existingItem.Id)
                 .ToListAsync();
-          
-            if(existingSubtitles.Count > 0)
+
+            if (existingSubtitles.Count > 0)
             {
                 DB.Subtitles.RemoveRange(existingSubtitles);
                 await DB.SaveChangesAsync();

@@ -3,8 +3,6 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.HostedServices;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -62,8 +60,8 @@ namespace DustyPig.Server.Controllers.v3
                     .Distinct()
                     .ToListAsync();
 
-            playlists.ForEach(item => item.ArtworkUpdateNeeded = true); 
-            
+            playlists.ForEach(item => item.ArtworkUpdateNeeded = true);
+
 
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
@@ -149,8 +147,8 @@ namespace DustyPig.Server.Controllers.v3
                             .Select(item2 => item2.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
                             .Distinct()
                     ));
-                
-                
+
+
                 ret.AddRange
                     (
                         extraSearchTerms.SelectMany(item =>

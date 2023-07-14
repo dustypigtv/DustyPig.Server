@@ -48,7 +48,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             var ret = new List<NormHash>();
 
-            for(int i = 0; i < lst.Count; i++)
+            for (int i = 0; i < lst.Count; i++)
             {
                 string norm = lst[i];
                 if (lowerCase)
@@ -162,7 +162,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var newDBPeople = new List<Person>();
             foreach (var person in normLst)
                 if (!dbPeople.Any(item => item.Hash == person.Hash))
-                    if(!newDBPeople.Any(item => item.Hash == person.Hash))
+                    if (!newDBPeople.Any(item => item.Hash == person.Hash))
                         newDBPeople.Add(ctx.People.Add(new Person { Name = person.Norm, Hash = person.Hash }).Entity);
 
             if (newDBPeople.Count > 0)
@@ -200,7 +200,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             AddNewPeople(ctx, mediaEntry.Id, writers, normLst, dbPeople, Roles.Writer);
 
             //This fixes the context.update problem
-            await ctx.SaveChangesAsync();                        
+            await ctx.SaveChangesAsync();
         }
 
         private static void AddNewPeople(AppDbContext context, int mediaEntryId, List<string> people, List<NormHash> normLst, List<Person> dbPeople, Roles role)
@@ -209,7 +209,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //The simplest way I can see to stop that is to add IEquatable to the bridge and
             //then check for previous instances before adding again
             var newBridges = new List<MediaPersonBridge>();
-            
+
             int sort = 0;
             foreach (string person in people)
             {
@@ -220,7 +220,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                     PersonId = dbPeople.First(item => item.Hash == normItem.Hash).Id,
                     Role = role
                 };
-             
+
                 if (!newBridges.Contains(bridge))
                 {
                     bridge.SortOrder = sort++;

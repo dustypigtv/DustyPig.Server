@@ -9,7 +9,7 @@ namespace DustyPig.Server.Utilities
             if (notification.MediaEntryId == null)
                 return null;
 
-            if(notification.NotificationType == NotificationType.OverrideRequest)
+            if (notification.NotificationType == NotificationType.OverrideRequest)
                 return $"dustypig://overrides/{notification.TitleOverrideId}";
 
             if (notification.NotificationType == NotificationType.Media)

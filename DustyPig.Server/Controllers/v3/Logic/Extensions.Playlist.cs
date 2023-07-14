@@ -1,8 +1,4 @@
 ﻿using DustyPig.API.v3.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
@@ -18,8 +14,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 ArtworkUrl = self.ArtworkUrl,
             };
 
-            
+
             return ret;
-        }        
+        }
     }
 }

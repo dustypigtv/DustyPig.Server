@@ -1,11 +1,10 @@
-﻿using Amazon.S3.Transfer;
-using Amazon.S3;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using System.Threading;
+﻿using Amazon.S3;
+using Amazon.S3.Transfer;
 using DustyPig.API.v3.Models;
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DustyPig.Server.Services
 {

@@ -32,7 +32,7 @@ namespace DustyPig.Server.Services
             }
 
             switch (method)
-            {            
+            {
                 case FirebaseMethods.PasswordSignup:
                     switch (error.Message)
                     {

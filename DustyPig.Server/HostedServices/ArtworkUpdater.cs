@@ -1,20 +1,19 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
+using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp.Processing;
-using DustyPig.Server.Data.Models;
 
 namespace DustyPig.Server.HostedServices
 {
@@ -99,8 +98,8 @@ namespace DustyPig.Server.HostedServices
 
             try
             {
-               
-                var q = 
+
+                var q =
                     from me in db.MediaEntries
                     join lib in db.Libraries on me.LibraryId equals lib.Id
                     join pli in db.PlaylistItems on me.Id equals pli.MediaEntryId
@@ -179,7 +178,7 @@ namespace DustyPig.Server.HostedServices
                     .ToListAsync(_cancellationToken);
 
 
-                
+
                 playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
                 var art = new Dictionary<int, string>();
@@ -277,7 +276,7 @@ namespace DustyPig.Server.HostedServices
                 _logger.LogError(ex, ex.Message);
             }
         }
-   
+
         private async Task DeleteNextAsync()
         {
             try

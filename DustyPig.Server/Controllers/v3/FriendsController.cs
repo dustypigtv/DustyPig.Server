@@ -228,7 +228,7 @@ namespace DustyPig.Server.Controllers.v3
             if (info.Accepted && !friendship.Accepted)
             {
                 friendship.Accepted = true;
-               
+
                 DB.Notifications.Add(new Data.Models.Notification
                 {
                     FriendshipId = friendship.Id,

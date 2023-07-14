@@ -1,5 +1,4 @@
-﻿using AsyncAwaitBestPractices;
-using DustyPig.API.v3;
+﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -8,16 +7,12 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
-using DustyPig.TMDB.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Ocsp;
 using SixLabors.ImageSharp;
-using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -121,12 +116,12 @@ namespace DustyPig.Server.Controllers.v3
             if (libId > 0)
                 q = q.Where(item => item.LibraryId == libId);
 
-           var series = await q
-                .AsNoTracking()
-                .ApplySortOrder(SortOrder.Alphabetical)
-                .Skip(start)
-                .Take(DEFAULT_LIST_SIZE)
-                .ToListAsync();
+            var series = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(DEFAULT_LIST_SIZE)
+                 .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
         }
@@ -143,13 +138,13 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(item => item.Library)
                 .ThenInclude(item => item.Account)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
                 .ThenInclude(item => item.Friendship)
                 .ThenInclude(item => item.Account1)
                 .ThenInclude(item => item.Profiles)
-                
+
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
                 .ThenInclude(item => item.Friendship)
@@ -158,7 +153,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.Library)
                 .ThenInclude(item => item.ProfileLibraryShares.Where(item2 => item2.Profile.Id == UserProfile.Id))
-                
+
                 .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
 
                 .Include(item => item.People)
@@ -167,18 +162,18 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
 
                 .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
-                
+
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .FirstOrDefaultAsync();
 
-            if(media == null)
+            if (media == null)
                 return CommonResponses.NotFound<DetailedSeries>();
 
-            if(media.Library.AccountId != UserAccount.Id)
-                if(!media.Library.FriendLibraryShares.Any())
-                    if(!media.TitleOverrides.Any())
-                        if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled) 
+            if (media.Library.AccountId != UserAccount.Id)
+                if (!media.Library.FriendLibraryShares.Any())
+                    if (!media.TitleOverrides.Any())
+                        if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
                             return CommonResponses.NotFound<DetailedSeries>();
 
 
@@ -189,7 +184,7 @@ namespace DustyPig.Server.Controllers.v3
                     !media.TitleOverrides.Any(item => item.State == OverrideState.Block)
                     &&
                     (
-                        UserProfile.IsMain 
+                        UserProfile.IsMain
                         && media.Library.FriendLibraryShares.Any()
                     )
                     &&
@@ -198,7 +193,7 @@ namespace DustyPig.Server.Controllers.v3
                         && UserProfile.MaxTVRating >= (media.TVRating ?? TVRatings.NotRated)
                     )
                 );
-                
+
 
 
             //Build the response
@@ -220,8 +215,8 @@ namespace DustyPig.Server.Controllers.v3
                 TMDB_Id = media.TMDB_Id,
                 Writers = media.GetPeople(Roles.Writer)
             };
-            
-            
+
+
             if (playable)
                 ret.InWatchlist = media.WatchlistItems.Any();
 
@@ -495,7 +490,7 @@ namespace DustyPig.Server.Controllers.v3
             try { seriesInfo.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-         
+
             var existingItem = await DB.MediaEntries
                 .Where(item => item.Id == seriesInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Series)
@@ -560,8 +555,8 @@ namespace DustyPig.Server.Controllers.v3
                 var episodes = await DB.MediaEntries
                     .Where(item => item.LinkedToId == existingItem.Id)
                     .ToListAsync();
-            
-                if(library_changed || rated_changed)
+
+                if (library_changed || rated_changed)
                     episodes.ForEach(item =>
                     {
                         item.LibraryId = existingItem.LibraryId;
@@ -570,7 +565,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 var episodeIds = episodes.Select(item => item.Id).Distinct().ToList();
                 playlistIds = await DB.PlaylistItems
-                    .AsNoTracking()                
+                    .AsNoTracking()
                     .Where(item => item.MediaEntry.LinkedToId == existingItem.Id)
                     .Include(item => item.Playlist)
                     .Select(item => item.PlaylistId)
@@ -758,8 +753,8 @@ namespace DustyPig.Server.Controllers.v3
             if (ret == null)
                 return CommonResponses.NotFound(nameof(id));
 
-            if(ret.sub == null)
-            { 
+            if (ret.sub == null)
+            {
                 DB.Subscriptions.Add(new Subscription
                 {
                     MediaEntryId = id,
@@ -945,5 +940,5 @@ namespace DustyPig.Server.Controllers.v3
             return CommonResponses.Ok();
         }
 
- }
+    }
 }

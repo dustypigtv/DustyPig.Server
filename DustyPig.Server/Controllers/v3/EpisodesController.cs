@@ -5,10 +5,8 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MySqlX.XDevAPI.Common;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -151,7 +149,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToList();
 
             if (pmp != null)
-            {                
+            {
                 if (allEpisodes.Count > 0)
                 {
                     var dbEp = allEpisodes.FirstOrDefault(item => item.Xid == pmp.Xid);

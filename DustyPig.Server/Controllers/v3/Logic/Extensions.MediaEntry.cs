@@ -3,7 +3,6 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
 using System.Collections.Generic;
 using System.Linq;
-using DustyPig.Server.Controllers.v3.Logic;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {

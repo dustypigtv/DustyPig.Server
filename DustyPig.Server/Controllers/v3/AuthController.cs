@@ -1,14 +1,11 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Firebase.Auth;
-using DustyPig.REST;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
-using FirebaseAdmin;
-using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +14,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Principal;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -54,7 +50,7 @@ namespace DustyPig.Server.Controllers.v3
                 string displayName = GetFBClaim(verifyResponse.Claims, "name", default(string));
                 string email = GetFBClaim(verifyResponse.Claims, "email", default(string));
                 string picture = GetFBClaim(verifyResponse.Claims, "picture", default(string));
-                
+
                 var account = await GetOrCreateAccountAsync(verifyResponse.Uid, displayName, email, picture);
                 if (account.Profiles.Count == 1)
                 {
@@ -116,7 +112,7 @@ namespace DustyPig.Server.Controllers.v3
                 var user = dataResponse.Data.Users.First();
                 if (!user.EmailVerified)
                     return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
-              
+
                 account = await GetOrCreateAccountAsync(user.LocalId, user.DisplayName, user.Email, user.PhotoUrl);
             }
 
@@ -428,8 +424,8 @@ namespace DustyPig.Server.Controllers.v3
             var profile = account.Profiles
                 .Where(item => item.Id == profId)
                 .FirstOrDefault();
-           
-            if(profile == null)
+
+            if (profile == null)
                 return CommonResponses.Unauthorized();
 
             if (!profile.IsMain)
@@ -470,7 +466,7 @@ namespace DustyPig.Server.Controllers.v3
             else
             {
                 int? newFCMId = null;
-                string newFCMVal = fcmToken == null ? null : fcmToken.Value;               
+                string newFCMVal = fcmToken == null ? null : fcmToken.Value;
 
                 if (string.IsNullOrWhiteSpace(newFCMVal))
                     await DeleteCurrentFCMToken(profile);
@@ -537,7 +533,7 @@ namespace DustyPig.Server.Controllers.v3
                 throw new ArgumentNullException(nameof(newFCM));
 
             int? currentFCM = User.GetFCMTokenId();
-            
+
 
             //Check if the token value is in the db
             var dbNewToken = await DB.FCMTokens
@@ -579,12 +575,12 @@ namespace DustyPig.Server.Controllers.v3
                 if (dbOldToken != null)
                 {
                     if (dbOldToken.Token == newFCM)
-                 
+
                         //Same token, all good
                         return dbOldToken.Id;
 
                     else
-                    
+
                         //Delete the old token
                         DB.FCMTokens.Remove(dbOldToken);
                 }
@@ -602,7 +598,7 @@ namespace DustyPig.Server.Controllers.v3
             int? currentFCM = User.GetFCMTokenId();
             if (currentFCM == null)
                 return false;
-           
+
             var dbToken = profile.FCMTokens.FirstOrDefault(item => item.Id == currentFCM.Value);
             if (dbToken == null)
                 return false;
@@ -649,6 +645,6 @@ namespace DustyPig.Server.Controllers.v3
             catch { return defVal; }
         }
 
-        
+
     }
 }

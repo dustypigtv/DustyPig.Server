@@ -2,13 +2,9 @@
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using Google.Protobuf.WellKnownTypes;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NuGet.LibraryModel;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Principal;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3.Logic
@@ -81,7 +77,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return CommonResponses.Ok();
         }
 
-        static Task<Friendship> GetFriend(AppDbContext db, Account account) => 
+        static Task<Friendship> GetFriend(AppDbContext db, Account account) =>
             db.Friendships
                 .AsNoTracking()
                 .Include(item => item.FriendLibraryShares)
@@ -105,6 +101,6 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .Distinct()
                 .ToListAsync();
         }
-    
+
     }
 }

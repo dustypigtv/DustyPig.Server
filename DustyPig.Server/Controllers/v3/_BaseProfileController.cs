@@ -3,8 +3,6 @@ using DustyPig.Server.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Swashbuckle.AspNetCore.Annotations;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3

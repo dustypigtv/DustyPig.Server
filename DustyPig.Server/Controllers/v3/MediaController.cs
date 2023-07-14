@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal.Transform;
-using DustyPig.API.v3;
+﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -7,15 +6,10 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
-using DustyPig.TMDB.Models;
-using K4os.Compression.LZ4.Streams;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,7 +20,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(MediaController))]
     public class MediaController : _MediaControllerBase
     {
-        
+
         public MediaController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
         {
         }
@@ -259,11 +253,11 @@ namespace DustyPig.Server.Controllers.v3
 
             var q =
                 from me in DB.MediaEntries
-         
-                join lib in DB.Libraries 
+
+                join lib in DB.Libraries
                     on new { me.LibraryId, AccountId = UserAccount.Id }
                     equals new { LibraryId = lib.Id, lib.AccountId }
-                             
+
                 join ovrride in DB.TitleOverrides
                     on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
                     equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
@@ -556,7 +550,7 @@ namespace DustyPig.Server.Controllers.v3
                     MediaEntryId = id,
                     ProfileId = UserProfile.Id
                 });
-                    
+
                 await DB.SaveChangesAsync();
             }
 
@@ -675,7 +669,7 @@ namespace DustyPig.Server.Controllers.v3
                     me.Length
                 };
 
-            
+
             var response = await q
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
@@ -683,10 +677,10 @@ namespace DustyPig.Server.Controllers.v3
             if (response == null)
                 return CommonResponses.NotFound(nameof(hist.Id));
 
-            
+
             if (response.Progress == null)
             {
-                if(response.EntryType == MediaTypes.Movie)
+                if (response.EntryType == MediaTypes.Movie)
                     if (hist.Seconds < 1 || hist.Seconds > (response.CreditsStartTime ?? (response.Length * 0.9)))
                         return CommonResponses.Ok();
 
@@ -703,7 +697,8 @@ namespace DustyPig.Server.Controllers.v3
             else
             {
                 if (response.EntryType == MediaTypes.Movie)
-                {   if (hist.Seconds < 1 || hist.Seconds > (response.CreditsStartTime ?? (response.Length * 0.9)))
+                {
+                    if (hist.Seconds < 1 || hist.Seconds > (response.CreditsStartTime ?? (response.Length * 0.9)))
                         DB.ProfileMediaProgresses.Remove(response.Progress);
                 }
                 else
@@ -993,7 +988,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             long ret = 0;
-            foreach(var item in response)
+            foreach (var item in response)
             {
                 if (item.Genre_Action) ret |= (long)Genres.Action;
                 if (item.Genre_Adventure) ret |= (long)Genres.Adventure;
@@ -1461,7 +1456,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 if (existingOverride == null)
                 {
-                    if(mediaEntry.Library.ProfileLibraryShares.Any(item => item.ProfileId == UserProfile.Id))
+                    if (mediaEntry.Library.ProfileLibraryShares.Any(item => item.ProfileId == UserProfile.Id))
                     {
                         if (mediaEntry.EntryType == MediaTypes.Movie && mediaEntry.MovieRating <= UserProfile.MaxMovieRating)
                             return CommonResponses.Ok();
@@ -1698,14 +1693,14 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Make sure this profile ownes the movie, or this is the main profile and the movie is shared with it
-            if(mediaEntry.Library.AccountId != UserAccount.Id)
+            if (mediaEntry.Library.AccountId != UserAccount.Id)
                 if (!UserProfile.IsMain)
                     return CommonResponses.NotFound(nameof(info.TitleId));
 
             //Check if each profile is owned or the main profile of a friend
             foreach (var ptoi in info.Profiles)
                 if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
-                {    
+                {
                     bool found = false;
                     foreach (var friend in mediaEntry.Library.FriendLibraryShares.Select(item => item.Friendship))
                     {
@@ -1725,7 +1720,7 @@ namespace DustyPig.Server.Controllers.v3
                         return CommonResponses.NotFound($"Profile: {ptoi.ProfileId}");
                 }
 
-            
+
             foreach (var ptoi in info.Profiles)
             {
                 var overrideEntity = mediaEntry.TitleOverrides
@@ -1770,8 +1765,8 @@ namespace DustyPig.Server.Controllers.v3
                     overrideEntity.Status = ptoi.State == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied;
                     overrideEntity.State = ptoi.State;
 
-                    if(ptoi.State == OverrideState.Block)
-                        if(!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
+                    if (ptoi.State == OverrideState.Block)
+                        if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
                         {
                             //This profile is a friend, delete all their sub-profile overrides
                             foreach (var friend in mediaEntry.Library.FriendLibraryShares.Select(item => item.Friendship))
@@ -1803,7 +1798,7 @@ namespace DustyPig.Server.Controllers.v3
                             Timestamp = DateTime.UtcNow
                         });
 
-                }                
+                }
             }
 
             await DB.SaveChangesAsync();
@@ -1894,7 +1889,7 @@ namespace DustyPig.Server.Controllers.v3
                                 )
                             )
                         )
-                        ||                        
+                        ||
                         (
                             pls != null
                             && UserProfile.MaxTVRating >= (meSeries.TVRating ?? TVRatings.NotRated)
@@ -2201,7 +2196,7 @@ namespace DustyPig.Server.Controllers.v3
                         //So far this is the most optimized I know how to do this using LINQ.
                         //Using this big old if then else expression simplifies the query if only 1 genre is flagged,
                         //and also handles Genres.Unknown.
-                        genre == Genres.Unknown ? 
+                        genre == Genres.Unknown ?
                         (
                             me.Genre_Action == false
                             && me.Genre_Adventure == false

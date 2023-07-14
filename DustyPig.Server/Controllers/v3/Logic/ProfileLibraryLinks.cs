@@ -2,10 +2,7 @@
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Build.Framework;
 using Microsoft.EntityFrameworkCore;
-using NuGet.LibraryModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,7 +35,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 if (!library.FriendLibraryShares.Any(item => item.Friendship.Account1Id == account.Id))
                     if (!library.FriendLibraryShares.Any(item => item.Friendship.Account2Id == account.Id))
                         return CommonResponses.NotFound("Library");
-                       
+
             db.ProfileLibraryShares.Add(new ProfileLibraryShare
             {
                 LibraryId = libraryId,

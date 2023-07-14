@@ -1,5 +1,4 @@
 ﻿using DustyPig.API.v3.Models;
-using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -256,7 +255,7 @@ namespace DustyPig.Server.Data.Models
             if (EntryType == MediaTypes.Movie)
                 Hash = Crypto.HashMovieTitle(Title, Date.Value.Year);
 
-            if(EntryType == MediaTypes.Series)
+            if (EntryType == MediaTypes.Series)
                 Hash = Crypto.NormalizedHash(Title);
 
             return Hash;

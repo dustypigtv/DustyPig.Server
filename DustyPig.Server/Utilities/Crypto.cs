@@ -1,6 +1,4 @@
-﻿using Krypto.WonderDog;
-using Krypto.WonderDog.Hashers;
-using Krypto.WonderDog.Symmetric;
+﻿using Krypto.WonderDog.Hashers;
 using System.Text.RegularExpressions;
 
 namespace DustyPig.Server.Utilities

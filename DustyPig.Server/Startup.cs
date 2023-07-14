@@ -2,7 +2,6 @@ using DustyPig.Server.Data;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using DustyPig.Server.SwaggerHelpers;
-using DustyPig.Server.Utilities;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

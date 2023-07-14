@@ -6,11 +6,9 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -257,12 +255,12 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             foreach (string url in playlistArtworkUrls)
-                if(!string.IsNullOrWhiteSpace(url))
+                if (!string.IsNullOrWhiteSpace(url))
                     DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url });
 
             DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = Profile.CalculateS3Url(id) });
             DB.Entry(profile).State = EntityState.Deleted;
-            
+
             await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();

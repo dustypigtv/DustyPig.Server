@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal.Transform;
-using DustyPig.API.v3;
+﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -37,12 +36,12 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new List<BasicPlaylist>();
 
             var playlists = await DB.Playlists
-                .AsNoTracking()              
+                .AsNoTracking()
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Name)
                 .ToListAsync();
 
-            foreach(var pl in playlists)
+            foreach (var pl in playlists)
             {
                 var bpl = new BasicPlaylist
                 {
@@ -50,7 +49,7 @@ namespace DustyPig.Server.Controllers.v3
                     Name = pl.Name,
                     ArtworkUrl = pl.ArtworkUrl
                 };
-                
+
                 ret.Add(bpl);
             }
 
@@ -153,7 +152,7 @@ namespace DustyPig.Server.Controllers.v3
                  select pli.Id;
 
             var allowedIds = await qAllowedIds.ToListAsync();
-            
+
             playlist.PlaylistItems.RemoveAll(item => !allowedIds.Contains(item.Id));
 
             var ret = new DetailedPlaylist
@@ -181,19 +180,19 @@ namespace DustyPig.Server.Controllers.v3
                 switch (dbPlaylistItem.MediaEntry.EntryType)
                 {
                     case MediaTypes.Episode:
-                    
+
                         pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.Season:00}e{dbPlaylistItem.MediaEntry.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
                         pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
                         break;
 
                     case MediaTypes.Movie:
-                        
+
                         pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
                         pli.ArtworkUrl = StringUtils.Coalesce(dbPlaylistItem.MediaEntry.BackdropUrl, dbPlaylistItem.MediaEntry.ArtworkUrl);
                         break;
                 }
-                
+
                 pli.ExternalSubtitles = dbPlaylistItem.MediaEntry.Subtitles.ToExternalSubtitleList();
 
                 ret.Items.Add(pli);
@@ -404,7 +403,7 @@ namespace DustyPig.Server.Controllers.v3
                         (
                             pls != null
                             && ovrride.State != OverrideState.Block
-                            && 
+                            &&
                             (
                                 (
                                     me.EntryType == MediaTypes.Movie
@@ -427,7 +426,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (mediaEntry == null)
                 return CommonResponses.NotFound<SimpleValue<int>>("Media");
-            
+
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
                 Index = maxIndex + 1,
@@ -620,10 +619,10 @@ namespace DustyPig.Server.Controllers.v3
 
             int oldIndex = pli.Index;
             int newIndex = info.NewIndex;
-            foreach(var p in playlist.PlaylistItems)
-                if(oldIndex < newIndex && p.Index > oldIndex && p.Index <= newIndex)
+            foreach (var p in playlist.PlaylistItems)
+                if (oldIndex < newIndex && p.Index > oldIndex && p.Index <= newIndex)
                     p.Index--;
-                else if(oldIndex > newIndex && p.Index < oldIndex && p.Index >= newIndex)
+                else if (oldIndex > newIndex && p.Index < oldIndex && p.Index >= newIndex)
                     p.Index++;
 
             //Set the orig to the new index
@@ -645,7 +644,7 @@ namespace DustyPig.Server.Controllers.v3
             //Validate
             try { data.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
-            
+
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -658,7 +657,7 @@ namespace DustyPig.Server.Controllers.v3
             //First remove
             bool changed = false;
             var toDel = new List<int>();
-            for(int i = 0; i <  playlist.PlaylistItems.Count; i++)
+            for (int i = 0; i < playlist.PlaylistItems.Count; i++)
             {
                 var pli = playlist.PlaylistItems[i];
                 if (!data.MediaIds.Contains(pli.MediaEntryId))
@@ -688,7 +687,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
                 else
                 {
-                    if(pli.Index != i)
+                    if (pli.Index != i)
                     {
                         pli.Index = i;
                         DB.PlaylistItems.Update(pli);

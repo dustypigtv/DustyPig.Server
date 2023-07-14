@@ -1,12 +1,10 @@
-﻿using AsyncAwaitBestPractices;
-using DustyPig.API.v3;
+﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -16,7 +14,6 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -51,7 +48,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 //Check if they already exist
                 var existingUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(info.Email);
-                return new ResponseWrapper<CreateAccountResponse> ("Account already exists");
+                return new ResponseWrapper<CreateAccountResponse>("Account already exists");
             }
             catch { }
 

@@ -494,7 +494,7 @@ namespace DustyPig.Server.Controllers.v3
 
         private async Task<TitleRequestPermissions> CalculateTitleRequestPermissionsAsync()
         {
-            
+
             if (UserProfile.IsMain)
             {
                 var hasFriends = await DB.Friendships
@@ -506,7 +506,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                if(UserProfile.TitleRequestPermission == TitleRequestPermissions.Enabled)
+                if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Enabled)
                 {
                     var hasFriends = await DB.Friendships
                         .AsNoTracking()
@@ -547,7 +547,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 status = existingRequest.GetRequest.Status;
                 permission = TitleRequestPermissions.Disabled;
-            }            
+            }
 
             return (status, permission);
         }

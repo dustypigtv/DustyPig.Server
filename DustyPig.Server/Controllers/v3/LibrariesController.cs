@@ -7,11 +7,9 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -76,7 +74,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ResponseWrapper<List<DetailedLibrary>>> AdminList()
         {
             var ret = new List<DetailedLibrary>();
-            
+
             var libs = await DB.Libraries
                 .AsNoTracking()
 
@@ -96,7 +94,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.AccountId == UserAccount.Id)
                 .ToListAsync();
 
-            foreach(var lib in libs)
+            foreach (var lib in libs)
             {
                 var dl = new DetailedLibrary
                 {
