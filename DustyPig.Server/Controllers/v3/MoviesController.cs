@@ -7,13 +7,10 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.VisualBasic.Syntax;
 using Microsoft.EntityFrameworkCore;
-using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
