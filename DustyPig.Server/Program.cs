@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NLog;
 using NLog.Web;
 using System;
 
@@ -12,7 +13,8 @@ namespace DustyPig.Server
         public static void Main(string[] args)
         {
 #if DEBUG
-            var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+            //var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+            var logger = LogManager.Setup().LoadConfigurationFromFile(args).GetCurrentClassLogger();
 #endif
             try
             {
@@ -52,7 +54,7 @@ namespace DustyPig.Server
                     logging.ClearProviders();
 #if DEBUG
                     logging.AddConsole();
-                    logging.SetMinimumLevel(LogLevel.Debug);
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Debug);
 #endif
                 })
                 .UseNLog();

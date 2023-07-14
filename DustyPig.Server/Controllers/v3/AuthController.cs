@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -34,6 +35,7 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 0
         /// </summary>
+        [EnableCors("AllowCORS")]
         [HttpPost]
         public async Task<ResponseWrapper<LoginResponse>> LoginWithFirebaseToken(SimpleValue<string> token)
         {
