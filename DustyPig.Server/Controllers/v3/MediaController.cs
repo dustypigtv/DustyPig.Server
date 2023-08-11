@@ -89,7 +89,7 @@ namespace DustyPig.Server.Controllers.v3
                        DustyPig.API.v3.Clients.MediaClient.ID_POPULAR,
                        DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE
                    ),
-                   PopularAsync(new AppDbContext(), 0, take)
+                   PopularAsync(new AppDbContext(), 0, MAX_DB_LIST_SIZE)
                );
 
 
@@ -2150,9 +2150,6 @@ namespace DustyPig.Server.Controllers.v3
 
         Task<List<MediaEntry>> PopularAsync(AppDbContext dbInstance, int skip, int take)
         {
-            if (skip == 0)
-                take = MAX_DB_LIST_SIZE;
-
             return TopLevelWatchableByProfileQuery(dbInstance)
                 .AsNoTracking()
                 .ApplySortOrder(SortOrder.Popularity_Descending)
