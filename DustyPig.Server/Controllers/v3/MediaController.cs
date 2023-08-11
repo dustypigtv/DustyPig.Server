@@ -412,7 +412,7 @@ namespace DustyPig.Server.Controllers.v3
             var mediaEntries = await q
                 .AsNoTracking()
                 .Distinct()
-                .Take(MAX_DB_lIST_sIZE)
+                .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync(cancellationToken);
 
 
@@ -2151,7 +2151,7 @@ namespace DustyPig.Server.Controllers.v3
         Task<List<MediaEntry>> PopularAsync(AppDbContext dbInstance, int skip, int take)
         {
             if (skip == 0)
-                take = MAX_DB_lIST_sIZE;
+                take = MAX_DB_LIST_SIZE;
 
             return TopLevelWatchableByProfileQuery(dbInstance)
                 .AsNoTracking()

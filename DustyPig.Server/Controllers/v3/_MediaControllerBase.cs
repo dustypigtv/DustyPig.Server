@@ -15,7 +15,7 @@ namespace DustyPig.Server.Controllers.v3
     {
         internal const int DEFAULT_LIST_SIZE = 25;
         internal const int MIN_GENRE_LIST_SIZE = 10;
-        internal const int MAX_DB_lIST_sIZE = 1000; //This should be approximately # of Genres flags x DEFAULT_LIST_SIZE, which is currently 950
+        internal const int MAX_DB_LIST_SIZE = 1000; //This should be approximately # of Genres flags x DEFAULT_LIST_SIZE, which is currently 950
 
         internal readonly Services.TMDBClient _tmdbClient;
 
