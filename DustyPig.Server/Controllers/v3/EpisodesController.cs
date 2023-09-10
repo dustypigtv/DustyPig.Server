@@ -135,6 +135,7 @@ namespace DustyPig.Server.Controllers.v3
                 Length = episode.Length.Value,
                 SeasonNumber = (ushort)episode.Season.Value,
                 SeriesId = series.Id,
+                SeriesTitle = series.Title,
                 Title = episode.Title,
                 TMDB_Id = episode.TMDB_Id,
                 VideoUrl = episode.VideoUrl

@@ -261,6 +261,7 @@ namespace DustyPig.Server.Controllers.v3
                     Length = dbEp.Length.Value,
                     SeasonNumber = (ushort)dbEp.Season.Value,
                     SeriesId = id,
+                    SeriesTitle = media.Title,
                     Title = dbEp.Title,
                     TMDB_Id = dbEp.TMDB_Id,
                     VideoUrl = playable ? dbEp.VideoUrl : null
