@@ -120,7 +120,7 @@ namespace DustyPig.Server.Controllers.v3
                  .AsNoTracking()
                  .ApplySortOrder(SortOrder.Alphabetical)
                  .Skip(start)
-                 .Take(DEFAULT_LIST_SIZE)
+                 .Take(ADMIN_LIST_SIZE)
                  .ToListAsync();
 
             return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
