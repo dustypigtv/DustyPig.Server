@@ -167,15 +167,20 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var pli = new API.v3.Models.PlaylistItem
                 {
+                    CreditsStartTime = dbPlaylistItem.MediaEntry.CreditsStartTime,
                     Description = dbPlaylistItem.MediaEntry.Description,
                     Id = dbPlaylistItem.Id,
                     Index = dbPlaylistItem.Index,
+                    IntroEndTime = dbPlaylistItem.MediaEntry.IntroEndTime,
+                    IntroStartTime = dbPlaylistItem.MediaEntry.IntroStartTime,
                     Length = dbPlaylistItem.MediaEntry.Length ?? 0,
+                    Played = dbPlaylistItem.Index == ret.CurrentIndex ? playlist.CurrentProgress : 0,
                     MediaId = dbPlaylistItem.MediaEntryId,
                     MediaType = dbPlaylistItem.MediaEntry.EntryType,
                     BifUrl = dbPlaylistItem.MediaEntry.BifUrl,
                     VideoUrl = dbPlaylistItem.MediaEntry.VideoUrl
                 };
+                                
 
                 switch (dbPlaylistItem.MediaEntry.EntryType)
                 {
@@ -197,6 +202,43 @@ namespace DustyPig.Server.Controllers.v3
 
                 ret.Items.Add(pli);
             }
+
+            if (ret.Items.Count > 0)
+            {
+                var upNext = ret.Items.FirstOrDefault(p => p.Index == ret.CurrentIndex);
+                if (upNext == null)
+                {
+                    ret.CurrentIndex = ret.Items.First().Index;
+                    ret.Items.ForEach(p => p.Played = 0);
+                }
+                else
+                {
+                    var cst = upNext.CreditsStartTime ?? -1;
+                    if(cst < 0)
+                    {
+                        if (upNext.MediaType == MediaTypes.Episode)
+                            cst = upNext.Length - 30;
+                        else if (upNext.MediaType == MediaTypes.Movie)
+                            cst = upNext.Length * 0.9;
+                    }
+
+                    if (upNext.Length > 0 && (upNext.Played ?? 0) >= cst)
+                    {
+                        upNext.Played = 0;
+                        var lastId = -1;
+                        foreach (var item in ret.Items)
+                        {
+                            if (lastId == upNext.Id)
+                            {
+                                ret.CurrentIndex = item.Index;
+                                break;
+                            }
+                            lastId = item.Id;
+                        }
+                    }
+                }
+            }
+
 
             return new ResponseWrapper<DetailedPlaylist>(ret);
         }
