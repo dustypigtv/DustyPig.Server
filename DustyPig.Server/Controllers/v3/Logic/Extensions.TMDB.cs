@@ -7,7 +7,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static BasicTMDB ToBasicTMDBInfo(this TMDB.Models.SearchResult self) => new BasicTMDB
         {
             TMDB_ID = self.Id,
-            ArtworkUrl = TMDB.Utils.GetFullImagePath(self.PosterPath, false),
+            ArtworkUrl = TMDB.Utils.GetFullPosterPath(self.PosterPath, false),
+            BackdropUrl = TMDB.Utils.GetFullBackdropPath(self.BackdropPath, false),
             MediaType = self.IsMovie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
             Title = self.Title
         };

@@ -33,6 +33,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             {
                 Id = self.Id,
                 ArtworkUrl = self.ArtworkUrl,
+                BackdropUrl = self.BackdropUrl,
                 MediaType = self.EntryType,
                 Title = self.Title
             };
