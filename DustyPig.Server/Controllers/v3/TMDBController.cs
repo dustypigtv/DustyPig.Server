@@ -179,7 +179,7 @@ namespace DustyPig.Server.Controllers.v3
                 ArtworkUrl = TMDB.Utils.GetFullPosterPath(series.Data.PosterPath, true),
                 BackdropUrl = TMDB.Utils.GetFullBackdropPath(series.Data.BackdropPath, true),
                 Description = series.Data.Overview,
-                MediaType = TMDB_MediaTypes.Movie,
+                MediaType = TMDB_MediaTypes.Series,
                 Rated = MapRatings(series.Data.ContentRatings),
                 Title = series.Data.Title,
                 TMDB_ID = series.Data.Id
