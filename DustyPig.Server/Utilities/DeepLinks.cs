@@ -6,20 +6,27 @@ namespace DustyPig.Server.Utilities
     {
         public static string Create(Notification notification)
         {
-            if (notification.MediaEntryId == null)
-                return null;
-
             if (notification.NotificationType == NotificationType.OverrideRequest)
-                return $"dustypig://overrides/{notification.TitleOverrideId}";
-
-            if (notification.NotificationType == NotificationType.Media)
-                return $"dustypig://media/{notification.MediaEntryId}";
+                return $"overrides/{notification.TitleOverrideId}";
 
             if (notification.NotificationType == NotificationType.Friend)
-                return $"dustypig://friendship/{notification.FriendshipId}";
+                return $"friendship/{notification.FriendshipId}";
 
             if (notification.NotificationType == NotificationType.GetRequest)
-                return $"dustypig://requests/{notification.GetRequestId}";
+                return $"requests/{notification.GetRequestId}";
+
+            if (notification.NotificationType == NotificationType.Media && notification.MediaEntry != null)
+            {
+                switch (notification.MediaEntry.EntryType)
+                {
+                    case API.v3.Models.MediaTypes.Movie:
+                        return $"movie/{notification.MediaEntryId}";
+                    case API.v3.Models.MediaTypes.Series:
+                        return $"series/{notification.MediaEntryId}";
+                    default:
+                        return null;
+                }
+            }
 
             return null;
         }

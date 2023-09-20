@@ -30,6 +30,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var notifications = await DB.Notifications
                 .AsNoTracking()
+                .Include(item => item.MediaEntry)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Timestamp)
                 .Skip(start)

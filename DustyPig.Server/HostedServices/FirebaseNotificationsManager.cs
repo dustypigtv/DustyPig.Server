@@ -102,6 +102,7 @@ namespace DustyPig.Server.HostedServices
                 var notifications = await db.Notifications
                     .Include(item => item.Profile)
                     .ThenInclude(item => item.FCMTokens)
+                    .Include(item => item.MediaEntry)
                     .Where(item => item.Sent == false)
                     .Where(item => item.Seen == false)
                     .OrderBy(item => item.Id)
@@ -124,14 +125,15 @@ namespace DustyPig.Server.HostedServices
                             var msg = new Message
                             {
                                 Token = fcmToken.Token,
-                                Notification = new FirebaseAdmin.Messaging.Notification
+                                Data = new Dictionary<string, string>
                                 {
-                                    Title = notification.Title,
-                                    Body = notification.Message
+                                    { "id", notification.Id.ToString() },
+                                    { "title", notification.Title },
+                                    { "message", notification.Message },
+                                    { "deeplink", DeepLinks.Create(notification) }
                                 }
                             };
 
-                            msg.Data = new Dictionary<string, string> { { "deeplink", DeepLinks.Create(notification) } };
 
                             msgs.Add(msg);
                             dict.Add(msgs.Count - 1, notification);
