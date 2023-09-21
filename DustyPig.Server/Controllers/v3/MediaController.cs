@@ -1745,7 +1745,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             MediaEntryId = info.TitleId,
                             TitleOverride = overrideEntity,
-                            Message = $"{UserAccount.Profiles.First(item => item.Id == ptoi.ProfileId).Name} has granted access to \"{mediaEntry.FormattedTitle()}\"",
+                            Message = $"You have been granted access to \"{mediaEntry.FormattedTitle()}\"",
                             NotificationType = NotificationType.OverrideRequest,
                             ProfileId = ptoi.ProfileId,
                             Title = "Access Granted",
