@@ -130,6 +130,7 @@ namespace DustyPig.Server.HostedServices
                                     { "id", notification.Id.ToString() },
                                     { "title", notification.Title },
                                     { "message", notification.Message },
+                                    { "profileid", notification.ProfileId.ToString() },
                                     { "deeplink", DeepLinks.Create(notification) }
                                 }
                             };
