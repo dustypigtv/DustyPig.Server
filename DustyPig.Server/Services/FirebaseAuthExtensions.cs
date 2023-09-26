@@ -1,4 +1,6 @@
 ﻿// https://firebase.google.com/docs/reference/rest/auth
+using Microsoft.AspNetCore.Mvc;
+
 namespace DustyPig.Server.Services
 {
     public enum FirebaseMethods
@@ -19,17 +21,22 @@ namespace DustyPig.Server.Services
         {
             if (error == null || string.IsNullOrWhiteSpace(error.Message))
             {
-                switch (method)
-                {
-                    case FirebaseMethods.PasswordSignin:
-                        return "Invalid email or password";
+                //switch (method)
+                //{
+                //    case FirebaseMethods.PasswordSignin:
+                //        return "Invalid email or password";
 
-                    case FirebaseMethods.PasswordReset:
-                        return "Invalid email";
-                }
+                //    case FirebaseMethods.PasswordReset:
+                //        return "Invalid email";
+                //}
 
                 return "Unknown Firebase.Auth error";
             }
+
+            var split = error.Message.Split(':');
+            if (split.Length > 1)
+                return split[1].Trim();
+
 
             switch (method)
             {
@@ -41,6 +48,9 @@ namespace DustyPig.Server.Services
 
                         case "OPERATION_NOT_ALLOWED":
                             return "Password sign-in is disabled";
+
+                        case "TOO_MANY_ATTEMPTS_TRY_LATER":
+                            return "Too many attempts, try later";
                     }
                     break;
 
@@ -68,7 +78,6 @@ namespace DustyPig.Server.Services
                 "EXPIRED_OOB_CODE" => "The action code is expired",
                 "INVALID_OOB_CODE" => "The action code is invalid. This can happen if the token is malformed, expired, or has already been used.",
                 "USER_DISABLED" => "The user account has been disabled by an administrator",
-                "WEAK_PASSWORD : Password should be at least 6 characters" => "Password should be at least 6 characters",
                 _ => TranslateFirebaseErrorMessage(error.Message),
             };
         }
@@ -78,9 +87,7 @@ namespace DustyPig.Server.Services
             if (string.IsNullOrWhiteSpace(message))
                 return "Unknown Firebase error";
 
-            var ret = message.Split('_');
-            for (int i = 0; i < ret.Length; i++)
-                ret[i] = ret[i].ToLower();
+            var ret = message.ToLower().Split('_');
             ret[0] = ret[0][0].ToString().ToUpper() + ret[0][1..];
             return string.Join(' ', ret);
         }

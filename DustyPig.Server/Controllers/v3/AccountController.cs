@@ -49,93 +49,68 @@ namespace DustyPig.Server.Controllers.v3
             {
                 //Check if they already exist
                 var existingUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(info.Email);
+
+               
+                //Try to sign in
+                var signinResponse = await _client.SignInWithEmailPasswordAsync(info.Email, info.Password);
+                if(signinResponse.Success)
+                {
+                    //This means the user sent the same password that already exists.
+                    //Go ahead and send a response with the email verificaiton parameter
+                    return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = !existingUser.EmailVerified });
+                }
+                
+
                 return new ResponseWrapper<CreateAccountResponse>("Account already exists");
             }
             catch { }
 
 
-            //var signupResponse = await _client.SignUpWithEmailPasswordAsync(info.Email, info.Password);
-            //if (signupResponse.Success)
-            //{
-            //    var account = await DB.Accounts
-            //        .AsNoTracking()
-            //        .Include(item => item.Profiles)
-            //        .Where(item => item.FirebaseId == signupResponse.Data.LocalId)
-            //        .FirstOrDefaultAsync();
-
-            //    if (account == null)
-            //    {
-            //        account = DB.Accounts.Add(new Account { FirebaseId = signupResponse.Data.LocalId }).Entity;
-            //        var profile = DB.Profiles.Add(new Profile
-            //        {
-            //            Account = account,
-            //            MaxMovieRating = MovieRatings.NotRated,
-            //            MaxTVRating = TVRatings.NotRated,
-            //            AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
-            //            IsMain = true,
-            //            Name = Utils.Coalesce(info.DisplayName, signupResponse.Data.Email[..signupResponse.Data.Email.IndexOf("@")]),
-            //            TitleRequestPermission = TitleRequestPermissions.Enabled
-            //        }).Entity;
-
-            //        await DB.SaveChangesAsync();
-            //    }
-
-            //    //Send verification mail
-            //    var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
-            //    if (!dataResponse.Success)
-            //        return new ResponseWrapper<CreateAccountResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
-
-            //    bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
-            //    if (emailVerificationRequired)
-            //    {
-            //        var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
-            //        if (!sendVerificationEmailResponse.Success)
-            //            return new ResponseWrapper<CreateAccountResponse>(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
-            //    }
-
-            //    //return CommonResponses.CreatedObject(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
-            //    return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
-            //}
-            //else
-            //{
-            //    return new ResponseWrapper<CreateAccountResponse>(signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
-            //}
-
-            try
+            var signupResponse = await _client.SignUpWithEmailPasswordAsync(info.Email, info.Password);
+            if (signupResponse.Success)
             {
-                var fbAcct = await FirebaseAuth.DefaultInstance.CreateUserAsync(new UserRecordArgs
-                {
-                    Email = info.Email,
-                    EmailVerified = false,
-                    Password = info.Password
-                });
+                var account = await DB.Accounts
+                    .AsNoTracking()
+                    .Include(item => item.Profiles)
+                    .Where(item => item.FirebaseId == signupResponse.Data.LocalId)
+                    .FirstOrDefaultAsync();
 
-                var account = DB.Accounts.Add(new Account { FirebaseId = fbAcct.Uid }).Entity;
-                var profile = DB.Profiles.Add(new Profile
+                if (account == null)
                 {
-                    Account = account,
-                    MaxMovieRating = MovieRatings.NotRated,
-                    MaxTVRating = TVRatings.NotRated,
-                    AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
-                    IsMain = true,
-                    Name = Utils.Coalesce(info.DisplayName, fbAcct.Email[..fbAcct.Email.IndexOf("@")]),
-                    TitleRequestPermission = TitleRequestPermissions.Enabled
-                }).Entity;
+                    account = DB.Accounts.Add(new Account { FirebaseId = signupResponse.Data.LocalId }).Entity;
+                    var profile = DB.Profiles.Add(new Profile
+                    {
+                        Account = account,
+                        MaxMovieRating = MovieRatings.NotRated,
+                        MaxTVRating = TVRatings.NotRated,
+                        AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
+                        IsMain = true,
+                        Name = Utils.Coalesce(info.DisplayName, signupResponse.Data.Email[..signupResponse.Data.Email.IndexOf("@")]),
+                        TitleRequestPermission = TitleRequestPermissions.Enabled
+                    }).Entity;
 
-                await DB.SaveChangesAsync();
+                    await DB.SaveChangesAsync();
+                }
 
                 //Send verification mail
-                var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(fbAcct.Uid);
-                if (!sendVerificationEmailResponse.Success)
-                    return new ResponseWrapper<CreateAccountResponse>(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
+                var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
+                if (!dataResponse.Success)
+                    return new ResponseWrapper<CreateAccountResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
 
-                return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = true });
+                bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
+                if (emailVerificationRequired)
+                {
+                    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
+                    if (!sendVerificationEmailResponse.Success)
+                        return new ResponseWrapper<CreateAccountResponse>(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
+                }
+
+                return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
             }
-            catch (Exception ex)
+            else
             {
-                return new ResponseWrapper<CreateAccountResponse>(ex.Message);
+                return new ResponseWrapper<CreateAccountResponse>(signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
             }
-
         }
 
 
