@@ -135,7 +135,7 @@ namespace DustyPig.Server.Controllers.v3
             catch { }
 
             await _client.DeleteAccountAsync(account.FirebaseId);
-            DB.Entry(UserAccount).State = EntityState.Deleted;
+            DB.Entry(account).State = EntityState.Deleted;
             await DB.SaveChangesAsync();
 
             //Try to clean up, but ok if it fails
