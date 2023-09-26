@@ -153,5 +153,46 @@ namespace DustyPig.Server.Controllers.v3
 
             return CommonResponses.Ok();
         }
+
+
+        /// <summary>
+        /// Level 3
+        /// </summary>
+        /// <remarks>Change the password for the account</remarks>
+        [HttpPost]
+        [Authorize]
+        public async Task<ResponseWrapper> ChangePassword(SimpleValue<string> newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword.Value))
+                return new ResponseWrapper(nameof(newPassword) + " must be specified");
+
+            var (account, profile) = await User.VerifyAsync();
+            if (profile == null)
+                return CommonResponses.Unauthorized();
+
+            if (profile.Locked)
+                return CommonResponses.ProfileIsLocked();
+
+            if (!profile.IsMain)
+                return CommonResponses.RequireMainProfile();
+
+            var fbUser = await FirebaseAuth.DefaultInstance.GetUserAsync(account.FirebaseId);
+            await FirebaseAuth.DefaultInstance.UpdateUserAsync(new UserRecordArgs
+            {
+                Disabled = false,
+                DisplayName = fbUser.DisplayName,
+                Email = fbUser.Email,
+                EmailVerified = fbUser.EmailVerified,
+                Password = newPassword.Value,
+                PhoneNumber = fbUser.PhoneNumber,
+                PhotoUrl = fbUser.PhotoUrl,
+                Uid = fbUser.Uid
+            });
+
+
+            return CommonResponses.Ok();
+        }
+
+
     }
 }
