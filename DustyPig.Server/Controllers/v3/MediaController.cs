@@ -1669,7 +1669,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Get the media entry
             var mediaEntry = await DB.MediaEntries
-                .AsNoTracking()
+                //.AsNoTracking()
                 .Include(item => item.Library)
                 .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
                 .ThenInclude(item => item.Friendship)
