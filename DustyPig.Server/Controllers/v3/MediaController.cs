@@ -1765,7 +1765,20 @@ namespace DustyPig.Server.Controllers.v3
                     overrideEntity.Status = ptoi.State == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied;
                     overrideEntity.State = ptoi.State;
 
+                    if (ptoi.State != OverrideState.Allow)
+                    {
+                        var notification = await DB.Notifications
+                            .Where(item => item.ProfileId == ptoi.ProfileId)
+                            .Where(item => item.MediaEntryId == info.TitleId)
+                            .FirstOrDefaultAsync();
+
+                        if (notification != null)
+                            DB.Remove(notification);
+                    }
+
+
                     if (ptoi.State == OverrideState.Block)
+                    {
                         if (!UserAccount.Profiles.Any(item => item.Id == ptoi.ProfileId))
                         {
                             //This profile is a friend, delete all their sub-profile overrides
@@ -1785,8 +1798,10 @@ namespace DustyPig.Server.Controllers.v3
                                 }
                             }
                         }
+                    }
 
                     if (doNotification)
+                    {
                         DB.Notifications.Add(new Data.Models.Notification
                         {
                             MediaEntryId = info.TitleId,
@@ -1797,7 +1812,8 @@ namespace DustyPig.Server.Controllers.v3
                             Title = "Access Request",
                             Timestamp = DateTime.UtcNow
                         });
-
+                    }
+                    
                 }
             }
 
