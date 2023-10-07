@@ -2003,6 +2003,7 @@ namespace DustyPig.Server.Controllers.v3
 
             return seriesQ
                 .Union(movieQ)
+                .Distinct()
                 .OrderByDescending(item => item.Timestamp)
                 .Select(item => item.MediaEntry)
                 .Skip(skip)
@@ -2082,6 +2083,7 @@ namespace DustyPig.Server.Controllers.v3
 
             return q
                 .AsNoTracking()
+                .Distinct()
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
@@ -2158,6 +2160,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             return TopLevelWatchableByProfileQuery(dbInstance)
                 .AsNoTracking()
+                .Distinct()
                 .ApplySortOrder(SortOrder.Added_Descending)
                 .Skip(skip)
                 .Take(take)
@@ -2168,6 +2171,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             return TopLevelWatchableByProfileQuery(dbInstance)
                 .AsNoTracking()
+                .Distinct()
                 .ApplySortOrder(SortOrder.Popularity_Descending)
                 .Skip(skip)
                 .Take(take)
@@ -2372,6 +2376,7 @@ namespace DustyPig.Server.Controllers.v3
 
             return q.ApplySortOrder(orderBy)
                 .AsNoTracking()
+                .Distinct()
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
@@ -2381,6 +2386,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             return db.Playlists
                 .Where(item => item.ProfileId == UserProfile.Id)
+                .Distinct()
                 .OrderBy(item => item.Name)
                 .Skip(skip)
                 .Take(take)
