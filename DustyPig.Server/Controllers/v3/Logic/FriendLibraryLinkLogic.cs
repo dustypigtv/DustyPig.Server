@@ -26,7 +26,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             //Check if this account owns the library
             var myAcct = friend.Account1Id == account.Id ? friend.Account1 : friend.Account2;
-            if (myAcct.Libraries.Any(item => item.Id == libraryId))
+            if (!myAcct.Libraries.Any(item => item.Id == libraryId))
                 return CommonResponses.NotFound("Library");
 
             db.FriendLibraryShares.Add(new FriendLibraryShare
