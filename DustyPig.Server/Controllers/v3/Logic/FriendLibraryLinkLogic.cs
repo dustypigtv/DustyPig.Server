@@ -15,7 +15,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             //Get friendship
             using var db = new AppDbContext();
-            var friend = await GetFriend(db, account);
+            var friend = await GetFriend(db, account, friendId);
 
             if (friend == null)
                 return CommonResponses.NotFound("Friend");
@@ -35,11 +35,13 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 LibraryId = libraryId
             });
 
+            await db.SaveChangesAsync();
+            
+            
             //Scenario: Shared lib has items in a playlist. Then
             //Lib is unshared, artwork is updated, then reshared - need
             //to update the artwork again
             var playlistIds = await GetPlaylistIds(db, account, friend, libraryId);
-            await db.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
             return CommonResponses.Ok();
@@ -49,7 +51,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             //Get friendship
             using var db = new AppDbContext();
-            var friend = await GetFriend(db, account);
+            var friend = await GetFriend(db, account, friendId);
 
             if (friend == null)
                 return CommonResponses.Ok();
@@ -60,7 +62,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             //Check if this account owns the library
             var myAcct = friend.Account1Id == account.Id ? friend.Account1 : friend.Account2;
-            if (myAcct.Libraries.Any(item => item.Id == libraryId))
+            if (!myAcct.Libraries.Any(item => item.Id == libraryId))
                 return CommonResponses.Ok();
 
             var share = new FriendLibraryShare
@@ -70,14 +72,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
             };
 
             db.Entry(share).State = EntityState.Deleted;
-            var playlistIds = await GetPlaylistIds(db, account, friend, libraryId);
             await db.SaveChangesAsync();
+            
+            var playlistIds = await GetPlaylistIds(db, account, friend, libraryId);
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
             return CommonResponses.Ok();
         }
 
-        static Task<Friendship> GetFriend(AppDbContext db, Account account) =>
+        static Task<Friendship> GetFriend(AppDbContext db, Account account, int friendId) =>
             db.Friendships
                 .AsNoTracking()
                 .Include(item => item.FriendLibraryShares)
@@ -85,6 +88,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .ThenInclude(item => item.Libraries)
                 .Include(item => item.Account2)
                 .ThenInclude(item => item.Libraries)
+                .Where(item => item.Id == friendId)
                 .Where(item => item.Account1Id == account.Id || item.Account2Id == account.Id)
                 .FirstOrDefaultAsync();
 
