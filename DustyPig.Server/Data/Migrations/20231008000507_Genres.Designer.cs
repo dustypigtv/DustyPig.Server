@@ -3,6 +3,7 @@ using System;
 using DustyPig.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231008000507_Genres")]
+    partial class Genres
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,6 +71,125 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("AccountId");
 
                     b.ToTable("ActivationCodes");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.AvailableGenresResult", b =>
+                {
+                    b.Property<bool>("Genre_Action")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Adventure")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Animation")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Anime")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Awards_Show")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Children")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Comedy")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Crime")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Documentary")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Drama")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Family")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Fantasy")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Food")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Game_Show")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_History")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Home_and_Garden")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Horror")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Indie")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Martial_Arts")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Mini_Series")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Music")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Musical")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Mystery")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_News")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Podcast")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Political")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Reality")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Romance")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Science_Fiction")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Soap")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Sports")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Suspense")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_TV_Movie")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Talk_Show")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Thriller")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Travel")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_War")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("Genre_Western")
+                        .HasColumnType("tinyint(1)");
+
+                    b.ToTable("AvailableGenresResults");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.FCMToken", b =>
@@ -1153,17 +1275,17 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasOne("DustyPig.Server.Data.Models.Friendship", "Friendship")
                         .WithMany()
                         .HasForeignKey("FriendshipId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("DustyPig.Server.Data.Models.GetRequest", "GetRequest")
                         .WithMany()
                         .HasForeignKey("GetRequestId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
                         .WithMany()
                         .HasForeignKey("MediaEntryId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
                         .WithMany("Notifications")
@@ -1173,8 +1295,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasOne("DustyPig.Server.Data.Models.TitleOverride", "TitleOverride")
                         .WithMany()
-                        .HasForeignKey("TitleOverrideId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("TitleOverrideId");
 
                     b.Navigation("Friendship");
 

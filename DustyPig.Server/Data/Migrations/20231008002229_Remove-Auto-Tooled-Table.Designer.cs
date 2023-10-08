@@ -3,6 +3,7 @@ using System;
 using DustyPig.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231008002229_Remove-Auto-Tooled-Table")]
+    partial class RemoveAutoTooledTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1153,17 +1156,17 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasOne("DustyPig.Server.Data.Models.Friendship", "Friendship")
                         .WithMany()
                         .HasForeignKey("FriendshipId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("DustyPig.Server.Data.Models.GetRequest", "GetRequest")
                         .WithMany()
                         .HasForeignKey("GetRequestId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
                         .WithMany()
                         .HasForeignKey("MediaEntryId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
                         .WithMany("Notifications")
@@ -1173,8 +1176,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasOne("DustyPig.Server.Data.Models.TitleOverride", "TitleOverride")
                         .WithMany()
-                        .HasForeignKey("TitleOverrideId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("TitleOverrideId");
 
                     b.Navigation("Friendship");
 

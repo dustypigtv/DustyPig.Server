@@ -35,7 +35,12 @@ namespace DustyPig.Server
         {
             Configuration = configuration;
 
+#if DEBUG
+            // debug-conn-str
+            AppDbContext.Configure(Configuration["debug-conn-str"]);
+#else
             AppDbContext.Configure(Configuration["mysql-server-v3"]);
+#endif
 
             //Use this for messaging
             FirebaseApp.Create(new AppOptions()
