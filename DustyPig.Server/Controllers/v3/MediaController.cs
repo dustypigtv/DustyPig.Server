@@ -10,6 +10,7 @@ using FirebaseAdmin.Messaging;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Pomelo.EntityFrameworkCore.MySql.Query.ExpressionTranslators.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1674,7 +1675,20 @@ namespace DustyPig.Server.Controllers.v3
 
                         if (ovrride == null)
                         {
-                            if (mediaEntry.Library.FriendLibraryShares.Any())
+                            bool shared = false;
+                            foreach(var fls in mediaEntry.Library.FriendLibraryShares)
+                            {
+                                var sharedProfileLst = fls.Friendship.Account1Id == UserAccount.Id ? fls.Friendship.Account2.Profiles : fls.Friendship.Account1.Profiles;
+                                shared = sharedProfileLst
+                                    .Where(item => item.Id == profile.Id)
+                                    .Where(item => item.IsMain)
+                                    .Any();
+
+                                if (shared)
+                                    break;
+                            }
+
+                            if (shared)
                                 profInfo.OverrideState = OverrideState.Allow;
                             else
                                 profInfo.OverrideState = OverrideState.Block;
