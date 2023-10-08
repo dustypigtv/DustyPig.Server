@@ -1587,7 +1587,6 @@ namespace DustyPig.Server.Controllers.v3
             // Sub Profiles
             var profiles = UserAccount.Profiles.ToList();
             profiles.RemoveAll(item => item.IsMain);
-            profiles.Sort((x, y) => x.Name.CompareTo(y.Name));
             foreach(var profile in profiles)
             {
                 var profInfo = new ProfileTitleOverrideInfo
@@ -1690,7 +1689,8 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-            
+            ret.SubProfiles.Sort((x, y) => x.Name.CompareTo(y.Name));
+            ret.FriendProfiles.Sort((x, y) => x.Name.CompareTo(y.Name));
 
             return new ResponseWrapper<TitlePermissionInfo>(ret);
         }
