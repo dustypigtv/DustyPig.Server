@@ -1,7 +1,11 @@
 using DustyPig.Firebase.Auth;
+using DustyPig.Server.Data;
 using DustyPig.Server.Services;
+using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Pages.FirebaseActions
@@ -36,7 +40,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
                     {
                         FAM.Title = "Reset Password";
                         FAM.Code = oobCode;
-                        FAM.ShowPasswordReset = true;
+                        FAM.ShowPasswordReset = true;                        
                     }
                     else
                     {
@@ -82,8 +86,35 @@ namespace DustyPig.Server.Pages.FirebaseActions
             var ret = await _client.ConfirmPasswordResetAsync(FAM.Code, FAM.NewPassword);
             if (ret.Success)
             {
+                //Reset pin
+                bool pinWasReset = false;
+                var fbUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(ret.Data.Email);
+                var db = new AppDbContext();
+                var acct = await db.Accounts
+                    .AsNoTracking()
+                    .Include(a => a.Profiles.Where(p => p.IsMain))
+                    .Where(a => a.FirebaseId == fbUser.Uid)
+                    .FirstOrDefaultAsync();
+
+                if (acct != null)
+                {
+                    var prof = acct.Profiles.FirstOrDefault(p => p.IsMain);
+                    if(prof != null && prof.PinNumber != null)
+                    {
+                        prof.PinNumber = null;
+                        db.Profiles.Entry(prof).State = EntityState.Modified;
+                        await db.SaveChangesAsync();
+                        pinWasReset = true;
+                    }
+                }
+
                 FAM.Title = "Success";
-                FAM.Message = "Your password has been reset, you can now sign in to Dusty Pig";
+                if (pinWasReset)
+                    FAM.Message = "Your password has been reset, and your PIN cleared. You can now sign in to Dusty Pig";
+                else
+                    FAM.Message = "Your password has been reset. You can now sign in to Dusty Pig";
+                
+
             }
             else
             {
