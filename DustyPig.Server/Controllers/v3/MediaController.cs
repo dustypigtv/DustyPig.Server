@@ -1921,7 +1921,7 @@ namespace DustyPig.Server.Controllers.v3
 
                     overrideEntity.Status = info.OverrideState == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied;
                     overrideEntity.State = info.OverrideState;
-                    DB.TitleOverrides.Entry(overrideEntity).State = EntityState.Modified;
+                    DB.TitleOverrides.Update(overrideEntity);
 
                     if (info.OverrideState == OverrideState.Block)
                     {

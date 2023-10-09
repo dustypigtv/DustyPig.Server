@@ -31,7 +31,7 @@ namespace DustyPig.Server.Services
             _transferUtility = new TransferUtility(_client);
         }
 
-        public static Task UploadFileAsync(MemoryStream ms, string key, CancellationToken cancellationToken)
+        public static Task UploadFileAsync(Stream ms, string key, CancellationToken cancellationToken)
         {
             ms.Seek(0, SeekOrigin.Begin);
             var req = new TransferUtilityUploadRequest

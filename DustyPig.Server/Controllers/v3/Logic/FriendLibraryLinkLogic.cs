@@ -71,7 +71,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 LibraryId = libraryId
             };
 
-            db.Entry(share).State = EntityState.Deleted;
+            db.FriendLibraryShares.Remove(share);
             await db.SaveChangesAsync();
             
             var playlistIds = await GetPlaylistIds(db, account, friend, libraryId);

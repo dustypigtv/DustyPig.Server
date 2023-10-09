@@ -343,7 +343,7 @@ namespace DustyPig.Server.Controllers.v3
             if (profile == null)
                 return CommonResponses.BadRequest<LoginResponse>("Profile does not exist");
 
-            if (profile.PinNumber != null)
+            if (profile.PinNumber != null && profile.PinNumber >= 1000 && profile.PinNumber <= 9999)
             {
                 if (credentials.Pin == null || credentials.Pin != profile.PinNumber)
                     return CommonResponses.BadRequest<LoginResponse>("Invalid pin");

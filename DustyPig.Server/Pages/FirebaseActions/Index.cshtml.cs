@@ -102,7 +102,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
                     if(prof != null && prof.PinNumber != null)
                     {
                         prof.PinNumber = null;
-                        db.Profiles.Entry(prof).State = EntityState.Modified;
+                        db.Profiles.Update(prof);
                         await db.SaveChangesAsync();
                         pinWasReset = true;
                     }

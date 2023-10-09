@@ -37,7 +37,7 @@ namespace DustyPig.Server
 
 #if DEBUG
             // debug-conn-str
-            AppDbContext.Configure(Configuration["debug-conn-str"]);
+            AppDbContext.Configure(Configuration["mysql-server-v3"]);
 #else
             AppDbContext.Configure(Configuration["mysql-server-v3"]);
 #endif

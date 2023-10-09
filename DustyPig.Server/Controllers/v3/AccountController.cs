@@ -149,8 +149,8 @@ namespace DustyPig.Server.Controllers.v3
 
             
             await FirebaseAuth.DefaultInstance.DeleteUserAsync(account.FirebaseId);
-            
-            DB.Entry(account).State = EntityState.Deleted;
+
+            DB.Accounts.Remove(account);
             await DB.SaveChangesAsync();
 
             //Try to clean up, but ok if it fails

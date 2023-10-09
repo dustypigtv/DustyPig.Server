@@ -5,10 +5,13 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -150,11 +153,10 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-            bool allowed = UserProfile.IsMain && UserAccount.Profiles.Select(item => item.Id).Contains(info.Id);
-            if (!allowed)
-                allowed = info.Id == UserProfile.Id;
-            if (!allowed)
-                return CommonResponses.Forbid();
+            if (info.Id != UserProfile.Id)
+                if (UserProfile.IsMain)
+                    if (!UserAccount.Profiles.Any(item => item.Id == info.Id))
+                        return CommonResponses.Forbid();
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
@@ -175,13 +177,8 @@ namespace DustyPig.Server.Controllers.v3
                 profile.Name = info.Name;
             }
 
-            if(info.AvatarImage != null && info.AvatarImage.Length > 0)
-            {
-                //Save to s3. This causes this api call to be a lot slower
-                using var ms = new System.IO.MemoryStream(info.AvatarImage);
-                await S3.UploadFileAsync(ms, Profile.CalculateS3Key(profile.Id), default);
-                profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
-            }
+            if (!string.IsNullOrWhiteSpace(info.AvatarUrl))
+                profile.AvatarUrl = info.AvatarUrl;
 
 
             if (UserProfile.IsMain)
@@ -196,7 +193,83 @@ namespace DustyPig.Server.Controllers.v3
                 profile.TitleRequestPermission = info.TitleRequestPermissions;
             }
 
-            DB.Profiles.Entry(profile).State = EntityState.Modified;
+            DB.Profiles.Update(profile);
+            await DB.SaveChangesAsync();
+
+            return CommonResponses.Ok();
+        }
+
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
+        /// The body of this request should be a jpeg file, no more than 1 MB in size. 
+        /// This method uses a the entire body of the request as a binary file</remarks>
+        [HttpPut("{id}")]
+        [ProhibitTestUser]
+        [RequestSizeLimit(1048576)] //Set to 1 MB
+        public async Task<ResponseWrapper> SetProfileAvatarBinary(int id)
+        {
+            if (id != UserProfile.Id)
+                if (UserProfile.IsMain)
+                    if (!UserAccount.Profiles.Any(item => item.Id == id))
+                        return CommonResponses.Forbid();
+
+            var profile = UserAccount.Profiles.Single(item => item.Id == id);
+
+            using var ms = new MemoryStream();
+            await Request.Body.CopyToAsync(ms);
+            
+            if(!IsJpeg(ms))
+                return CommonResponses.BadRequest("File does not appear to be a jpeg file");
+
+            await S3.UploadFileAsync(ms, Profile.CalculateS3Key(profile.Id), default);
+            profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
+            DB.Profiles.Update(profile);
+            await DB.SaveChangesAsync();
+
+            return CommonResponses.Ok();
+        }
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
+        /// The body of this request should be a jpeg file, no more than 1 MB in size. 
+        /// This method uses the multipart upload</remarks>
+        [HttpPut("{id}")]
+        [ProhibitTestUser]
+        [RequestSizeLimit(1048676)] //Set to 1 MB, with an extra 100 kb leeway for multipart encoding
+        public async Task<ResponseWrapper> SetProfileAvatarMultipart(int id)
+        {
+            if (id != UserProfile.Id)
+                if (UserProfile.IsMain)
+                    if (!UserAccount.Profiles.Any(item => item.Id == id))
+                        return CommonResponses.Forbid();
+
+            var profile = UserAccount.Profiles.Single(item => item.Id == id);
+
+            if (!Request.Form.Files.Any())
+                return CommonResponses.BadRequest("Missing File");
+
+            if (Request.Form.Files.Count > 1)
+                return CommonResponses.BadRequest("Only 1 file allowed");
+
+            var file = Request.Form.Files[0];
+            if(!string.IsNullOrWhiteSpace(file.ContentType))
+                if (file.ContentType != "image/jpeg")
+                    return CommonResponses.BadRequest("Content-Type does not match image/jpeg");
+
+            var stream = file.OpenReadStream();
+            if (!IsJpeg(stream))
+                return CommonResponses.BadRequest("File does not appear to be a jpeg file");
+
+            await S3.UploadFileAsync(stream, Profile.CalculateS3Key(profile.Id), default);
+            profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
+            DB.Profiles.Update(profile);
             await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();
@@ -227,6 +300,7 @@ namespace DustyPig.Server.Controllers.v3
             var profile = new Profile
             {
                 AccountId = UserAccount.Id,
+                AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
                 MaxMovieRating = info.AllowedRatings.ToMovieRatings(),
                 MaxTVRating = info.AllowedRatings.ToTVRatings(),
                 Locked = info.Locked,
@@ -237,18 +311,7 @@ namespace DustyPig.Server.Controllers.v3
 
             DB.Profiles.Add(profile);
             await DB.SaveChangesAsync();
-
-            if (info.AvatarImage != null && info.AvatarImage.Length > 0)
-            {
-                //Save to s3. This causes this api call to be a lot slower
-                using var ms = new System.IO.MemoryStream(info.AvatarImage);
-                await S3.UploadFileAsync(ms, Profile.CalculateS3Key(profile.Id), default);
-                profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
-
-                DB.Profiles.Entry(profile).State = EntityState.Modified;
-                await DB.SaveChangesAsync();
-            }
-
+            
             return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(profile.Id));
         }
 
@@ -280,12 +343,15 @@ namespace DustyPig.Server.Controllers.v3
                     DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url });
 
             DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = Profile.CalculateS3Url(id) });
-            DB.Entry(profile).State = EntityState.Deleted;
+            DB.Profiles.Remove(profile);
 
             await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();
         }
+
+
+
 
 
 
@@ -307,6 +373,14 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         public Task<ResponseWrapper> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+
+
+        static bool IsJpeg(Stream stream)
+        {
+            stream.Seek(0, SeekOrigin.Begin);
+            return stream.ReadByte() == 0xFF && stream.ReadByte() == 0xD8;
+        }
+
 
     }
 }
