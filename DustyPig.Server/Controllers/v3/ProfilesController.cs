@@ -4,11 +4,13 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -139,7 +141,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         /// <remarks>Only the main profile on the account or the profile owner can update a profile.
-        /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and AvatarUrl. 
+        /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and Avatar. 
         /// If the profile being updated is the main profile, it cannot be locked</remarks>
         [HttpPost]
         [ProhibitTestUser]
@@ -148,43 +150,53 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-
-
             bool allowed = UserProfile.IsMain && UserAccount.Profiles.Select(item => item.Id).Contains(info.Id);
             if (!allowed)
                 allowed = info.Id == UserProfile.Id;
             if (!allowed)
                 return CommonResponses.Forbid();
 
-            info.Name = Utils.EnsureNotNull(info.Name);
-            if (string.IsNullOrWhiteSpace(info.Name))
-                return new ResponseWrapper("Name is missing");
-
-            bool nameExists = UserAccount.Profiles
-                .Where(item => item.Id != info.Id)
-                .Where(item => item.Name.ICEquals(info.Name))
-                .Any();
-
-            if (nameExists)
-                return new ResponseWrapper("There is already another profile with the specified name on this account");
-
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-
-            profile.Name = info.Name.Trim();
             profile.PinNumber = info.Pin;
-            profile.AvatarUrl = info.AvatarUrl;
+
+
+            info.Name = Utils.EnsureNotNull(info.Name);
+            if (!string.IsNullOrWhiteSpace(info.Name))
+            {
+                bool nameExists = UserAccount.Profiles
+                    .Where(item => item.Id != info.Id)
+                    .Where(item => item.Name.ICEquals(info.Name))
+                    .Any();
+
+                if (nameExists)
+                    return new ResponseWrapper("There is already another profile with the specified name on this account");
+
+                profile.Name = info.Name;
+            }
+
+            if(info.AvatarImage != null && info.AvatarImage.Length > 0)
+            {
+                //Save to s3. This causes this api call to be a lot slower
+                using var ms = new System.IO.MemoryStream(info.AvatarImage);
+                await S3.UploadFileAsync(ms, Profile.CalculateS3Key(profile.Id), default);
+                profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
+            }
+
 
             if (UserProfile.IsMain)
             {
                 //Update restricted fields
-                profile.MaxTVRating = info.AllowedRatings.ToTVRatings();
-                profile.MaxMovieRating = info.AllowedRatings.ToMovieRatings();
+                if (info.AllowedRatings != API.v3.MPAA.Ratings.None)
+                {
+                    profile.MaxTVRating = info.AllowedRatings.ToTVRatings();
+                    profile.MaxMovieRating = info.AllowedRatings.ToMovieRatings();
+                }
                 profile.Locked = !profile.IsMain && info.Locked;
                 profile.TitleRequestPermission = info.TitleRequestPermissions;
             }
 
-            DB.Entry(profile).State = EntityState.Modified;
+            DB.Profiles.Entry(profile).State = EntityState.Modified;
             await DB.SaveChangesAsync();
 
             return CommonResponses.Ok();
@@ -212,13 +224,11 @@ namespace DustyPig.Server.Controllers.v3
             if (nameExists)
                 return new ResponseWrapper<SimpleValue<int>>("There is already another profile with the specified name on this account");
 
-
             var profile = new Profile
             {
                 AccountId = UserAccount.Id,
                 MaxMovieRating = info.AllowedRatings.ToMovieRatings(),
                 MaxTVRating = info.AllowedRatings.ToTVRatings(),
-                AvatarUrl = info.AvatarUrl,
                 Locked = info.Locked,
                 Name = info.Name,
                 PinNumber = info.Pin,
@@ -227,6 +237,17 @@ namespace DustyPig.Server.Controllers.v3
 
             DB.Profiles.Add(profile);
             await DB.SaveChangesAsync();
+
+            if (info.AvatarImage != null && info.AvatarImage.Length > 0)
+            {
+                //Save to s3. This causes this api call to be a lot slower
+                using var ms = new System.IO.MemoryStream(info.AvatarImage);
+                await S3.UploadFileAsync(ms, Profile.CalculateS3Key(profile.Id), default);
+                profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
+
+                DB.Profiles.Entry(profile).State = EntityState.Modified;
+                await DB.SaveChangesAsync();
+            }
 
             return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(profile.Id));
         }
