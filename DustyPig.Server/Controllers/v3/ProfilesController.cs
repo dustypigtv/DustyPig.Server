@@ -161,24 +161,20 @@ namespace DustyPig.Server.Controllers.v3
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
             profile.PinNumber = info.Pin;
+            profile.AvatarUrl = info.AvatarUrl;
 
 
             info.Name = Utils.EnsureNotNull(info.Name);
-            if (!string.IsNullOrWhiteSpace(info.Name))
-            {
-                bool nameExists = UserAccount.Profiles
-                    .Where(item => item.Id != info.Id)
-                    .Where(item => item.Name.ICEquals(info.Name))
-                    .Any();
+            bool nameExists = UserAccount.Profiles
+                .Where(item => item.Id != info.Id)
+                .Where(item => item.Name.ICEquals(info.Name))
+                .Any();
 
-                if (nameExists)
-                    return new ResponseWrapper("There is already another profile with the specified name on this account");
+            if (nameExists)
+                return new ResponseWrapper("There is already another profile with the specified name on this account");
 
-                profile.Name = info.Name;
-            }
+            profile.Name = info.Name;
 
-            if (!string.IsNullOrWhiteSpace(info.AvatarUrl))
-                profile.AvatarUrl = info.AvatarUrl;
 
 
             if (UserProfile.IsMain)
@@ -198,7 +194,6 @@ namespace DustyPig.Server.Controllers.v3
 
             return CommonResponses.Ok();
         }
-
 
 
         /// <summary>
