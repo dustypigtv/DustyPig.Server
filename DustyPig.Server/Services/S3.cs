@@ -43,6 +43,22 @@ namespace DustyPig.Server.Services
             return _transferUtility.UploadAsync(req, cancellationToken);
         }
 
+
+        public static Task UploadAvatarAsync(Stream ms, string key, CancellationToken cancellationToken)
+        {
+            //Since avatars can change within an app, add CacheControls = no-store 
+
+            ms.Seek(0, SeekOrigin.Begin);
+            var req = new TransferUtilityUploadRequest
+            {
+                BucketName = Constants.DEFAULT_HOST,
+                InputStream = ms,
+                Key = key
+            };
+            req.Headers.CacheControl = "no-store";
+            return _transferUtility.UploadAsync(req, cancellationToken);
+        }
+
         public static Task DeleteFileAsync(string key, CancellationToken cancellationToken) =>
             _client.DeleteObjectAsync(Constants.DEFAULT_HOST, key, cancellationToken);
 

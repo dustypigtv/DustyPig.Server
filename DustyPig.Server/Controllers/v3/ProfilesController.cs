@@ -220,7 +220,7 @@ namespace DustyPig.Server.Controllers.v3
             if(!IsJpeg(ms))
                 return CommonResponses.BadRequest("File does not appear to be a jpeg file");
 
-            await S3.UploadFileAsync(ms, Profile.CalculateS3Key(profile.Id), default);
+            await S3.UploadAvatarAsync(ms, Profile.CalculateS3Key(profile.Id), default);
             profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
             DB.Profiles.Update(profile);
             await DB.SaveChangesAsync();
@@ -262,7 +262,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!IsJpeg(stream))
                 return CommonResponses.BadRequest("File does not appear to be a jpeg file");
 
-            await S3.UploadFileAsync(stream, Profile.CalculateS3Key(profile.Id), default);
+            await S3.UploadAvatarAsync(stream, Profile.CalculateS3Key(profile.Id), default);
             profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
             DB.Profiles.Update(profile);
             await DB.SaveChangesAsync();
