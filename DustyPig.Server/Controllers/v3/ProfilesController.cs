@@ -4,7 +4,6 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -79,7 +78,7 @@ namespace DustyPig.Server.Controllers.v3
                 IsMain = profile.IsMain,
                 Locked = profile.Locked,
                 Name = profile.Name,
-                Pin = profile.PinNumber,
+                HasPin = profile.PinNumber != null,
                 TitleRequestPermissions = profile.TitleRequestPermission
             };
 
@@ -158,8 +157,20 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-            profile.PinNumber = info.Pin;
             profile.AvatarUrl = info.AvatarUrl;
+
+            
+            if(info.Pin == null)
+            {
+                //Only set to null if client specifically wants to delete the pin number
+                if (info.ClearPin)
+                    profile.PinNumber = null;
+            } 
+            else
+            {
+                //Set to value supplied by client
+                profile.PinNumber = info.Pin;
+            }
 
 
             info.Name = Utils.EnsureNotNull(info.Name);
@@ -389,8 +400,11 @@ namespace DustyPig.Server.Controllers.v3
 
         static bool IsJpeg(Stream stream)
         {
+            var pos = stream.Position;
             stream.Seek(0, SeekOrigin.Begin);
-            return stream.ReadByte() == 0xFF && stream.ReadByte() == 0xD8;
+            var ret = stream.ReadByte() == 0xFF && stream.ReadByte() == 0xD8;
+            stream.Seek(pos, SeekOrigin.Begin);
+            return ret;
         }
 
 
