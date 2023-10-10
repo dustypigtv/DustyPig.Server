@@ -4,16 +4,14 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -199,18 +197,19 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 2
         /// </summary>
+        /// <returns>Url to the new avatar</returns>
         /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
         /// The body of this request should be a jpeg file, no more than 1 MB in size. 
         /// This method uses a the entire body of the request as a binary file</remarks>
         [HttpPut("{id}")]
         [ProhibitTestUser]
         [RequestSizeLimit(1048576)] //Set to 1 MB
-        public async Task<ResponseWrapper> SetProfileAvatarBinary(int id)
+        public async Task<ResponseWrapper<SimpleValue<string>>> SetProfileAvatarBinary(int id)
         {
             if (id != UserProfile.Id)
                 if (UserProfile.IsMain)
                     if (!UserAccount.Profiles.Any(item => item.Id == id))
-                        return CommonResponses.Forbid();
+                        return CommonResponses.Forbid<SimpleValue<string>>();
 
             var profile = UserAccount.Profiles.Single(item => item.Id == id);
 
@@ -218,56 +217,74 @@ namespace DustyPig.Server.Controllers.v3
             await Request.Body.CopyToAsync(ms);
             
             if(!IsJpeg(ms))
-                return CommonResponses.BadRequest("File does not appear to be a jpeg file");
+                return CommonResponses.BadRequest<SimpleValue<string>>("File does not appear to be a jpeg file");
 
-            await S3.UploadAvatarAsync(ms, Profile.CalculateS3Key(profile.Id), default);
-            profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
+            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
+            string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
+            string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
+
+            await S3.UploadAvatarAsync(ms, keyPath, default);
+
+            //Swap
+            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
+            profile.AvatarUrl = urlPath;
             DB.Profiles.Update(profile);
+
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return new ResponseWrapper<SimpleValue<string>>(new SimpleValue<string>(urlPath));
         }
 
 
         /// <summary>
         /// Level 2
         /// </summary>
+        /// <returns>Url to the new avatar</returns>
         /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
         /// The body of this request should be a jpeg file, no more than 1 MB in size. 
         /// This method uses the multipart upload</remarks>
         [HttpPut("{id}")]
         [ProhibitTestUser]
         [RequestSizeLimit(1048676)] //Set to 1 MB, with an extra 100 kb leeway for multipart encoding
-        public async Task<ResponseWrapper> SetProfileAvatarMultipart(int id)
+        public async Task<ResponseWrapper<SimpleValue<string>>> SetProfileAvatarMultipart(int id)
         {
             if (id != UserProfile.Id)
                 if (UserProfile.IsMain)
                     if (!UserAccount.Profiles.Any(item => item.Id == id))
-                        return CommonResponses.Forbid();
+                        return CommonResponses.Forbid<SimpleValue<string>>();
 
             var profile = UserAccount.Profiles.Single(item => item.Id == id);
 
             if (!Request.Form.Files.Any())
-                return CommonResponses.BadRequest("Missing File");
+                return CommonResponses.BadRequest<SimpleValue<string>>("Missing File");
 
             if (Request.Form.Files.Count > 1)
-                return CommonResponses.BadRequest("Only 1 file allowed");
+                return CommonResponses.BadRequest<SimpleValue<string>>("Only 1 file allowed");
 
             var file = Request.Form.Files[0];
             if(!string.IsNullOrWhiteSpace(file.ContentType))
                 if (file.ContentType != "image/jpeg")
-                    return CommonResponses.BadRequest("Content-Type does not match image/jpeg");
+                    return CommonResponses.BadRequest<SimpleValue<string>>("Content-Type does not match image/jpeg");
 
             var stream = file.OpenReadStream();
             if (!IsJpeg(stream))
-                return CommonResponses.BadRequest("File does not appear to be a jpeg file");
+                return CommonResponses.BadRequest<SimpleValue<string>>("File does not appear to be a jpeg file");
 
-            await S3.UploadAvatarAsync(stream, Profile.CalculateS3Key(profile.Id), default);
-            profile.AvatarUrl = Profile.CalculateS3Url(profile.Id);
+
+            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
+            string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
+            string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
+
+            await S3.UploadAvatarAsync(stream, keyPath, default);
+
+            //Swap
+            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
+            profile.AvatarUrl = urlPath;            
             DB.Profiles.Update(profile);
+
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return new ResponseWrapper<SimpleValue<string>>(new SimpleValue<string>(urlPath));
         }
 
 
@@ -337,7 +354,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (!string.IsNullOrWhiteSpace(url))
                     DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url });
 
-            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = Profile.CalculateS3Url(id) });
+            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
             DB.Profiles.Remove(profile);
 
             await DB.SaveChangesAsync();

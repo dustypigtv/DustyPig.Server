@@ -46,7 +46,7 @@ namespace DustyPig.Server.Services
 
         public static Task UploadAvatarAsync(Stream ms, string key, CancellationToken cancellationToken)
         {
-            //Since avatars can change within an app, add CacheControls = no-store 
+            //Since avatars now have unique filenames, add Cache-Control: max-age=10000000
 
             ms.Seek(0, SeekOrigin.Begin);
             var req = new TransferUtilityUploadRequest
@@ -55,7 +55,7 @@ namespace DustyPig.Server.Services
                 InputStream = ms,
                 Key = key
             };
-            req.Headers.CacheControl = "no-store";
+            req.Headers.CacheControl = "max-age=10000000";
             return _transferUtility.UploadAsync(req, cancellationToken);
         }
 

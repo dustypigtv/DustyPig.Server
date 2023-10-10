@@ -135,6 +135,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Images to cleanup from Wasabi
             var profileIds = account.Profiles.Select(item => item.Id).ToList();
+            var profileAvatars = account.Profiles.Select(item => item.AvatarUrl).ToList();
             var playlistArtworkUrls = new List<string>();
             try
             {
@@ -156,8 +157,8 @@ namespace DustyPig.Server.Controllers.v3
             //Try to clean up, but ok if it fails
             try
             {
-                foreach (var profileId in profileIds)
-                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = Profile.CalculateS3Url(profileId) });
+                foreach (var avatar in profileAvatars)
+                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = avatar });
 
                 foreach (var playlistArtworkUrl in playlistArtworkUrls.Where(item => !string.IsNullOrWhiteSpace(item)))
                     DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = playlistArtworkUrl });
