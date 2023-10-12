@@ -157,7 +157,8 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-            profile.AvatarUrl = info.AvatarUrl;
+            if(!string.IsNullOrWhiteSpace(info.AvatarUrl))
+                profile.AvatarUrl = info.AvatarUrl;
 
             
             if(info.Pin == null)
