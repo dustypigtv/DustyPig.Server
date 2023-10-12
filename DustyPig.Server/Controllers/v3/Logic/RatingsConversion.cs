@@ -24,7 +24,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             self switch
             {
                 Ratings.TV_Y => TVRatings.Y,
-                Ratings.TV_Y7 => TVRatings.Y,
+                Ratings.TV_Y7 => TVRatings.Y7,
                 Ratings.TV_G => TVRatings.G,
                 Ratings.TV_PG => TVRatings.PG,
                 Ratings.TV_14 => TVRatings.TV_14,
