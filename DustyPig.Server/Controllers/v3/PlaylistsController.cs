@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -449,7 +450,7 @@ namespace DustyPig.Server.Controllers.v3
                             (
                                 (
                                     me.EntryType == MediaTypes.Movie
-                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                                 )
                                 ||
                                 (

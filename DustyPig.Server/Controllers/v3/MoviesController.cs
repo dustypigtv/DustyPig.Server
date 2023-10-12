@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -79,7 +80,7 @@ namespace DustyPig.Server.Controllers.v3
                          ||
                          (
                              pls != null
-                             && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                             && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                              && ovrride.State != OverrideState.Block
                          )
                      )
@@ -187,7 +188,7 @@ namespace DustyPig.Server.Controllers.v3
                     &&
                     (
                         media.Library.ProfileLibraryShares.Any()
-                        && UserProfile.MaxMovieRating >= (media.MovieRating ?? MovieRatings.NotRated)
+                        && UserProfile.MaxMovieRating >= (media.MovieRating ?? MovieRatings.Unrated)
                     )
                 );
 
@@ -311,7 +312,7 @@ namespace DustyPig.Server.Controllers.v3
                 IntroStartTime = movieInfo.IntroStartTime,
                 Length = movieInfo.Length,
                 LibraryId = movieInfo.LibraryId,
-                MovieRating = movieInfo.Rated.ToMovieRatings(),
+                MovieRating = movieInfo.Rated,
                 SortTitle = StringUtils.SortTitle(movieInfo.Title),
                 Title = movieInfo.Title,
                 TMDB_Id = movieInfo.TMDB_Id,
@@ -455,7 +456,7 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.IntroStartTime = movieInfo.IntroStartTime;
             existingItem.Length = movieInfo.Length;
             existingItem.LibraryId = movieInfo.LibraryId;
-            existingItem.MovieRating = movieInfo.Rated.ToMovieRatings();
+            existingItem.MovieRating = movieInfo.Rated;
             existingItem.SortTitle = StringUtils.SortTitle(movieInfo.Title);
             existingItem.Title = movieInfo.Title;
             existingItem.TMDB_Id = movieInfo.TMDB_Id;

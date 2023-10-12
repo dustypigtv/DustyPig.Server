@@ -1,4 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -60,10 +61,5 @@ namespace DustyPig.Server.Data.Models
                 ret = Name.CompareTo(comp.Name);
             return ret;
         }
-
-        //public static string CalculateS3Key(int Id) => $"{Constants.DEFAULT_PROFILE_PATH}/{Id}.jpg";
-
-        //public static string CalculateS3Url(int Id) => $"{Constants.DEFAULT_PROFILE_URL_ROOT}{Id}.jpg";
-
     }
 }

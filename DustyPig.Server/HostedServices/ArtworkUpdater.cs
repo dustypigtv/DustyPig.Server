@@ -1,4 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
@@ -154,7 +155,7 @@ namespace DustyPig.Server.HostedServices
                                 (
                                     (
                                         me.EntryType == MediaTypes.Movie
-                                        && playlist.Profile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                                        && playlist.Profile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                                     )
                                     ||
                                     (

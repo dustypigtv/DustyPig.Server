@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -631,7 +632,7 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Profiles.Add(new Profile
                 {
                     Account = account,
-                    MaxMovieRating = MovieRatings.NotRated,
+                    MaxMovieRating = MovieRatings.Unrated,
                     MaxTVRating = TVRatings.NotRated,
                     AvatarUrl = Utils.EnsureProfilePic(photoUrl),
                     IsMain = true,

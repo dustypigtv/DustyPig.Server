@@ -13,7 +13,7 @@ namespace DustyPig.Server.Data
         /// <summary>
         /// Creates an Account and the main Profile
         /// </summary>
-        public async Task<Account> CreateAccountAndProfileAsync(int id, string name, Ratings allowedRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, short? pinNumber)
+        public async Task<Account> CreateAccountAndProfileAsync(int id, string name, MovieRatings maxMovieRatings, TVRatings maxTVRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, short? pinNumber)
         {
             var account = await Accounts
                 .Include(item => item.Profiles)
@@ -26,14 +26,14 @@ namespace DustyPig.Server.Data
                 await SaveChangesAsync();
             }
 
-            var profile = await CreateOrUpdateProfileAsync(account, name, allowedRatings, titleRequestPermissions, avatarUrl, pinNumber, false);
+            var profile = await CreateOrUpdateProfileAsync(account, name, maxMovieRatings, maxTVRatings, titleRequestPermissions, avatarUrl, pinNumber, false);
             profile.IsMain = true;
             await SaveChangesAsync();
 
             return account;
         }
 
-        public async Task<Profile> CreateOrUpdateProfileAsync(Account account, string name, Ratings allowedRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, short? pinNumber, bool locked)
+        public async Task<Profile> CreateOrUpdateProfileAsync(Account account, string name, MovieRatings maxMovieRatings, TVRatings maxTVRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, short? pinNumber, bool locked)
         {
             name = name.Trim();
 
@@ -44,8 +44,8 @@ namespace DustyPig.Server.Data
                 {
                     Account = account,
                     AccountId = account.Id,
-                    MaxMovieRating = allowedRatings.ToMovieRatings(),
-                    MaxTVRating = allowedRatings.ToTVRatings(),
+                    MaxMovieRating = maxMovieRatings,
+                    MaxTVRating = maxTVRatings,
                     AvatarUrl = avatarUrl,
                     Locked = locked,
                     Name = name,
@@ -57,8 +57,8 @@ namespace DustyPig.Server.Data
             }
             else
             {
-                profile.MaxMovieRating = allowedRatings.ToMovieRatings();
-                profile.MaxTVRating = allowedRatings.ToTVRatings();
+                profile.MaxMovieRating = maxMovieRatings;
+                profile.MaxTVRating = maxTVRatings;
                 profile.AvatarUrl = avatarUrl;
                 profile.Locked = !profile.IsMain && locked;
                 profile.Name = name;

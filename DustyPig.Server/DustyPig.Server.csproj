@@ -7,7 +7,7 @@
 	<NoWarn>$(NoWarn);1591,CS1573,IDE0090</NoWarn>
 
 	 <!-- Leave the revision as zero, it will be set by github actions -->
-	 <Version>3.0.2.0</Version>
+	 <Version>3.3.0.0</Version>
 	 <UserSecretsId>ad457da4-3875-453c-9c70-70fa31ad9064</UserSecretsId>
 
 </PropertyGroup>
@@ -21,7 +21,7 @@
 <ItemGroup>
     <PackageReference Include="AsyncAwaitBestPractices" Version="6.0.6" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.205.9" />
-    <PackageReference Include="DustyPig.API" Version="3.2.0.161" />
+    <PackageReference Include="DustyPig.API" Version="3.3.0.162" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.8" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.2.10" />
     <PackageReference Include="FirebaseAdmin" Version="2.4.0" />

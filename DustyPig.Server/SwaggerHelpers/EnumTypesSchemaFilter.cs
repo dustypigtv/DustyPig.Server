@@ -14,8 +14,8 @@ namespace DustyPig.Server.SwaggerHelpers
         {
             if (schema.Enum != null && schema.Enum.Count > 0 && context.Type != null && context.Type.IsEnum)
             {
-                if (context.Type == typeof(Ratings))
-                    DescribeEnum(schema, context, (s) => s.Replace("_", "-").Replace("NR", "Not Rated"));
+                if (context.Type == typeof(TVRatings))
+                    DescribeEnum(schema, context, (s) => s.Replace("_", "-").Replace("NotRated", "Not Rated"));
 
                 else if (context.Type == typeof(Genres))
                     DescribeEnum(schema, context, (s) => s.Replace("_", " "));
@@ -53,17 +53,15 @@ namespace DustyPig.Server.SwaggerHelpers
                 if (format != null)
                     enumTypeVal = format(enumTypeVal);
 
-                bool allRatings = context.Type == typeof(Ratings) && enumTypeVal == "All";
-                if (!allRatings)
-                    if (flags)
-                    {
-                        string enumHexVal = "0x" + enumIntVal.ToString($"X{cnt}");
-                        schema.Description += $"<li>{enumHexVal} = {enumTypeVal}</li>";
-                    }
-                    else
-                    {
-                        schema.Description += $"<li>{enumIntVal} = {enumTypeVal}</li>";
-                    }
+                if (flags)
+                {
+                    string enumHexVal = "0x" + enumIntVal.ToString($"X{cnt}");
+                    schema.Description += $"<li>{enumHexVal} = {enumTypeVal}</li>";
+                }
+                else
+                {
+                    schema.Description += $"<li>{enumIntVal} = {enumTypeVal}</li>";
+                }
             }
             schema.Description += "</ul>";
         }

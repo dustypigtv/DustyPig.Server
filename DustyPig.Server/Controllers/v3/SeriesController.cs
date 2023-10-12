@@ -210,7 +210,7 @@ namespace DustyPig.Server.Controllers.v3
                 Genres = media.ToGenres(),
                 LibraryId = media.LibraryId,
                 Producers = media.GetPeople(Roles.Producer),
-                Rated = media.TVRating.ToRatings(),
+                Rated = media.TVRating ?? TVRatings.None,
                 Title = media.Title,
                 TMDB_Id = media.TMDB_Id,
                 Writers = media.GetPeople(Roles.Writer)
@@ -356,7 +356,7 @@ namespace DustyPig.Server.Controllers.v3
                 Id = id,
                 LibraryId = mediaEntry.LibraryId,
                 Producers = mediaEntry.GetPeople(Roles.Producer),
-                Rated = mediaEntry.TVRating.ToRatings(),
+                Rated = mediaEntry.TVRating ?? TVRatings.None,
                 Title = mediaEntry.Title,
                 TMDB_Id = mediaEntry.TMDB_Id,
                 Writers = mediaEntry.GetPeople(Roles.Writer)
@@ -440,7 +440,7 @@ namespace DustyPig.Server.Controllers.v3
                 Description = seriesInfo.Description,
                 EntryType = MediaTypes.Series,
                 LibraryId = seriesInfo.LibraryId,
-                TVRating = seriesInfo.Rated.ToTVRatings(),
+                TVRating = seriesInfo.Rated,
                 SortTitle = StringUtils.SortTitle(seriesInfo.Title),
                 Title = seriesInfo.Title,
                 TMDB_Id = seriesInfo.TMDB_Id
@@ -517,7 +517,7 @@ namespace DustyPig.Server.Controllers.v3
             //Update info
             bool tmdb_changed = existingItem.TMDB_Id != seriesInfo.TMDB_Id;
             bool library_changed = existingItem.LibraryId != seriesInfo.LibraryId;
-            bool rated_changed = existingItem.TVRating != seriesInfo.Rated.ToTVRatings();
+            bool rated_changed = existingItem.TVRating != seriesInfo.Rated;
             bool artwork_changed = existingItem.ArtworkUrl != seriesInfo.ArtworkUrl;
 
             existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
@@ -525,7 +525,7 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.Description = seriesInfo.Description;
             existingItem.SetGenreFlags(seriesInfo.Genres);
             existingItem.LibraryId = seriesInfo.LibraryId;
-            existingItem.TVRating = seriesInfo.Rated.ToTVRatings();
+            existingItem.TVRating = seriesInfo.Rated;
             existingItem.SortTitle = StringUtils.SortTitle(seriesInfo.Title);
             existingItem.Title = seriesInfo.Title;
             existingItem.TMDB_Id = seriesInfo.TMDB_Id;

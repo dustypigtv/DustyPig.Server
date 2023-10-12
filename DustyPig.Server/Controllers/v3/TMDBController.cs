@@ -132,7 +132,7 @@ namespace DustyPig.Server.Controllers.v3
                         ||
                         (
                             pls != null
-                            && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.NotRated)
+                            && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                             && ovrride.State != OverrideState.Block
                         )
                     )

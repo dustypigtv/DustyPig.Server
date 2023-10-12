@@ -90,7 +90,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 LibraryId = self.LibraryId,
                 CanPlay = playable,
                 Producers = self.GetPeople(Roles.Producer),
-                Rated = self.MovieRating?.ToRatings() ?? Ratings.None,
+                Rated = self.MovieRating ?? MovieRatings.None,
                 Title = self.Title,
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = playable ? self.VideoUrl : null,
