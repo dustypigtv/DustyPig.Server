@@ -8,7 +8,6 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
-using Google.Api.Gax;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -51,16 +50,16 @@ namespace DustyPig.Server.Controllers.v3
                 //Check if they already exist
                 var existingUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(info.Email);
 
-               
+
                 //Try to sign in
                 var signinResponse = await _client.SignInWithEmailPasswordAsync(info.Email, info.Password);
-                if(signinResponse.Success)
+                if (signinResponse.Success)
                 {
                     //This means the user sent the same password that already exists.
                     //Go ahead and send a response with the email verificaiton parameter
                     return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = !existingUser.EmailVerified });
                 }
-                
+
 
                 return new ResponseWrapper<CreateAccountResponse>("Account already exists");
             }
@@ -149,7 +148,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             catch { }
 
-            
+
             await FirebaseAuth.DefaultInstance.DeleteUserAsync(account.FirebaseId);
 
             DB.Accounts.Remove(account);

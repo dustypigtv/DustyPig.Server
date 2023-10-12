@@ -1,5 +1,4 @@
 ﻿// https://firebase.google.com/docs/reference/rest/auth
-using Microsoft.AspNetCore.Mvc;
 
 namespace DustyPig.Server.Services
 {

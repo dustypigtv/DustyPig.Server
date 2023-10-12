@@ -36,8 +36,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             });
 
             await db.SaveChangesAsync();
-            
-            
+
+
             //Scenario: Shared lib has items in a playlist. Then
             //Lib is unshared, artwork is updated, then reshared - need
             //to update the artwork again
@@ -73,7 +73,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             db.FriendLibraryShares.Remove(share);
             await db.SaveChangesAsync();
-            
+
             var playlistIds = await GetPlaylistIds(db, account, friend, libraryId);
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 

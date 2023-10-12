@@ -40,7 +40,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
                     {
                         FAM.Title = "Reset Password";
                         FAM.Code = oobCode;
-                        FAM.ShowPasswordReset = true;                        
+                        FAM.ShowPasswordReset = true;
                     }
                     else
                     {
@@ -99,7 +99,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
                 if (acct != null)
                 {
                     var prof = acct.Profiles.FirstOrDefault(p => p.IsMain);
-                    if(prof != null && prof.PinNumber != null)
+                    if (prof != null && prof.PinNumber != null)
                     {
                         prof.PinNumber = null;
                         db.Profiles.Update(prof);
@@ -113,7 +113,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
                     FAM.Message = "Your password has been reset, and your PIN cleared. You can now sign in to Dusty Pig";
                 else
                     FAM.Message = "Your password has been reset. You can now sign in to Dusty Pig";
-                
+
 
             }
             else

@@ -4,7 +4,6 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
-using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -181,7 +180,7 @@ namespace DustyPig.Server.Controllers.v3
                     BifUrl = dbPlaylistItem.MediaEntry.BifUrl,
                     VideoUrl = dbPlaylistItem.MediaEntry.VideoUrl
                 };
-                                
+
 
                 switch (dbPlaylistItem.MediaEntry.EntryType)
                 {
@@ -215,7 +214,7 @@ namespace DustyPig.Server.Controllers.v3
                 else
                 {
                     var cst = upNext.CreditsStartTime ?? -1;
-                    if(cst < 0)
+                    if (cst < 0)
                     {
                         if (upNext.MediaType == MediaTypes.Episode)
                             cst = upNext.Length - 30;

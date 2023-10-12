@@ -1,5 +1,4 @@
 ﻿using DustyPig.API.v3.MPAA;
-using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System;

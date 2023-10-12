@@ -6,11 +6,8 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
-using FirebaseAdmin.Messaging;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Query.ExpressionTranslators.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -899,7 +896,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.ProfileLibraryShares.Where(item2 => item2.Profile.AccountId == UserAccount.Id))
                 .ThenInclude(item => item.Profile)
                 .Include(item => item.TitleOverrides.Where(item2 => item2.Profile.AccountId == UserAccount.Id || item2.Profile.IsMain))
-                
+
                 .Where(item => item.Id == id)
                 .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType))
                 .FirstOrDefaultAsync();
@@ -913,7 +910,7 @@ namespace DustyPig.Server.Controllers.v3
             // Sub Profiles
             var profiles = UserAccount.Profiles.ToList();
             profiles.RemoveAll(item => item.IsMain);
-            foreach(var profile in profiles)
+            foreach (var profile in profiles)
             {
                 var profInfo = new ProfileTitleOverrideInfo
                 {
@@ -977,11 +974,11 @@ namespace DustyPig.Server.Controllers.v3
                     .Where(item => item.Accepted)
                     .ToListAsync();
 
-                foreach(var friend in myFriends)
+                foreach (var friend in myFriends)
                 {
                     var profileLst = friend.Account1Id == UserAccount.Id ? friend.Account2.Profiles : friend.Account1.Profiles;
                     var profile = profileLst.FirstOrDefault(item => item.IsMain);
-                    if(profile.Id != UserProfile.Id)
+                    if (profile.Id != UserProfile.Id)
                     {
                         profile.Name = friend.GetFriendDisplayNameForAccount(UserAccount.Id);
 
@@ -1001,7 +998,7 @@ namespace DustyPig.Server.Controllers.v3
                         if (ovrride == null)
                         {
                             bool shared = false;
-                            foreach(var fls in mediaEntry.Library.FriendLibraryShares)
+                            foreach (var fls in mediaEntry.Library.FriendLibraryShares)
                             {
                                 var sharedProfileLst = fls.Friendship.Account1Id == UserAccount.Id ? fls.Friendship.Account2.Profiles : fls.Friendship.Account1.Profiles;
                                 shared = sharedProfileLst

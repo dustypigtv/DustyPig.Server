@@ -158,16 +158,16 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-            if(!string.IsNullOrWhiteSpace(info.AvatarUrl))
+            if (!string.IsNullOrWhiteSpace(info.AvatarUrl))
                 profile.AvatarUrl = info.AvatarUrl;
 
-            
-            if(info.Pin == null)
+
+            if (info.Pin == null)
             {
                 //Only set to null if client specifically wants to delete the pin number
                 if (info.ClearPin)
                     profile.PinNumber = null;
-            } 
+            }
             else
             {
                 //Set to value supplied by client
@@ -225,8 +225,8 @@ namespace DustyPig.Server.Controllers.v3
 
             using var ms = new MemoryStream();
             await Request.Body.CopyToAsync(ms);
-            
-            if(!IsJpeg(ms))
+
+            if (!IsJpeg(ms))
                 return CommonResponses.BadRequest<SimpleValue<string>>("File does not appear to be a jpeg file");
 
             string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
@@ -272,7 +272,7 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.BadRequest<SimpleValue<string>>("Only 1 file allowed");
 
             var file = Request.Form.Files[0];
-            if(!string.IsNullOrWhiteSpace(file.ContentType))
+            if (!string.IsNullOrWhiteSpace(file.ContentType))
                 if (file.ContentType != "image/jpeg")
                     return CommonResponses.BadRequest<SimpleValue<string>>("Content-Type does not match image/jpeg");
 
@@ -289,7 +289,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Swap
             DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
-            profile.AvatarUrl = urlPath;            
+            profile.AvatarUrl = urlPath;
             DB.Profiles.Update(profile);
 
             await DB.SaveChangesAsync();
@@ -333,7 +333,7 @@ namespace DustyPig.Server.Controllers.v3
 
             DB.Profiles.Add(profile);
             await DB.SaveChangesAsync();
-            
+
             return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(profile.Id));
         }
 

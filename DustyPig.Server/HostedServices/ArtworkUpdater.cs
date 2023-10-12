@@ -1,7 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
-using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
