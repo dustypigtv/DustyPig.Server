@@ -22,7 +22,7 @@ namespace DustyPig.Server.Data.Models
 
         public bool IsMain { get; set; }
 
-        public short? PinNumber { get; set; }
+        public ushort? PinNumber { get; set; }
 
         public TitleRequestPermissions TitleRequestPermission { get; set; }
 

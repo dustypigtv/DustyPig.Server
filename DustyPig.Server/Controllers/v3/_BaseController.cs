@@ -1,4 +1,5 @@
-﻿using DustyPig.Server.Data;
+﻿using Asp.Versioning;
+using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;

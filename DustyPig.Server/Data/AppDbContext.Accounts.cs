@@ -13,7 +13,7 @@ namespace DustyPig.Server.Data
         /// <summary>
         /// Creates an Account and the main Profile
         /// </summary>
-        public async Task<Account> CreateAccountAndProfileAsync(int id, string name, MovieRatings maxMovieRatings, TVRatings maxTVRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, short? pinNumber)
+        public async Task<Account> CreateAccountAndProfileAsync(int id, string name, MovieRatings maxMovieRatings, TVRatings maxTVRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, ushort? pinNumber)
         {
             var account = await Accounts
                 .Include(item => item.Profiles)
@@ -33,7 +33,7 @@ namespace DustyPig.Server.Data
             return account;
         }
 
-        public async Task<Profile> CreateOrUpdateProfileAsync(Account account, string name, MovieRatings maxMovieRatings, TVRatings maxTVRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, short? pinNumber, bool locked)
+        public async Task<Profile> CreateOrUpdateProfileAsync(Account account, string name, MovieRatings maxMovieRatings, TVRatings maxTVRatings, API.v3.Models.TitleRequestPermissions titleRequestPermissions, string avatarUrl, ushort? pinNumber, bool locked)
         {
             name = name.Trim();
 
