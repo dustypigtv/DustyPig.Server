@@ -784,7 +784,7 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("varchar(200)");
 
                     b.Property<short?>("PinNumber")
-                        .HasColumnType("smallint");
+                        .HasColumnType("smallint unsigned");
 
                     b.Property<byte>("TitleRequestPermission")
                         .HasColumnType("tinyint unsigned");

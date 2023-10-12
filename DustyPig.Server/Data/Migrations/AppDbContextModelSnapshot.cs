@@ -16,7 +16,7 @@ namespace DustyPig.Server.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.9")
+                .HasAnnotation("ProductVersion", "7.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Account", b =>
@@ -780,8 +780,8 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<short?>("PinNumber")
-                        .HasColumnType("smallint");
+                    b.Property<ushort?>("PinNumber")
+                        .HasColumnType("smallint unsigned");
 
                     b.Property<byte>("TitleRequestPermission")
                         .HasColumnType("tinyint unsigned");

@@ -210,7 +210,7 @@ namespace DustyPig.Server.Data.Migrations
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsMain = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    PinNumber = table.Column<short>(type: "smallint", nullable: true),
+                    PinNumber = table.Column<ushort>(type: "smallint unsigned", nullable: true),
                     TitleRequestPermission = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     AvatarUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
