@@ -14,7 +14,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static async Task<ResponseWrapper> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
-            if (!account.Profiles.Any(item => item.Id == profileId))
+            var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
+            if(profile == null)
                 return CommonResponses.NotFound("Profile");
 
             //See if already linked
@@ -35,6 +36,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 if (!library.FriendLibraryShares.Any(item => item.Friendship.Account1Id == account.Id))
                     if (!library.FriendLibraryShares.Any(item => item.Friendship.Account2Id == account.Id))
                         return CommonResponses.NotFound("Library");
+
+
+            //Main profile has access to everything at this point without links
+            if (profile.IsMain)
+                return CommonResponses.Ok();
 
             db.ProfileLibraryShares.Add(new ProfileLibraryShare
             {
@@ -58,8 +64,13 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static async Task<ResponseWrapper> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
-            if (!account.Profiles.Any(item => item.Id == profileId))
+            var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
                 return CommonResponses.NotFound("Profile");
+
+            //Main profile has access to libs without links, so nothing to delete
+            if (profile.IsMain)
+                return CommonResponses.Ok();
 
             //Get the link
             using var db = new AppDbContext();

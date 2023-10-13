@@ -158,8 +158,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-            if (!string.IsNullOrWhiteSpace(info.AvatarUrl))
-                profile.AvatarUrl = info.AvatarUrl;
+            profile.AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl);
 
 
             if (info.Pin == null)
@@ -188,12 +187,12 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-            if (UserProfile.IsMain)
+            if (UserProfile.IsMain && UserProfile.Id != info.Id)
             {
                 //Update restricted fields
                 profile.MaxTVRating = info.MaxTVRating;
                 profile.MaxMovieRating = info.MaxMovieRating;
-                profile.Locked = !profile.IsMain && info.Locked;
+                profile.Locked = info.Locked;
                 profile.TitleRequestPermission = info.TitleRequestPermissions;
             }
 
@@ -386,7 +385,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         public Task<ResponseWrapper> LinkToLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
-
+        
 
         /// <summary>
         /// Level 3
@@ -395,7 +394,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         public Task<ResponseWrapper> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
-
+        
 
         static bool IsJpeg(Stream stream)
         {
