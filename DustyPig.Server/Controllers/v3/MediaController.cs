@@ -385,12 +385,17 @@ namespace DustyPig.Server.Controllers.v3
                             &&
                             (
                                 lib.AccountId == UserAccount.Id
-                                || fls.HasValue
+                                || 
+                                (
+                                    fls.HasValue
+                                    && ovrride.State != OverrideState.Block
+                                )
                             )
                         )
                         ||
                         (
                             pls != null
+                            && ovrride.State != OverrideState.Block
                             &&
                             (
                                 (
@@ -405,7 +410,6 @@ namespace DustyPig.Server.Controllers.v3
                                 ||
                                 (
                                     UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled
-                                    || ovrride.State != OverrideState.Block
                                 )
                             )
                         )
