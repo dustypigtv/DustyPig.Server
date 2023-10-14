@@ -177,16 +177,11 @@ namespace DustyPig.Server.Controllers.v3
                             return CommonResponses.NotFound<DetailedSeries>();
 
 
-            bool playable = (UserProfile.IsMain && media.Library.AccountId == UserAccount.Id)
+            bool playable = (UserProfile.IsMain)
                 || media.TitleOverrides.Any(item => item.State == OverrideState.Allow)
                 ||
                 (
                     !media.TitleOverrides.Any(item => item.State == OverrideState.Block)
-                    &&
-                    (
-                        UserProfile.IsMain
-                        && media.Library.FriendLibraryShares.Any()
-                    )
                     &&
                     (
                         media.Library.ProfileLibraryShares.Any()

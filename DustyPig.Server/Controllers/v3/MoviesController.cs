@@ -175,16 +175,11 @@ namespace DustyPig.Server.Controllers.v3
                         if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
                             return CommonResponses.NotFound<DetailedMovie>();
 
-            bool playable = (UserProfile.IsMain && media.Library.AccountId == UserAccount.Id)
+            bool playable = (UserProfile.IsMain)
                 || media.TitleOverrides.Any(item => item.State == OverrideState.Allow)
                 ||
                 (
                     !media.TitleOverrides.Any(item => item.State == OverrideState.Block)
-                    &&
-                    (
-                        UserProfile.IsMain
-                        && media.Library.FriendLibraryShares.Any()
-                    )
                     &&
                     (
                         media.Library.ProfileLibraryShares.Any()
