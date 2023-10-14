@@ -393,8 +393,20 @@ namespace DustyPig.Server.Controllers.v3
                             pls != null
                             &&
                             (
-                                UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled
-                                || ovrride.State != OverrideState.Block
+                                (
+                                    me.EntryType == MediaTypes.Movie
+                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
+                                )
+                                ||
+                                (
+                                    me.EntryType == MediaTypes.Series
+                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
+                                )
+                                ||
+                                (
+                                    UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled
+                                    || ovrride.State != OverrideState.Block
+                                )
                             )
                         )
                         || ovrride.State == OverrideState.Allow
