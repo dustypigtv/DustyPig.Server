@@ -8,6 +8,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.Elfie.Model;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -224,7 +225,16 @@ namespace DustyPig.Server.Controllers.v3
                     ret.AccessRequestedStatus = overrideRequest.Status;
             }
 
-            ret.CanManage = UserProfile.IsMain && UserAccount.Profiles.Count > 1;
+            ret.CanManage = UserProfile.IsMain 
+                &&
+                (
+                    UserAccount.Profiles.Count > 1
+                    ||
+                    (
+                        media.Library.AccountId == UserAccount.Id
+                        && media.Library.FriendLibraryShares.Count > 0
+                    )
+                );
 
             return new ResponseWrapper<DetailedMovie>(ret);
         }

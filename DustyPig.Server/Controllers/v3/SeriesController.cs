@@ -197,7 +197,6 @@ namespace DustyPig.Server.Controllers.v3
                 Id = id,
                 ArtworkUrl = media.ArtworkUrl,
                 BackdropUrl = media.BackdropUrl,
-                CanManage = UserProfile.IsMain && UserAccount.Profiles.Count > 1,
                 CanPlay = playable,
                 Cast = media.GetPeople(Roles.Cast),
                 Description = media.Description,
@@ -210,6 +209,17 @@ namespace DustyPig.Server.Controllers.v3
                 TMDB_Id = media.TMDB_Id,
                 Writers = media.GetPeople(Roles.Writer)
             };
+
+            ret.CanManage = UserProfile.IsMain
+                &&
+                (
+                    UserAccount.Profiles.Count > 1
+                    ||
+                    (
+                        media.Library.AccountId == UserAccount.Id
+                        && media.Library.FriendLibraryShares.Count > 0
+                    )
+                );
 
 
             if (playable)
