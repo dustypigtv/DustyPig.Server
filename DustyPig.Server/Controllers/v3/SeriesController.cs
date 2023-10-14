@@ -206,6 +206,7 @@ namespace DustyPig.Server.Controllers.v3
                 Producers = media.GetPeople(Roles.Producer),
                 Rated = media.TVRating ?? TVRatings.None,
                 Title = media.Title,
+                TitleRequestPermission = TitleRequestLogic.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any()),
                 TMDB_Id = media.TMDB_Id,
                 Writers = media.GetPeople(Roles.Writer)
             };

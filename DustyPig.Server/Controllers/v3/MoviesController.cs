@@ -192,6 +192,9 @@ namespace DustyPig.Server.Controllers.v3
 
             //Build the response
             var ret = media.ToDetailedMovie(playable);
+            ret.TitleRequestPermission = TitleRequestLogic.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any());
+
+
 
             if (playable)
                 ret.InWatchlist = media.WatchlistItems.Any();
