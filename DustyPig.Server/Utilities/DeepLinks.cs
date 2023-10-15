@@ -1,4 +1,5 @@
 ﻿using DustyPig.Server.Data.Models;
+using System.Linq;
 
 namespace DustyPig.Server.Utilities
 {
@@ -6,16 +7,21 @@ namespace DustyPig.Server.Utilities
     {
         public static string Create(Notification notification)
         {
-            if (notification.NotificationType == NotificationType.OverrideRequest)
-                return $"overrides/{notification.TitleOverrideId}";
-
             if (notification.NotificationType == NotificationType.Friend)
                 return $"friendship/{notification.FriendshipId}";
 
             if (notification.NotificationType == NotificationType.GetRequest)
                 return $"requests/{notification.GetRequestId}";
 
-            if (notification.NotificationType == NotificationType.Media && notification.MediaEntry != null)
+
+
+            var mediaTypes = new NotificationType[]
+            {
+                NotificationType.Media,
+                NotificationType.OverrideRequest
+            };
+
+            if (mediaTypes.Contains(notification.NotificationType) && notification.MediaEntry != null)
             {
                 switch (notification.MediaEntry.EntryType)
                 {
