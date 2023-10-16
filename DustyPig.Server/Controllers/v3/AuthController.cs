@@ -335,6 +335,7 @@ namespace DustyPig.Server.Controllers.v3
             using var db = new AppDbContext();
             var profile = await db.Profiles
                 .AsNoTracking()
+                .Include(item => item.FCMTokens)
                 .Where(item => item.AccountId == account.Id)
                 .Where(item => item.Id == credentials.Id)
                 .FirstOrDefaultAsync();
