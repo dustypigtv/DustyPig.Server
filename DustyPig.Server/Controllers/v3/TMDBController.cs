@@ -91,7 +91,10 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(l => l.FriendLibraryShares.Where(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id))
                 .Include(m => m.Library)
                 .ThenInclude(l => l.ProfileLibraryShares.Where(p => p.ProfileId == UserProfile.Id))
-                .Include(m => m.TitleOverrides.Where(o => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(o.State)))
+                .Include(m => m.TitleOverrides
+                    .Where(o => o.ProfileId == UserProfile.Id)
+                    .Where(o => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(o.State))
+                )
                 .Where(m => m.EntryType == MediaTypes.Movie)
                 .Where(m => m.TMDB_Id.HasValue)
                 .Where(m => m.TMDB_Id == id)
@@ -179,7 +182,10 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(l => l.FriendLibraryShares.Where(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id))
                 .Include(m => m.Library)
                 .ThenInclude(l => l.ProfileLibraryShares.Where(p => p.ProfileId == UserProfile.Id))
-                .Include(m => m.TitleOverrides.Where(o => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(o.State)))
+                .Include(m => m.TitleOverrides
+                    .Where(o => o.ProfileId == UserProfile.Id)
+                    .Where(o => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(o.State))
+                )
                 .Where(m => m.EntryType == MediaTypes.Series)
                 .Where(m => m.TMDB_Id.HasValue)
                 .Where(m => m.TMDB_Id == id)
