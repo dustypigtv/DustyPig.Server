@@ -608,6 +608,82 @@ namespace DustyPig.Server.Controllers.v3
             if (hist.Id <= 0)
                 return CommonResponses.NotFound(nameof(hist.Id));
 
+            var mt = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(m => m.Id == hist.Id)
+                .FirstOrDefaultAsync();
+
+            if (mt == null)
+                return CommonResponses.NotFound(nameof(hist.Id));
+
+            if (mt.EntryType == MediaTypes.Episode)
+                hist.Id = mt.LinkedToId.Value;
+
+
+            var mediaEntry = await DB.MediaEntries
+                .AsNoTracking()
+
+                .Include(m => m.TitleOverrides
+                    .Where(t => t.ProfileId == UserProfile.Id)
+                    .Where(t => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(t.State))
+                )
+                .Include(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
+
+                .Include(m => m.LinkedTo)
+                .ThenInclude(m => m.TitleOverrides
+                    .Where(t => t.ProfileId == UserProfile.Id)
+                    .Where(t => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(t.State))
+                )
+
+                .Include(m => m.LinkedTo)
+                .ThenInclude(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
+
+
+                .Where(m => m.Id == hist.Id)
+                .Where(m => Constants.PLAYABLE_MEDIA_TYPES.Contains(m.EntryType))
+                .Where(m =>
+                    (
+                        UserProfile.IsMain
+                        &&
+                        (
+                            m.Library.AccountId == UserAccount.Id
+                            ||
+                            (
+                                m.Library.FriendLibraryShares.Any(s => s.Friendship.Account1Id == UserAccount.Id || s.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides.Any(t => 
+                                    t.ProfileId == UserProfile.Id
+                                    && t.State == OverrideState.Block
+                                )
+                            )
+                        )
+                    )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && !m.TitleOverrides.Any(t =>
+                            t.ProfileId == UserProfile.Id
+                            && t.State == OverrideState.Block
+                        )
+                        &&
+                        (
+                            (
+                                m.EntryType == MediaTypes.Movie
+                                && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
+                            )
+                            ||
+                            (
+                                m.EntryType == MediaTypes.Episode
+                                && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                            )
+                        )
+                    )
+                    || m.TitleOverrides.Any(t =>
+                        t.ProfileId == UserProfile.Id
+                        && t.State == OverrideState.Allow
+                    )
+                )
+                .FirstOrDefaultAsync();
+
 
             var q =
                 from me in DB.MediaEntries
@@ -664,12 +740,12 @@ namespace DustyPig.Server.Controllers.v3
                             (
                                 (
                                     me.EntryType == MediaTypes.Movie
-                                    && me.MovieRating <= UserProfile.MaxMovieRating
+                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                                 )
                                 ||
                                 (
                                     me.EntryType == MediaTypes.Episode
-                                    && me.TVRating <= UserProfile.MaxTVRating
+                                    && UserProfile.MaxTVRating >= (me.LinkedTo.TVRating ?? TVRatings.NotRated)
                                 )
                             )
                         )
@@ -686,46 +762,47 @@ namespace DustyPig.Server.Controllers.v3
                     me.Length
                 };
 
-
-            var response = await q
+            var x = await q
                 .AsNoTracking()
+                .Distinct()
                 .FirstOrDefaultAsync();
 
-            if (response == null)
+            if (mediaEntry == null)
                 return CommonResponses.NotFound(nameof(hist.Id));
 
-
-            if (response.Progress == null)
+            var progress = mediaEntry.ProfileMediaProgress.FirstOrDefault();
+            if(progress == null)
             {
-                if (response.EntryType == MediaTypes.Movie)
-                    if (hist.Seconds < 1 || hist.Seconds > (response.CreditsStartTime ?? (response.Length * 0.9)))
+                if (mediaEntry.EntryType == MediaTypes.Movie)
+                    if (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9)))
                         return CommonResponses.Ok();
 
                 //Add
                 DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
                 {
-                    MediaEntryId = response.MediaEntryId,
+                    MediaEntryId = mediaEntry.Id,
                     ProfileId = UserProfile.Id,
                     Played = Math.Max(0, hist.Seconds),
                     Timestamp = DateTime.UtcNow,
-                    Xid = response.Xid
+                    Xid = mediaEntry.Xid
                 });
             }
             else
             {
-                if (response.EntryType == MediaTypes.Movie)
+                if (mediaEntry.EntryType == MediaTypes.Movie)
                 {
-                    if (hist.Seconds < 1 || hist.Seconds > (response.CreditsStartTime ?? (response.Length * 0.9)))
-                        DB.ProfileMediaProgresses.Remove(response.Progress);
+                    if (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9)))
+                        DB.ProfileMediaProgresses.Remove(progress);
                 }
                 else
                 {
                     //Update
-                    response.Progress.Played = Math.Max(0, hist.Seconds);
-                    response.Progress.Timestamp = DateTime.UtcNow;
-                    DB.ProfileMediaProgresses.Update(response.Progress);
+                    progress.Played = Math.Max(0, hist.Seconds);
+                    progress.Timestamp = DateTime.UtcNow;
+                    DB.ProfileMediaProgresses.Update(progress);
                 }
             }
+
 
             await DB.SaveChangesAsync();
 
