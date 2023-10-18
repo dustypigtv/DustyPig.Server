@@ -1,10 +1,12 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using DustyPig.TMDB.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -33,93 +35,108 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse((int)HttpStatusCode.NotFound)]
         public async Task<ResponseWrapper<DetailedEpisode>> Details(int id)
         {
-            var q =
-                from qep in DB.MediaEntries
-                join qseries in DB.MediaEntries on qep.LinkedToId equals qseries.Id
-                join qseriesEp in DB.MediaEntries on qseries.Id equals qseriesEp.LinkedToId
-                join qlib in DB.Libraries on qseries.LibraryId equals qlib.Id
 
-                join qsub in DB.Subtitles on qep.Id equals qsub.MediaEntryId into qsub_lj
-                from qsub in qsub_lj.DefaultIfEmpty()
+            var episode = await DB.MediaEntries
+                .AsNoTracking()
 
-                join qfls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on qlib.Id equals qfls into qfls_lj
-                from qfls in qfls_lj.DefaultIfEmpty()
+                .Include(m => m.Subtitles)
+                
+                .Where(m => m.Id == id)
+                .Where(m => m.EntryType == MediaTypes.Episode)
+                .Where(m =>
 
-
-                join qpls in DB.ProfileLibraryShares
-                    on new { LibraryId = qlib.Id, ProfileId = UserProfile.Id }
-                    equals new { qpls.LibraryId, qpls.ProfileId }
-                    into qpls_lj
-                from qpls in qpls_lj.DefaultIfEmpty()
-
-
-                join qovrride in DB.TitleOverrides
-                    on new { MediaEntryId = qseries.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { qovrride.MediaEntryId, qovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(qovrride.State) }
-                    into qovrride_lj
-                from qovrride in qovrride_lj.DefaultIfEmpty()
-
-                join qpmp in DB.ProfileMediaProgresses
-                    on new { MediaEntryId = qseries.Id, ProfileId = UserProfile.Id }
-                    equals new { qpmp.MediaEntryId, qpmp.ProfileId }
-                    into qpmp_lj
-                from qpmp in qpmp_lj.DefaultIfEmpty()
-
-
-                where
-
-                    qep.Id == id
-
-                    //Allow to play filters
-                    && qep.EntryType == MediaTypes.Episode
-                    &&
-                    (
                         (
                             UserProfile.IsMain
                             &&
                             (
-                                qlib.AccountId == UserAccount.Id
+                                m.Library.AccountId == UserAccount.Id
                                 ||
                                 (
-                                    qfls.HasValue
-                                    && qovrride.State != OverrideState.Block
+                                    m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                    && !m.TitleOverrides
+                                        .Where(t => t.ProfileId == UserProfile.Id)
+                                        .Where(t => t.State == OverrideState.Block)
+                                        .Any()
                                 )
                             )
                         )
                         ||
                         (
-                            qpls != null
-                            && qovrride.State != OverrideState.Block
-                            && qseries.TVRating <= UserProfile.MaxTVRating
+                            m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                            && !m.TitleOverrides
+                                .Where(t => t.ProfileId == UserProfile.Id)
+                                .Where(t => t.State == OverrideState.Block)
+                                .Any()
+                            && UserProfile.MaxTVRating >= (m.TVRating ?? API.v3.MPAA.TVRatings.NotRated)
                         )
-                        || qovrride.State == OverrideState.Allow
+                        || m.TitleOverrides
+                                .Where(t => t.ProfileId == UserProfile.Id)
+                                .Where(t => t.State == OverrideState.Allow)
+                                .Any()
+
+                )
+                .FirstOrDefaultAsync();
+
+            if (episode == null)
+                return CommonResponses.NotFound<DetailedEpisode>();
+
+            var series = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Library)
+                .ThenInclude(item => item.Account)
+                .ThenInclude(item => item.Profiles)
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account1)
+                .ThenInclude(item => item.Profiles)
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account2)
+                .ThenInclude(item => item.Profiles)
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.ProfileLibraryShares.Where(item2 => item2.Profile.Id == UserProfile.Id))
+
+                .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
+
+                .Include(item => item.People)
+                .ThenInclude(item => item.Person)
+
+                .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
+
+                .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
+
+                .Where(item => item.Id == episode.LinkedToId.Value)
+                .Where(item => item.EntryType == MediaTypes.Series)
+                .FirstOrDefaultAsync();
+
+            if (series == null)
+                return CommonResponses.NotFound<DetailedEpisode>();
+
+            if (series.Library.AccountId != UserAccount.Id)
+                if (!series.Library.FriendLibraryShares.Any())
+                    if (!series.TitleOverrides.Any())
+                        if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
+                            return CommonResponses.NotFound<DetailedEpisode>();
+
+
+            bool playable = (UserProfile.IsMain)
+                || series.TitleOverrides.Any(item => item.State == OverrideState.Allow)
+                ||
+                (
+                    !series.TitleOverrides.Any(item => item.State == OverrideState.Block)
+                    &&
+                    (
+                        series.Library.ProfileLibraryShares.Any()
+                        && UserProfile.MaxTVRating >= (series.TVRating ?? TVRatings.NotRated)
                     )
+                );
 
-
-
-                select new
-                {
-                    qep,
-                    qseries,
-                    qseriesEp,
-                    qpmp,
-                    qsub
-                };
-
-            var response = await q.AsNoTracking().ToListAsync();
-
-            if (response.Count == 0)
-                return CommonResponses.NotFound<DetailedEpisode>(nameof(id));
-
-            var episode = response.First().qep;
-            var series = response.First().qseries;
-            var pmp = response.First().qpmp;
-            var allEpisodes = response.Select(item => item.qseriesEp).OrderBy(item => item.Xid).ToList();
-
-
+           
             //Build the response
             var ret = new DetailedEpisode
             {
@@ -138,19 +155,26 @@ namespace DustyPig.Server.Controllers.v3
                 SeriesTitle = series.Title,
                 Title = episode.Title,
                 TMDB_Id = episode.TMDB_Id,
-                VideoUrl = episode.VideoUrl
+                VideoUrl = playable ? episode.VideoUrl : null
             };
 
-
-            ret.ExternalSubtitles = response
-                .Select(item => item.qsub)
-                .Where(item => item != null)
-                .Where(item => item.MediaEntryId == id)
-                .Select(item => item.ToExternalSubtitle())
+            ret.ExternalSubtitles = episode
+                .Subtitles
+                .Select(s => s.ToExternalSubtitle())
                 .ToList();
 
+           
+
+            var pmp = series.ProfileMediaProgress.FirstOrDefault();
             if (pmp != null)
             {
+                var allEpisodes = await DB.MediaEntries
+                    .AsNoTracking()
+                    .Include(item => item.Subtitles)
+                    .Where(item => item.LinkedToId == series.Id)
+                    .OrderBy(item => item.Xid)
+                    .ToListAsync();
+
                 if (allEpisodes.Count > 0)
                 {
                     var dbEp = allEpisodes.FirstOrDefault(item => item.Xid == pmp.Xid);
