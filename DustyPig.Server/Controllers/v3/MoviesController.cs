@@ -35,65 +35,52 @@ namespace DustyPig.Server.Controllers.v3
             //Validate
             try { request.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
+                       
 
-            var q =
-                 from me in DB.MediaEntries
-                 join lib in DB.Libraries on me.LibraryId equals lib.Id
+            var movies = await DB.MediaEntries
+                .AsNoTracking()
 
-                 join fls in DB.FriendLibraryShares
-                     .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                     .Select(t => (int?)t.LibraryId)
-                     on lib.Id equals fls into fls_lj
-                 from fls in fls_lj.DefaultIfEmpty()
-
-                 join pls in DB.ProfileLibraryShares
-                     on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                     equals new { pls.LibraryId, pls.ProfileId }
-                     into pls_lj
-                 from pls in pls_lj.DefaultIfEmpty()
-
-                 join ovrride in DB.TitleOverrides
-                     on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                     equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                     into ovrride_lj
-                 from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                 where
-
-                     //Allow to play filters
-                     me.EntryType == MediaTypes.Movie
-                     &&
-                     (
-                         ovrride.State == OverrideState.Allow
+                .Where(m => m.EntryType == MediaTypes.Movie)
+                .Where(m =>
+                    (
+                        m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Allow)
+                            .Any()
                          ||
                          (
                              UserProfile.IsMain
                              &&
                              (
-                                 lib.AccountId == UserAccount.Id
+                                 m.Library.AccountId == UserAccount.Id
                                  ||
                                  (
-                                     fls.HasValue
-                                     && ovrride.State != OverrideState.Block
+                                    m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                     && !m.TitleOverrides
+                                        .Where(t => t.ProfileId == UserProfile.Id)
+                                        .Where(t => t.State == OverrideState.Block)
+                                        .Any()
                                  )
                              )
                          )
                          ||
                          (
-                             pls != null
-                             && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                             && ovrride.State != OverrideState.Block
+                            m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                             && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
+                             && !m.TitleOverrides
+                                        .Where(t => t.ProfileId == UserProfile.Id)
+                                        .Where(t => t.State == OverrideState.Block)
+                                        .Any()
                          )
                      )
+                )
 
-                 select me;
-
-            var movies = await q
-                .AsNoTracking()
-                .ApplySortOrder(SortOrder.Alphabetical)
+                .ApplySortOrder(request.Sort)
                 .Skip(request.Start)
                 .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync();
+
+            
 
             return new ResponseWrapper<List<BasicMedia>>(movies.Select(item => item.ToBasicMedia()).ToList());
         }
