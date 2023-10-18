@@ -137,12 +137,12 @@ namespace DustyPig.Server.Controllers.v3
                              (
                                  (
                                      me.EntryType == MediaTypes.Movie
-                                     && me.MovieRating <= UserProfile.MaxMovieRating
+                                     && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                                  )
                                  ||
                                  (
                                      me.EntryType == MediaTypes.Episode
-                                     && me.TVRating <= UserProfile.MaxTVRating
+                                     && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
                                  )
                              )
                          )

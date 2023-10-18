@@ -685,9 +685,9 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     if (mediaEntry.Library.ProfileLibraryShares.Any(item => item.ProfileId == UserProfile.Id))
                     {
-                        if (mediaEntry.EntryType == MediaTypes.Movie && mediaEntry.MovieRating <= UserProfile.MaxMovieRating)
+                        if (mediaEntry.EntryType == MediaTypes.Movie && UserProfile.MaxMovieRating >= (mediaEntry.MovieRating ?? MovieRatings.Unrated))
                             return CommonResponses.Ok();
-                        if (mediaEntry.EntryType == MediaTypes.Series && mediaEntry.TVRating <= UserProfile.MaxTVRating)
+                        if (mediaEntry.EntryType == MediaTypes.Series && UserProfile.MaxTVRating >= (mediaEntry.TVRating ?? TVRatings.NotRated))
                             return CommonResponses.Ok();
                     }
                 }
@@ -837,11 +837,11 @@ namespace DustyPig.Server.Controllers.v3
                         else
                         {
                             if (mediaEntry.EntryType == MediaTypes.Movie)
-                                profInfo.OverrideState = mediaEntry.MovieRating <= profile.MaxMovieRating ?
+                                profInfo.OverrideState = profile.MaxMovieRating >= (mediaEntry.MovieRating ?? MovieRatings.Unrated ) ?
                                     OverrideState.Allow :
                                     OverrideState.Block;
                             else
-                                profInfo.OverrideState = mediaEntry.TVRating <= profile.MaxTVRating ?
+                                profInfo.OverrideState = profile.MaxTVRating >= (mediaEntry.TVRating ?? TVRatings.NotRated) ?
                                     OverrideState.Allow :
                                     OverrideState.Block;
                         }
@@ -1047,10 +1047,10 @@ namespace DustyPig.Server.Controllers.v3
                     switch (mediaEntry.EntryType)
                     {
                         case MediaTypes.Movie:
-                            allowByDefault = profile.MaxMovieRating >= mediaEntry.MovieRating;
+                            allowByDefault = profile.MaxMovieRating >= (mediaEntry.MovieRating ?? MovieRatings.Unrated);
                             break;
                         case MediaTypes.Series:
-                            allowByDefault = profile.MaxTVRating >= mediaEntry.TVRating;
+                            allowByDefault = profile.MaxTVRating >= (mediaEntry.TVRating ?? TVRatings.NotRated);
                             break;
                     }
                 }
@@ -1520,12 +1520,12 @@ namespace DustyPig.Server.Controllers.v3
                             (
                                 (
                                     me.EntryType == MediaTypes.Movie
-                                    && me.MovieRating <= UserProfile.MaxMovieRating
+                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                                 )
                                 ||
                                 (
                                     me.EntryType == MediaTypes.Series
-                                    && me.TVRating <= UserProfile.MaxTVRating
+                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
                                 )
                             )
                         )
@@ -1740,12 +1740,12 @@ namespace DustyPig.Server.Controllers.v3
                             (
                                 (
                                     me.EntryType == MediaTypes.Movie
-                                    && me.MovieRating <= UserProfile.MaxMovieRating
+                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
                                 )
                                 ||
                                 (
                                     me.EntryType == MediaTypes.Series
-                                    && me.TVRating <= UserProfile.MaxTVRating
+                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
                                 )
                             )
                         )
