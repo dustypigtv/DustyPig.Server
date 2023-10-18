@@ -38,9 +38,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var episode = await DB.MediaEntries
                 .AsNoTracking()
-
                 .Include(m => m.Subtitles)
-                
                 .Where(m => m.Id == id)
                 .Where(m => m.EntryType == MediaTypes.Episode)
                 .FirstOrDefaultAsync();
