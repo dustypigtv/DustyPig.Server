@@ -8,7 +8,6 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.Elfie.Model;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -68,9 +67,9 @@ namespace DustyPig.Server.Controllers.v3
                             m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
                              && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
                              && !m.TitleOverrides
-                                        .Where(t => t.ProfileId == UserProfile.Id)
-                                        .Where(t => t.State == OverrideState.Block)
-                                        .Any()
+                                .Where(t => t.ProfileId == UserProfile.Id)
+                                .Where(t => t.State == OverrideState.Block)
+                                .Any()
                          )
                      )
                 )
