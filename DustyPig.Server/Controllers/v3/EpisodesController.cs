@@ -43,38 +43,6 @@ namespace DustyPig.Server.Controllers.v3
                 
                 .Where(m => m.Id == id)
                 .Where(m => m.EntryType == MediaTypes.Episode)
-                .Where(m =>
-
-                        (
-                            UserProfile.IsMain
-                            &&
-                            (
-                                m.Library.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                    && !m.TitleOverrides
-                                        .Where(t => t.ProfileId == UserProfile.Id)
-                                        .Where(t => t.State == OverrideState.Block)
-                                        .Any()
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                            && !m.TitleOverrides
-                                .Where(t => t.ProfileId == UserProfile.Id)
-                                .Where(t => t.State == OverrideState.Block)
-                                .Any()
-                            && UserProfile.MaxTVRating >= (m.TVRating ?? API.v3.MPAA.TVRatings.NotRated)
-                        )
-                        || m.TitleOverrides
-                                .Where(t => t.ProfileId == UserProfile.Id)
-                                .Where(t => t.State == OverrideState.Allow)
-                                .Any()
-
-                )
                 .FirstOrDefaultAsync();
 
             if (episode == null)
