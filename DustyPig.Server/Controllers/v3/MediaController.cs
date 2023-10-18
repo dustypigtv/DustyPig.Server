@@ -608,16 +608,19 @@ namespace DustyPig.Server.Controllers.v3
             if (hist.Id <= 0)
                 return CommonResponses.NotFound(nameof(hist.Id));
 
-            var mt = await DB.MediaEntries
+            var maybeEpisode = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(m => m.Id == hist.Id)
                 .FirstOrDefaultAsync();
 
-            if (mt == null)
+            if (maybeEpisode == null)
                 return CommonResponses.NotFound(nameof(hist.Id));
 
-            if (mt.EntryType == MediaTypes.Episode)
-                hist.Id = mt.LinkedToId.Value;
+            if (!Constants.PLAYABLE_MEDIA_TYPES.Contains(maybeEpisode.EntryType))
+                return CommonResponses.NotFound(nameof(hist.Id));
+
+            if (maybeEpisode.EntryType == MediaTypes.Episode)
+                hist.Id = maybeEpisode.LinkedToId.Value;
 
 
             var mediaEntry = await DB.MediaEntries
@@ -640,7 +643,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
                 .Where(m => m.Id == hist.Id)
-                .Where(m => Constants.PLAYABLE_MEDIA_TYPES.Contains(m.EntryType))
                 .Where(m =>
                     (
                         UserProfile.IsMain
@@ -702,7 +704,7 @@ namespace DustyPig.Server.Controllers.v3
                     ProfileId = UserProfile.Id,
                     Played = Math.Max(0, hist.Seconds),
                     Timestamp = DateTime.UtcNow,
-                    Xid = mediaEntry.Xid
+                    Xid = maybeEpisode.Xid
                 });
             }
             else
@@ -716,6 +718,7 @@ namespace DustyPig.Server.Controllers.v3
                     //Update
                     progress.Played = Math.Max(0, hist.Seconds);
                     progress.Timestamp = DateTime.UtcNow;
+                    progress.Xid = maybeEpisode.Xid;
                     DB.ProfileMediaProgresses.Update(progress);
                 }
             }
