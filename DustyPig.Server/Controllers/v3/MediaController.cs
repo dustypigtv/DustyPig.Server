@@ -707,10 +707,9 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                if (mediaEntry.EntryType == MediaTypes.Movie)
+                if (mediaEntry.EntryType == MediaTypes.Movie && (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
                 {
-                    if (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9)))
-                        DB.ProfileMediaProgresses.Remove(progress);
+                    DB.ProfileMediaProgresses.Remove(progress);
                 }
                 else
                 {
