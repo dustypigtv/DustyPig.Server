@@ -163,6 +163,8 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
 
+                .Include(item => item.Subtitles)
+
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
                 .FirstOrDefaultAsync();
@@ -259,6 +261,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.SearchTerm)
                 .Include(item => item.People)
                 .ThenInclude(item => item.Person)
+                .Include(item => item.Subtitles)
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
