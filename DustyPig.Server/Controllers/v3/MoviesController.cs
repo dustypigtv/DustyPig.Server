@@ -41,37 +41,36 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Where(m => m.EntryType == MediaTypes.Movie)
                 .Where(m =>
+
+                    m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
                     (
-                        m.TitleOverrides
+                        UserProfile.IsMain
+                        &&
+                        (
+                            m.Library.AccountId == UserAccount.Id
+                            ||
+                            (
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
+                            )
+                        )
+                    )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
+                        && !m.TitleOverrides
                             .Where(t => t.ProfileId == UserProfile.Id)
-                            .Where(t => t.State == OverrideState.Allow)
+                            .Where(t => t.State == OverrideState.Block)
                             .Any()
-                         ||
-                         (
-                             UserProfile.IsMain
-                             &&
-                             (
-                                 m.Library.AccountId == UserAccount.Id
-                                 ||
-                                 (
-                                    m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                    && !m.TitleOverrides
-                                        .Where(t => t.ProfileId == UserProfile.Id)
-                                        .Where(t => t.State == OverrideState.Block)
-                                        .Any()
-                                 )
-                             )
-                         )
-                         ||
-                         (
-                            m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                             && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
-                             && !m.TitleOverrides
-                                .Where(t => t.ProfileId == UserProfile.Id)
-                                .Where(t => t.State == OverrideState.Block)
-                                .Any()
-                         )
-                     )
+                    )
                 )
 
                 .ApplySortOrder(request.Sort)
