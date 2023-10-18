@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3;
+﻿using Amazon.Runtime.Internal;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -9,6 +10,7 @@ using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
@@ -37,60 +39,42 @@ namespace DustyPig.Server.Controllers.v3
             try { request.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
-            var q =
-                 from me in DB.MediaEntries
-                 join lib in DB.Libraries on me.LibraryId equals lib.Id
-
-                 join fls in DB.FriendLibraryShares
-                     .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                     .Select(t => (int?)t.LibraryId)
-                     on lib.Id equals fls into fls_lj
-                 from fls in fls_lj.DefaultIfEmpty()
-
-                 join pls in DB.ProfileLibraryShares
-                     on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                     equals new { pls.LibraryId, pls.ProfileId }
-                     into pls_lj
-                 from pls in pls_lj.DefaultIfEmpty()
-
-                 join ovrride in DB.TitleOverrides
-                     on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                     equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                     into ovrride_lj
-                 from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                 where
-
-                     //Allow to play filters
-                     me.EntryType == MediaTypes.Series
-                     &&
-                     (
-                         ovrride.State == OverrideState.Allow
-                         ||
-                         (
-                             UserProfile.IsMain
-                             &&
-                             (
-                                 lib.AccountId == UserAccount.Id
-                                 ||
-                                 (
-                                     fls.HasValue
-                                     && ovrride.State != OverrideState.Block
-                                 )
-                             )
-                         )
-                         ||
-                         (
-                             pls != null
-                             && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                             && ovrride.State != OverrideState.Block
-                         )
-                     )
-
-                 select me;
-
-            var series = await q
+            var series = await DB.MediaEntries
                 .AsNoTracking()
+                .Where(m => m.EntryType == MediaTypes.Series)
+                
+                .Where(m =>
+                    m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
+                    (
+                        UserProfile.IsMain
+                        &&
+                        (
+                            m.Library.AccountId == UserAccount.Id
+                            ||
+                            (
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                &&!m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
+                            )
+                        )
+                    )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                        && !m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                    )
+                )
+
                 .ApplySortOrder(SortOrder.Alphabetical)
                 .Skip(request.Start)
                 .Take(DEFAULT_LIST_SIZE)
@@ -612,70 +596,50 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet]
         public async Task<ResponseWrapper<List<BasicMedia>>> ListSubscriptions()
-        {
-            var q =
-                from me in DB.MediaEntries
-                join lib in DB.Libraries on me.LibraryId equals lib.Id
-                join sub in DB.Subscriptions
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id }
-                    equals new { sub.MediaEntryId, sub.ProfileId }
+        {           
+            var series = await DB.Subscriptions
+                .AsNoTracking()
+                .Where(s => s.ProfileId == UserProfile.Id)
+                .Select(s => s.MediaEntry)
+                .Where(m => m.EntryType == MediaTypes.Series)
 
-                join fls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in DB.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    me.EntryType == MediaTypes.Series
-                    &&
+                .Where(m =>
+                    m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
                     (
-                        ovrride.State == OverrideState.Allow
-                        ||
+                        UserProfile.IsMain
+                        &&
                         (
-                            UserProfile.IsMain
-                            &&
+                            m.Library.AccountId == UserAccount.Id
+                            ||
                             (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
                             )
                         )
-                        ||
-                        (
-                            pls != null
-                            && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                            && ovrride.State != OverrideState.Block
-                        )
                     )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                        && !m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                    )
+                )
 
-                orderby me.SortTitle
-
-                select me;
-
-
-            var ret = await q
-                .AsNoTracking()
+                .ApplySortOrder(SortOrder.Alphabetical)
                 .ToListAsync();
 
-            return new ResponseWrapper<List<BasicMedia>>(ret.Select(item => item.ToBasicMedia()).ToList());
+
+            return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
         }
 
 
@@ -688,79 +652,49 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ResponseWrapper> Subscribe(int id)
         {
             //Get the series
-            var q =
-                from me in DB.MediaEntries
-                join lib in DB.Libraries on me.LibraryId equals lib.Id
-
-                join sub in DB.Subscriptions
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id }
-                    equals new { sub.MediaEntryId, sub.ProfileId }
-                    into sub_lj
-                from sub in sub_lj.DefaultIfEmpty()
-
-                join fls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in DB.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    me.Id == id
-                    && me.EntryType == MediaTypes.Series
-                    &&
+            var series = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(m => m.Subscriptions.Where(s => s.ProfileId == UserProfile.Id))
+                .Where(m => m.EntryType == MediaTypes.Series)
+                .Where(m => m.Id == id)
+                .Where(m =>
+                    m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
                     (
-                        ovrride.State == OverrideState.Allow
-                        ||
+                        UserProfile.IsMain
+                        &&
                         (
-                            UserProfile.IsMain
-                            &&
+                            m.Library.AccountId == UserAccount.Id
+                            ||
                             (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
                             )
                         )
-                        ||
-                        (
-                            pls != null
-                            && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                            && ovrride.State != OverrideState.Block
-                        )
                     )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                        && !m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                    )
+                )
 
-                orderby me.SortTitle
-
-                select new
-                {
-                    me,
-                    sub
-                };
-
-            var ret = await q
-                .AsNoTracking()
                 .FirstOrDefaultAsync();
 
-            if (ret == null)
+            if (series == null)
                 return CommonResponses.NotFound(nameof(id));
 
-            if (ret.sub == null)
+            if (series.Subscriptions.FirstOrDefault() == null)
             {
                 DB.Subscriptions.Add(new Subscription
                 {
@@ -831,116 +765,73 @@ namespace DustyPig.Server.Controllers.v3
             if (id <= 0)
                 return CommonResponses.NotFound();
 
-            var q =
-                from series in DB.MediaEntries
-                join lib in DB.Libraries on series.LibraryId equals lib.Id
+            var lastEpisode = await DB.MediaEntries
+                .AsNoTracking()
 
-                join maxXid in
+                .Include(m => m.LinkedTo)
+                .ThenInclude(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
+
+                .Where(m => m.LinkedTo.EntryType == MediaTypes.Episode)
+                .Where(m => m.LinkedTo.Id == id)
+                .Where(m =>
+                    m.LinkedTo.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
                     (
-                        from episode in DB.MediaEntries
-                        where
-                            episode.LinkedToId.HasValue
-                            && episode.LinkedToId == id
-                            && episode.EntryType == MediaTypes.Episode
-                            && episode.Xid.HasValue
-                            && episode.Length.HasValue
-                        group episode by episode.LinkedToId into g
-                        select new
-                        {
-                            SeriesId = g.Key.Value,
-                            MaxXid = g.Max(item => item.Xid.Value),
-                            MaxLength = g.Max(item => item.Length.Value)
-                        }
-                    ) on series.Id equals maxXid.SeriesId
-
-
-                join fls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in DB.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = series.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                join pmp in DB.ProfileMediaProgresses
-                    on new { MediaEntryId = series.Id, ProfileId = UserProfile.Id }
-                    equals new { pmp.MediaEntryId, pmp.ProfileId }
-                    into pmp_lj
-                from pmp in pmp_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    series.Id == id
-                    && series.EntryType == MediaTypes.Series
-                    &&
-                    (
-                        ovrride.State == OverrideState.Allow
-                        ||
+                        UserProfile.IsMain
+                        &&
                         (
-                            UserProfile.IsMain
-                            &&
+                            m.LinkedTo.Library.AccountId == UserAccount.Id
+                            ||
                             (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
+                                m.LinkedTo.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
                             )
                         )
-                        ||
-                        (
-                            pls != null
-                            && UserProfile.MaxTVRating >= (series.TVRating ?? TVRatings.NotRated)
-                            && ovrride.State != OverrideState.Block
-                        )
                     )
+                    ||
+                    (
+                        m.LinkedTo.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && UserProfile.MaxTVRating >= (m.LinkedTo.TVRating ?? TVRatings.NotRated)
+                        && !m.LinkedTo.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                    )
+                )
 
-                select new
-                {
-                    SeriesId = series.Id,
-                    maxXid.MaxXid,
-                    maxXid.MaxLength,
-                    Progress = pmp
-                };
-
-
-            var ret = await q
-                .AsNoTracking()
+                .OrderByDescending(m => m.Xid)
                 .FirstOrDefaultAsync();
 
-            if (ret == null)
+
+            if (lastEpisode == null)
                 return CommonResponses.NotFound(nameof(id));
 
-            if (ret.Progress == null)
+
+            var progress = lastEpisode.LinkedTo.ProfileMediaProgress.FirstOrDefault();
+
+            if (progress == null)
             {
                 DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
                 {
                     MediaEntryId = id,
-                    Played = ret.MaxLength,
+                    Played = lastEpisode.Length ?? 0,
                     ProfileId = UserProfile.Id,
                     Timestamp = DateTime.UtcNow,
-                    Xid = ret.MaxXid
+                    Xid = lastEpisode.Xid
                 });
             }
             else
             {
-                ret.Progress.Xid = ret.MaxXid;
-                ret.Progress.Played = ret.MaxLength;
-                ret.Progress.Timestamp = DateTime.UtcNow;
+                progress.Xid = lastEpisode.Xid;
+                progress.Played = lastEpisode.Length ?? 0;
+                progress.Timestamp = DateTime.UtcNow;
             }
-
 
             await DB.SaveChangesAsync();
 

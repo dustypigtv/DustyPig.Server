@@ -244,91 +244,6 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 2
         /// </summary>
-        /// <remarks>Returns the next 100 items in a library based on start position and sort order</remarks>
-        [HttpPost]
-        public async Task<ResponseWrapper<List<BasicMedia>>> ListLibraryItems(LibraryListRequest request)
-        {
-            //Validate
-            try { request.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
-
-            var q =
-                from me in DB.MediaEntries
-
-                join lib in DB.Libraries
-                    on new { me.LibraryId, AccountId = UserAccount.Id }
-                    equals new { LibraryId = lib.Id, lib.AccountId }
-
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    new MediaTypes[] { MediaTypes.Movie, MediaTypes.Series }.Contains(me.EntryType)
-
-                    && lib.Id == request.LibraryId
-
-                    &&
-                    (
-                        // Watch permissions
-                        UserProfile.IsMain
-                        || ovrride.State == OverrideState.Allow
-                        ||
-                        (
-                            ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && me.MovieRating <= UserProfile.MaxMovieRating
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Series
-                                    && me.TVRating <= UserProfile.MaxTVRating
-                                )
-                            )
-                        )
-                    )
-
-                select me;
-
-            var entries = await q
-                .AsNoTracking()
-                .ApplySortOrder(request.Sort)
-                .Skip(request.Start)
-                .Take(DEFAULT_LIST_SIZE)
-                .ToListAsync();
-
-            return new ResponseWrapper<List<BasicMedia>>(entries.Select(item => item.ToBasicMedia()).ToList());
-        }
-
-
-        /// <summary>
-        /// Level 2
-        /// </summary>
-        /// <remarks>Returns the next 100 items in a Genre based on start position and sort order</remarks>
-        [HttpPost]
-        public async Task<ResponseWrapper<List<BasicMedia>>> ListGenreItems(GenreListRequest request)
-        {
-            //Validate
-            try { request.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
-
-            var entries = await GenresAsync(DB, request.Genre, request.Start, DEFAULT_LIST_SIZE, request.Sort);
-
-            return new ResponseWrapper<List<BasicMedia>>(entries.Select(item => item.ToBasicMedia()).ToList());
-        }
-
-
-
-        /// <summary>
-        /// Level 2
-        /// </summary>
         /// <param name="request">
         /// Url encoded title to search for
         /// </param>
@@ -476,90 +391,63 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{id}")]
         public async Task<ResponseWrapper> AddToWatchlist(int id)
         {
-            var q =
-                from me in DB.MediaEntries
-                join lib in DB.Libraries on me.LibraryId equals lib.Id
-
-                join fls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in DB.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                join wli in DB.WatchListItems
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id }
-                    equals new { wli.MediaEntryId, wli.ProfileId }
-                    into wli_lj
-                from wli in wli_lj.DefaultIfEmpty()
-
-                where
-
-                    me.Id == id
-
-                    //Allow to play filters
-                    && new MediaTypes[] { MediaTypes.Movie, MediaTypes.Series }.Contains(me.EntryType)
-                    &&
-                    (
-                        (
-                            UserProfile.IsMain
-                            &&
-                            (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            pls != null
-                            && ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && me.MovieRating <= UserProfile.MaxMovieRating
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Series
-                                    && me.TVRating <= UserProfile.MaxTVRating
-                                )
-                            )
-                        )
-                        || ovrride.State == OverrideState.Allow
-                    )
-
-
-                select new
-                {
-                    MediaEntry = me,
-                    InWatchList = wli != null
-                };
-
-
-            var mediaEntry = await q
+            var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
+
+                .Where(m => m.Id == id)
+                .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
+
+                .Where(m =>
+
+                    (
+                        UserProfile.IsMain
+                        &&
+                        (
+                            m.Library.AccountId == UserAccount.Id
+                            ||
+                            (
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
+                            )
+                        )
+                    )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && !m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                        &&
+                        (
+                            (
+                                m.EntryType == MediaTypes.Movie
+                                && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
+                            )
+                            ||
+                            (
+                                m.EntryType == MediaTypes.Series
+                                && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                            )
+                        )
+                    )
+                    || m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                )
+
+
+                .Include(m => m.WatchlistItems.Where(w => w.ProfileId == UserProfile.Id))
                 .FirstOrDefaultAsync();
 
             if (mediaEntry == null)
                 return CommonResponses.NotFound(nameof(id));
 
-            if (!mediaEntry.InWatchList)
+            if (!mediaEntry.WatchlistItems.Any())
             {
                 DB.WatchListItems.Add(new WatchlistItem
                 {
@@ -1505,7 +1393,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         Task<List<MediaEntry>> WatchlistAsync(AppDbContext dbInstance, int skip, int take)
-        {
+        {       
             var q =
                 from me in dbInstance.MediaEntries
                 join lib in dbInstance.Libraries on me.LibraryId equals lib.Id
