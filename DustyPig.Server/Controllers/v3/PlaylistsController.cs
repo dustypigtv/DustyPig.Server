@@ -364,7 +364,7 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return CommonResponses.NotFound();
 
-            if (playlist.CurrentIndex != info.NewIndex && playlist.CurrentProgress != info.NewProgress)
+            if (playlist.CurrentIndex != info.NewIndex || playlist.CurrentProgress != info.NewProgress)
             {
                 playlist.CurrentIndex = info.NewIndex;
                 playlist.CurrentProgress = info.NewProgress;
