@@ -21,6 +21,7 @@ namespace DustyPig.Server.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<AccountToken> AccountTokens { get; set; }
         public DbSet<ActivationCode> ActivationCodes { get; set; }
+        public DbSet<AutoPlaylistSeries> AutoPlaylistSeries { get; set; }
         public DbSet<FCMToken> FCMTokens { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<FriendLibraryShare> FriendLibraryShares { get; set; }
@@ -72,6 +73,7 @@ namespace DustyPig.Server.Data
 
 
             //Composite Keys
+            modelBuilder.Entity<AutoPlaylistSeries>().HasKey(e => new { e.PlaylistId, e.MediaEntryId });
             modelBuilder.Entity<FriendLibraryShare>().HasKey(e => new { e.FriendshipId, e.LibraryId });
             modelBuilder.Entity<GetRequestSubscription>().HasKey(e => new { e.GetRequestId, e.ProfileId });
             modelBuilder.Entity<MediaPersonBridge>().HasKey(e => new { e.MediaEntryId, e.PersonId, e.Role });
@@ -94,10 +96,6 @@ namespace DustyPig.Server.Data
                 e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(p => p.TitleOverride).WithMany().OnDelete(DeleteBehavior.SetNull);
             });
-
-
-            //Not sure what the deal is with MediaPersonBridge, but if I don't do this then it tries to create a unique index on PersonId - which is bad
-            //modelBuilder.Entity<MediaPersonBridge>().HasIndex(e => e.PersonId).IsUnique(false);
         }
 
 

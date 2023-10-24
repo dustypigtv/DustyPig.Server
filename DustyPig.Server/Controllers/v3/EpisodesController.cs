@@ -319,6 +319,67 @@ namespace DustyPig.Server.Controllers.v3
             //Updating the Added field of the series MediaEntry allows the RecentlyAdded query to run far more efficently
             ownedSeries.Added = newItem.Added;
 
+
+            // Add to subscribed playlists
+            var apsSubs = await DB.AutoPlaylistSeries
+                .AsNoTracking()
+                .Include(e => e.Playlist)
+                .ThenInclude(p => p.PlaylistItems)
+                .Include(e => e.Playlist)
+                .ThenInclude(e => e.Profile)
+                .Where(e => e.MediaEntryId == episodeInfo.SeriesId)
+                .ToListAsync();
+
+            //This will be slow, but it's admin-facing, and slow here is better than slow user-facing
+            foreach (var aps in apsSubs)
+            {
+                var seriesPlayable = await DB.MediaEntries
+                    .Where(m => m.EntryType == MediaTypes.Series)
+
+                    .Where(m =>
+                        m.TitleOverrides
+                            .Where(t => t.ProfileId == aps.Playlist.ProfileId)
+                            .Where(t => t.State == OverrideState.Allow)
+                            .Any()
+                        ||
+                        (
+                            aps.Playlist.Profile.IsMain
+                            &&
+                            (
+                                m.Library.AccountId == aps.Playlist.Profile.AccountId
+                                ||
+                                (
+                                    m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == aps.Playlist.Profile.AccountId || f.Friendship.Account2Id == aps.Playlist.Profile.AccountId)
+                                    && !m.TitleOverrides
+                                        .Where(t => t.ProfileId == aps.Playlist.ProfileId)
+                                        .Where(t => t.State == OverrideState.Block)
+                                        .Any()
+                                )
+                            )
+                        )
+                        ||
+                        (
+                            m.Library.ProfileLibraryShares.Any(p => p.ProfileId == aps.Playlist.ProfileId)
+                            && aps.Playlist.Profile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                            && !m.TitleOverrides
+                                .Where(t => t.ProfileId == aps.Playlist.ProfileId)
+                                .Where(t => t.State == OverrideState.Block)
+                                .Any()
+                        )
+                    )
+                    .AnyAsync();
+
+                if (seriesPlayable)
+                    DB.PlaylistItems.Add(new Data.Models.PlaylistItem
+                    {
+                        Index = aps.Playlist.PlaylistItems.Count > 0 ? aps.Playlist.PlaylistItems.Max(p => p.Index) + 1 : 0,
+                        MediaEntry = newItem,
+                        PlaylistId = aps.PlaylistId
+                    });
+            }
+
+
+
             //Moment of truth!
             await DB.SaveChangesAsync();
 

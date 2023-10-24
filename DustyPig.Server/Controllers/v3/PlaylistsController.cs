@@ -465,7 +465,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Add all episodes from a series to a playlist</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper> AddSeries(AddPlaylistItem info)
+        public async Task<ResponseWrapper> AddSeries(AddSeriesToPlaylistInfo info)
         {
             //Validate
             try { info.Validate(); }
@@ -542,6 +542,23 @@ namespace DustyPig.Server.Controllers.v3
                     MediaEntryId = episode.Id,
                     PlaylistId = info.PlaylistId
                 });
+
+
+            if(info.AutoAddNewEpisodes)
+            {
+                var aps = await DB.AutoPlaylistSeries
+                    .AsNoTracking()
+                    .Where(e => e.PlaylistId == info.PlaylistId)
+                    .Where(e => e.MediaEntryId == info.MediaId)
+                    .FirstOrDefaultAsync();
+
+                if (aps == null)
+                    DB.AutoPlaylistSeries.Add(new Data.Models.AutoPlaylistSeries
+                    {
+                        PlaylistId = info.PlaylistId,
+                        MediaEntryId = info.MediaId
+                    });
+            }
 
             await DB.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(info.PlaylistId);
