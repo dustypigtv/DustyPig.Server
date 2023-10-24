@@ -83,77 +83,61 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.NotFound<DetailedPlaylist>("Playlist");
 
 
-            var qAllowedIds =
-                 from me in DB.MediaEntries
-                 join lib in DB.Libraries on me.LibraryId equals lib.Id
-                 join pli in DB.PlaylistItems on me.Id equals pli.MediaEntryId
-                 join pl in DB.Playlists on pli.PlaylistId equals pl.Id
+            var allowedTopLevelIds = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
+                .Where(m =>
+                    m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
+                    (
+                        UserProfile.IsMain
+                        &&
+                        (
+                            m.Library.AccountId == UserAccount.Id
+                            ||
+                            (
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
+                            )
+                        )
+                    )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        && 
+                        (
+                            (
+                                m.EntryType == MediaTypes.Series
+                                && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                            )
+                            ||
+                            (
+                                m.EntryType == MediaTypes.Movie
+                                && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
+                            )
+                        )
+                        && !m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                    )
+                )
+                .Select(m => m.Id)
+                .Distinct()
+                .ToListAsync();
 
-                 join series in DB.MediaEntries on me.LinkedToId equals series.Id into series_lj
-                 from series in series_lj.DefaultIfEmpty()
 
+            
 
-                 join fls in DB.FriendLibraryShares
-                     .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                     .Select(t => (int?)t.LibraryId)
-                     on lib.Id equals fls into fls_lj
-                 from fls in fls_lj.DefaultIfEmpty()
+            playlist.PlaylistItems.RemoveAll(item => item.MediaEntry.EntryType != MediaTypes.Series && !allowedTopLevelIds.Contains(item.Id));
+            playlist.PlaylistItems.RemoveAll(item => item.MediaEntry.EntryType == MediaTypes.Series && !allowedTopLevelIds.Contains(item.MediaEntry.LinkedToId.Value));
 
-                 join pls in DB.ProfileLibraryShares
-                     on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                     equals new { pls.LibraryId, pls.ProfileId }
-                     into pls_lj
-                 from pls in pls_lj.DefaultIfEmpty()
-
-                 join ovrride in DB.TitleOverrides
-                     on new { MediaEntryId = me.EntryType == MediaTypes.Episode ? series.Id : me.Id, ProfileId = UserProfile.Id, Valid = true }
-                     equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                     into ovrride_lj
-                 from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                 where
-                     pl.Id == id
-                     && pl.ProfileId == UserProfile.Id
-                     && Constants.PLAYABLE_MEDIA_TYPES.Contains(me.EntryType)
-                     &&
-                     (
-                         (
-                             UserProfile.IsMain
-                             &&
-                             (
-                                 lib.AccountId == UserAccount.Id
-                                 ||
-                                 (
-                                     fls.HasValue
-                                     && ovrride.State != OverrideState.Block
-                                 )
-                             )
-                         )
-                         ||
-                         (
-                             pls != null
-                             && ovrride.State != OverrideState.Block
-                             &&
-                             (
-                                 (
-                                     me.EntryType == MediaTypes.Movie
-                                     && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                                 )
-                                 ||
-                                 (
-                                     me.EntryType == MediaTypes.Episode
-                                     && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                                 )
-                             )
-                         )
-                         || ovrride.State == OverrideState.Allow
-                     )
-
-                 select pli.Id;
-
-            var allowedIds = await qAllowedIds.ToListAsync();
-
-            playlist.PlaylistItems.RemoveAll(item => !allowedIds.Contains(item.Id));
 
             var ret = new DetailedPlaylist
             {
@@ -393,86 +377,78 @@ namespace DustyPig.Server.Controllers.v3
                  .FirstOrDefaultAsync();
 
             if (playlist == null)
-                return CommonResponses.NotFound<SimpleValue<int>>("Playlist");
+                return CommonResponses.NotFound<SimpleValue<int>>(nameof(info.PlaylistId));
 
             int maxIndex = playlist.PlaylistItems.Count > 0 ? playlist.PlaylistItems.Max(p => p.Index) : -1;
 
-            var qME =
-                from me in DB.MediaEntries
-                join lib in DB.Libraries on me.LibraryId equals lib.Id
 
-                join fls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
+            var mediaEntry = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(m => m.Id == info.MediaId)
+                .FirstOrDefaultAsync();
 
-                join pls in DB.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
 
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
+            if (mediaEntry == null)
+                return CommonResponses.NotFound<SimpleValue<int>>(nameof(info.MediaId));
 
-                where
+            var topLevelId = mediaEntry.EntryType == MediaTypes.Episode ? mediaEntry.LinkedToId.Value : mediaEntry.Id;
 
-                    me.Id == info.MediaId
-
-                    //Allow to play filters
-                    && Constants.PLAYABLE_MEDIA_TYPES.Contains(me.EntryType)
-                    &&
+            var playable = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(m => m.Id == topLevelId)
+                .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
+                .Where(m =>
+                    m.TitleOverrides
+                        .Where(t => t.ProfileId == UserProfile.Id)
+                        .Where(t => t.State == OverrideState.Allow)
+                        .Any()
+                    ||
                     (
-                        ovrride.State == OverrideState.Allow
-                        ||
+                        UserProfile.IsMain
+                        &&
                         (
-                            UserProfile.IsMain
-                            &&
+                            m.Library.AccountId == UserAccount.Id
+                            ||
                             (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            pls != null
-                            && ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Episode
-                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                                )
+                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
+                                && !m.TitleOverrides
+                                    .Where(t => t.ProfileId == UserProfile.Id)
+                                    .Where(t => t.State == OverrideState.Block)
+                                    .Any()
                             )
                         )
                     )
+                    ||
+                    (
+                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
+                        &&
+                        (
+                            (
+                                m.EntryType == MediaTypes.Series
+                                && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
+                            )
+                            ||
+                            (
+                                m.EntryType == MediaTypes.Movie
+                                && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
+                            )
+                        )
+                        && !m.TitleOverrides
+                            .Where(t => t.ProfileId == UserProfile.Id)
+                            .Where(t => t.State == OverrideState.Block)
+                            .Any()
+                    )
+                )
+                .AnyAsync();
 
-                select me;
+            if (!playable)
+                return CommonResponses.NotFound<SimpleValue<int>>(nameof(info.MediaId));
 
-            var mediaEntry = await qME
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
-
-            if (mediaEntry == null)
-                return CommonResponses.NotFound<SimpleValue<int>>("Media");
 
             var entity = DB.PlaylistItems.Add(new Data.Models.PlaylistItem
             {
                 Index = maxIndex + 1,
-                MediaEntryId = mediaEntry.Id,
+                MediaEntryId = info.MediaId,
                 PlaylistId = info.PlaylistId
             }).Entity;
 
@@ -581,23 +557,16 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         public async Task<ResponseWrapper> DeleteItem(int id)
         {
-            var q =
-                from playlist in DB.Playlists
-                join playlistItem in DB.PlaylistItems on playlist.Id equals playlistItem.PlaylistId
-                where
-                    playlistItem.Id == id
-                    && playlist.ProfileId == UserProfile.Id
-                select new
-                {
-                    playlist,
-                    playlistItem
-                };
+            var item = await DB.PlaylistItems
+                .Include(p => p.PlaylistId)
+                .Where(p => p.Id == id)
+                .Where(p => p.Playlist.ProfileId == UserProfile.Id)
+                .FirstOrDefaultAsync();
 
-            var data = await q.FirstOrDefaultAsync();
-            if (data != null)
+            if (item != null)
             {
-                DB.PlaylistItems.Remove(data.playlistItem);
-                data.playlist.ArtworkUpdateNeeded = true;
+                DB.PlaylistItems.Remove(item);
+                item.Playlist.ArtworkUpdateNeeded = true;
                 await DB.SaveChangesAsync();
             }
 

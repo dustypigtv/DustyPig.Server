@@ -21,7 +21,7 @@
 <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc" Version="7.1.0" />
     <PackageReference Include="AsyncAwaitBestPractices" Version="6.0.6" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.205.13" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.205.16" />
     <PackageReference Include="DustyPig.API" Version="3.3.0.169" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.8" />
     <PackageReference Include="DustyPig.TMDB" Version="3.0.2.10" />

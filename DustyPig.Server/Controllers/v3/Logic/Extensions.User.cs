@@ -49,12 +49,12 @@ namespace DustyPig.Server.Controllers.v3.Logic
             using var db = new AppDbContext();
 
             var account = await db.Accounts
-                    .AsNoTracking()
-                    .Include(a => a.AccountTokens.Where(t => t.Id == authTokenId))
-                    .Include(a => a.Profiles)
-                    .ThenInclude(item => item.FCMTokens)
-                    .Where(a => a.Id == acctId.Value)
-                    .FirstOrDefaultAsync();
+                .AsNoTracking()
+                .Include(a => a.AccountTokens.Where(t => t.Id == authTokenId))
+                .Include(a => a.Profiles)
+                .ThenInclude(item => item.FCMTokens)
+                .Where(a => a.Id == acctId.Value)
+                .FirstOrDefaultAsync();
 
 
             if (account == null)

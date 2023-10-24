@@ -1393,7 +1393,8 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         Task<List<MediaEntry>> WatchlistAsync(AppDbContext dbInstance, int skip, int take)
-        {       
+        {
+
             var q =
                 from me in dbInstance.MediaEntries
                 join lib in dbInstance.Libraries on me.LibraryId equals lib.Id
