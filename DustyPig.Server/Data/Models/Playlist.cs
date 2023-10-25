@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(ProfileId), nameof(Name), nameof(CurrentIndex), IsUnique = true)]
+    [Index(nameof(ProfileId), nameof(Name), IsUnique = true)]
     [Index(nameof(ProfileId), IsUnique = false)]
     public class Playlist
     {
@@ -20,9 +20,12 @@ namespace DustyPig.Server.Data.Models
         public string Name { get; set; }
 
         /// <summary>
-        /// Current Item Index
-        /// </summary>
-        public int CurrentIndex { get; set; }
+        /// Don't create a reference to the PlaylistItem, or the playlist could be accidentally deleted if
+        /// the PlaylistItem or the MediaItem is deleted. Handle it manually
+        /// </summary>        
+        public int CurrentItemId { get; set; }
+
+
 
         public double CurrentProgress { get; set; }
 

@@ -143,7 +143,8 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Id = id,
                 Name = playlist.Name,
-                CurrentIndex = playlist.CurrentIndex,
+                CurrentItemId = playlist.CurrentItemId,
+                CurrentProgress = playlist.CurrentProgress,
                 ArtworkUrl = playlist.ArtworkUrl
             };
 
@@ -158,7 +159,6 @@ namespace DustyPig.Server.Controllers.v3
                     IntroEndTime = dbPlaylistItem.MediaEntry.IntroEndTime,
                     IntroStartTime = dbPlaylistItem.MediaEntry.IntroStartTime,
                     Length = dbPlaylistItem.MediaEntry.Length ?? 0,
-                    Played = dbPlaylistItem.Index == ret.CurrentIndex ? playlist.CurrentProgress : 0,
                     MediaId = dbPlaylistItem.MediaEntryId,
                     MediaType = dbPlaylistItem.MediaEntry.EntryType,
                     BifUrl = dbPlaylistItem.MediaEntry.BifUrl,
@@ -189,11 +189,11 @@ namespace DustyPig.Server.Controllers.v3
 
             if (ret.Items.Count > 0)
             {
-                var upNext = ret.Items.FirstOrDefault(p => p.Index == ret.CurrentIndex);
+                var upNext = ret.Items.FirstOrDefault(p => p.Id == ret.CurrentItemId);
                 if (upNext == null)
                 {
-                    ret.CurrentIndex = ret.Items.First().Index;
-                    ret.Items.ForEach(p => p.Played = 0);
+                    ret.CurrentItemId = ret.Items.First().Id;
+                    ret.CurrentProgress = 0;
                 }
                 else
                 {
@@ -206,21 +206,21 @@ namespace DustyPig.Server.Controllers.v3
                             cst = upNext.Length * 0.9;
                     }
 
-                    if (upNext.Length > 0 && (upNext.Played ?? 0) >= cst)
+                    if (upNext.Length > 0 && ret.CurrentProgress >= cst)
                     {
-                        upNext.Played = 0;
-                        var lastId = -1;
-                        foreach (var item in ret.Items)
-                        {
-                            if (lastId == upNext.Id)
-                            {
-                                ret.CurrentIndex = item.Index;
-                                break;
-                            }
-                            lastId = item.Id;
-                        }
+                        ret.CurrentProgress = 0;
+                        var nextItem = ret.Items.FirstOrDefault(item => item.Index > upNext.Index);
+                        if(nextItem == null)
+                            ret.CurrentItemId = ret.Items.First().Id;
+                        else
+                            ret.CurrentItemId = nextItem.Id;
                     }
                 }
+            }
+            else
+            {
+                ret.CurrentItemId = -1;
+                ret.CurrentProgress = 0;
             }
 
 
@@ -340,17 +340,22 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
 
-            var playlist = await DB.Playlists
-                .Where(item => item.Id == info.PlaylistId)
-                .Where(item => item.ProfileId == UserProfile.Id)
+
+            var playlist = await DB.PlaylistItems
+                .Include(pli => pli.Playlist)
+                .Where(pli => pli.Id == info.PlaylistItemId)
+                .Where(pli => pli.Playlist.ProfileId == UserProfile.Id)
+                .Select(pli => pli.Playlist)
+                .Distinct()
                 .FirstOrDefaultAsync();
 
+      
             if (playlist == null)
                 return CommonResponses.NotFound();
 
-            if (playlist.CurrentIndex != info.NewIndex || playlist.CurrentProgress != info.NewProgress)
+            if (playlist.CurrentItemId != info.PlaylistItemId || playlist.CurrentProgress != info.NewProgress)
             {
-                playlist.CurrentIndex = info.NewIndex;
+                playlist.CurrentItemId = info.PlaylistItemId;
                 playlist.CurrentProgress = info.NewProgress;
                 await DB.SaveChangesAsync();
             }
