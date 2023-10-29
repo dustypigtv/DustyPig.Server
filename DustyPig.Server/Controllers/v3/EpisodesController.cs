@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.TMDB.Models;
+using FirebaseAdmin.Messaging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -331,6 +332,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             //This will be slow, but it's admin-facing, and slow here is better than slow user-facing
+            var playlistsToUpdate = new List<int>();
             foreach (var aps in apsSubs)
             {
                 var seriesPlayable = await DB.MediaEntries
@@ -370,18 +372,23 @@ namespace DustyPig.Server.Controllers.v3
                     .AnyAsync();
 
                 if (seriesPlayable)
+                {
                     DB.PlaylistItems.Add(new Data.Models.PlaylistItem
                     {
                         Index = aps.Playlist.PlaylistItems.Count > 0 ? aps.Playlist.PlaylistItems.Max(p => p.Index) + 1 : 0,
                         MediaEntry = newItem,
                         PlaylistId = aps.PlaylistId
                     });
+                    playlistsToUpdate.Add(aps.PlaylistId);
+                }
             }
 
 
 
             //Moment of truth!
             await DB.SaveChangesAsync();
+
+            await HostedServices.ArtworkUpdater.SetNeedsUpdateAsync(playlistsToUpdate);
 
             return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(newItem.Id));
         }
