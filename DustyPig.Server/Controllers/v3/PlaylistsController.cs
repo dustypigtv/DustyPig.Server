@@ -133,11 +133,21 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
 
-            
-
-            playlist.PlaylistItems.RemoveAll(item => item.MediaEntry.EntryType != MediaTypes.Series && !allowedTopLevelIds.Contains(item.Id));
-            playlist.PlaylistItems.RemoveAll(item => item.MediaEntry.EntryType == MediaTypes.Series && !allowedTopLevelIds.Contains(item.MediaEntry.LinkedToId.Value));
-
+            var toRemove = new List<int>();
+            foreach(var pli in playlist.PlaylistItems)
+            {
+                if(pli.MediaEntry.EntryType == MediaTypes.Movie)
+                {
+                    if (!allowedTopLevelIds.Contains(pli.MediaEntryId))
+                        toRemove.Add(pli.Id);
+                }
+                else //pli.MediaEntry.EntryType == MediaTypes.Episode
+                {
+                    if(!allowedTopLevelIds.Contains(pli.MediaEntry.LinkedToId.Value))
+                        toRemove.Add(pli.Id);
+                }
+            }
+            playlist.PlaylistItems.RemoveAll(pli => toRemove.Contains(pli.Id));
 
             var ret = new DetailedPlaylist
             {
