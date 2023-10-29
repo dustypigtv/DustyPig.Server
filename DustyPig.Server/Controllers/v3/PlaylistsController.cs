@@ -590,7 +590,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ResponseWrapper> DeleteItem(int id)
         {
             var item = await DB.PlaylistItems
-                .Include(p => p.PlaylistId)
+                .Include(p => p.Playlist)
                 .Where(p => p.Id == id)
                 .Where(p => p.Playlist.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
