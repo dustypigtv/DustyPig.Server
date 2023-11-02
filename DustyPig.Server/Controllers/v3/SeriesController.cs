@@ -39,43 +39,9 @@ namespace DustyPig.Server.Controllers.v3
             try { request.Validate(); }
             catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
 
-            var series = await DB.MediaEntries
+            var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
-                .Where(m => m.EntryType == MediaTypes.Series)
-                
-                .Where(m =>
-                    m.TitleOverrides
-                        .Where(t => t.ProfileId == UserProfile.Id)
-                        .Where(t => t.State == OverrideState.Allow)
-                        .Any()
-                    ||
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            m.Library.AccountId == UserAccount.Id
-                            ||
-                            (
-                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                &&!m.TitleOverrides
-                                    .Where(t => t.ProfileId == UserProfile.Id)
-                                    .Where(t => t.State == OverrideState.Block)
-                                    .Any()
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                        && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
-                        && !m.TitleOverrides
-                            .Where(t => t.ProfileId == UserProfile.Id)
-                            .Where(t => t.State == OverrideState.Block)
-                            .Any()
-                    )
-                )
-
-                .ApplySortOrder(SortOrder.Alphabetical)
+                .ApplySortOrder(request.Sort)
                 .Skip(request.Start)
                 .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync();
@@ -596,48 +562,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet]
         public async Task<ResponseWrapper<List<BasicMedia>>> ListSubscriptions()
-        {           
-            var series = await DB.Subscriptions
+        {
+            var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
-                .Where(s => s.ProfileId == UserProfile.Id)
-                .Select(s => s.MediaEntry)
-                .Where(m => m.EntryType == MediaTypes.Series)
-
-                .Where(m =>
-                    m.TitleOverrides
-                        .Where(t => t.ProfileId == UserProfile.Id)
-                        .Where(t => t.State == OverrideState.Allow)
-                        .Any()
-                    ||
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            m.Library.AccountId == UserAccount.Id
-                            ||
-                            (
-                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                && !m.TitleOverrides
-                                    .Where(t => t.ProfileId == UserProfile.Id)
-                                    .Where(t => t.State == OverrideState.Block)
-                                    .Any()
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                        && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
-                        && !m.TitleOverrides
-                            .Where(t => t.ProfileId == UserProfile.Id)
-                            .Where(t => t.State == OverrideState.Block)
-                            .Any()
-                    )
-                )
-
+                .Where(m => m.Subscriptions.Any(s => s.ProfileId == UserProfile.Id))
                 .ApplySortOrder(SortOrder.Alphabetical)
-                .ToListAsync();
-
+                .ToListAsync();            
 
             return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
         }
@@ -652,43 +582,10 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<ResponseWrapper> Subscribe(int id)
         {
             //Get the series
-            var series = await DB.MediaEntries
+            var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
                 .Include(m => m.Subscriptions.Where(s => s.ProfileId == UserProfile.Id))
-                .Where(m => m.EntryType == MediaTypes.Series)
                 .Where(m => m.Id == id)
-                .Where(m =>
-                    m.TitleOverrides
-                        .Where(t => t.ProfileId == UserProfile.Id)
-                        .Where(t => t.State == OverrideState.Allow)
-                        .Any()
-                    ||
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            m.Library.AccountId == UserAccount.Id
-                            ||
-                            (
-                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                && !m.TitleOverrides
-                                    .Where(t => t.ProfileId == UserProfile.Id)
-                                    .Where(t => t.State == OverrideState.Block)
-                                    .Any()
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                        && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
-                        && !m.TitleOverrides
-                            .Where(t => t.ProfileId == UserProfile.Id)
-                            .Where(t => t.State == OverrideState.Block)
-                            .Any()
-                    )
-                )
-
                 .FirstOrDefaultAsync();
 
             if (series == null)

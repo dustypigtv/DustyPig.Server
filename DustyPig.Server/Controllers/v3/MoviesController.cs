@@ -36,43 +36,8 @@ namespace DustyPig.Server.Controllers.v3
             catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
                        
 
-            var movies = await DB.MediaEntries
+            var movies = await DB.WatchableMoviesByProfileQuery(UserProfile)
                 .AsNoTracking()
-
-                .Where(m => m.EntryType == MediaTypes.Movie)
-                .Where(m =>
-
-                    m.TitleOverrides
-                        .Where(t => t.ProfileId == UserProfile.Id)
-                        .Where(t => t.State == OverrideState.Allow)
-                        .Any()
-                    ||
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            m.Library.AccountId == UserAccount.Id
-                            ||
-                            (
-                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                && !m.TitleOverrides
-                                    .Where(t => t.ProfileId == UserProfile.Id)
-                                    .Where(t => t.State == OverrideState.Block)
-                                    .Any()
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                        && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
-                        && !m.TitleOverrides
-                            .Where(t => t.ProfileId == UserProfile.Id)
-                            .Where(t => t.State == OverrideState.Block)
-                            .Any()
-                    )
-                )
-
                 .ApplySortOrder(request.Sort)
                 .Skip(request.Start)
                 .Take(DEFAULT_LIST_SIZE)

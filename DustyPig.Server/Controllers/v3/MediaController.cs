@@ -30,12 +30,9 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 2
         /// </summary>
-        /// <param name="initialEntriesPerRow">The server will bound any specified value into the range of 2:25</param>
         [HttpGet]
-        public async Task<ResponseWrapper<HomeScreen>> HomeScreen([FromQuery] int? initialEntriesPerRow)
+        public async Task<ResponseWrapper<HomeScreen>> HomeScreen()
         {
-            int take = Math.Max(2, Math.Min(DEFAULT_LIST_SIZE, initialEntriesPerRow ?? DEFAULT_LIST_SIZE));
-
             var ret = new HomeScreen();
 
             var taskDict = new Dictionary<KeyValuePair<long, string>, Task>();
@@ -48,7 +45,7 @@ namespace DustyPig.Server.Controllers.v3
                         DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING,
                         DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING_TITLE
                     ),
-                    ContinueWatchingAsync(new AppDbContext(), 0, take)
+                    ContinueWatchingAsync(new AppDbContext(), 0, DEFAULT_LIST_SIZE)
                );
 
 
@@ -59,7 +56,7 @@ namespace DustyPig.Server.Controllers.v3
                         DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST,
                         DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST_TITLE
                     ),
-                    WatchlistAsync(new AppDbContext(), 0, take)
+                    WatchlistAsync(new AppDbContext(), 0, DEFAULT_LIST_SIZE)
                 );
 
 
@@ -70,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
                         DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS,
                         DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS_TITLE
                     ),
-                    PlaylistsAsync(new AppDbContext(), 0, take)
+                    PlaylistsAsync(new AppDbContext(), 0, DEFAULT_LIST_SIZE)
                 );
 
             taskDict.Add
@@ -80,7 +77,7 @@ namespace DustyPig.Server.Controllers.v3
                        DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED,
                        DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED_TITLE
                    ),
-                   RecentlyAddedAsync(new AppDbContext(), 0, take)
+                   RecentlyAddedAsync(new AppDbContext(), 0, DEFAULT_LIST_SIZE)
                );
 
             taskDict.Add
@@ -117,62 +114,50 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             ListId = query.Key.Key,
                             Title = query.Key.Value,
-                            Items = result.Take(take).Select(item => item.ToBasicMedia()).ToList()
+                            Items = result.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()).ToList()
                         });
 
                     var gd = new Dictionary<Genres, List<BasicMedia>>();
-                    foreach (Genres g in Enum.GetValues<Genres>().Where(item => item != Genres.Unknown))
-                        gd.Add(g, new List<BasicMedia>());
                     foreach (var me in result)
                     {
-                        if (me.Genre_Action && gd[Genres.Action].Count < DEFAULT_LIST_SIZE) gd[Genres.Action].Add(me.ToBasicMedia());
-                        if (me.Genre_Adventure && gd[Genres.Adventure].Count < DEFAULT_LIST_SIZE) gd[Genres.Adventure].Add(me.ToBasicMedia());
-                        if (me.Genre_Animation && gd[Genres.Animation].Count < DEFAULT_LIST_SIZE) gd[Genres.Animation].Add(me.ToBasicMedia());
-                        if (me.Genre_Anime && gd[Genres.Anime].Count < DEFAULT_LIST_SIZE) gd[Genres.Anime].Add(me.ToBasicMedia());
-                        if (me.Genre_Awards_Show && gd[Genres.Awards_Show].Count < DEFAULT_LIST_SIZE) gd[Genres.Awards_Show].Add(me.ToBasicMedia());
-                        if (me.Genre_Children && gd[Genres.Children].Count < DEFAULT_LIST_SIZE) gd[Genres.Children].Add(me.ToBasicMedia());
-                        if (me.Genre_Comedy && gd[Genres.Comedy].Count < DEFAULT_LIST_SIZE) gd[Genres.Comedy].Add(me.ToBasicMedia());
-                        if (me.Genre_Crime && gd[Genres.Crime].Count < DEFAULT_LIST_SIZE) gd[Genres.Crime].Add(me.ToBasicMedia());
-                        if (me.Genre_Documentary && gd[Genres.Documentary].Count < DEFAULT_LIST_SIZE) gd[Genres.Documentary].Add(me.ToBasicMedia());
-                        if (me.Genre_Drama && gd[Genres.Drama].Count < DEFAULT_LIST_SIZE) gd[Genres.Drama].Add(me.ToBasicMedia());
-                        if (me.Genre_Family && gd[Genres.Family].Count < DEFAULT_LIST_SIZE) gd[Genres.Family].Add(me.ToBasicMedia());
-                        if (me.Genre_Fantasy && gd[Genres.Fantasy].Count < DEFAULT_LIST_SIZE) gd[Genres.Fantasy].Add(me.ToBasicMedia());
-                        if (me.Genre_Food && gd[Genres.Food].Count < DEFAULT_LIST_SIZE) gd[Genres.Food].Add(me.ToBasicMedia());
-                        if (me.Genre_Game_Show && gd[Genres.Game_Show].Count < DEFAULT_LIST_SIZE) gd[Genres.Game_Show].Add(me.ToBasicMedia());
-                        if (me.Genre_History && gd[Genres.History].Count < DEFAULT_LIST_SIZE) gd[Genres.History].Add(me.ToBasicMedia());
-                        if (me.Genre_Home_and_Garden && gd[Genres.Home_and_Garden].Count < DEFAULT_LIST_SIZE) gd[Genres.Home_and_Garden].Add(me.ToBasicMedia());
-                        if (me.Genre_Horror && gd[Genres.Horror].Count < DEFAULT_LIST_SIZE) gd[Genres.Horror].Add(me.ToBasicMedia());
-                        if (me.Genre_Indie && gd[Genres.Indie].Count < DEFAULT_LIST_SIZE) gd[Genres.Indie].Add(me.ToBasicMedia());
-                        if (me.Genre_Martial_Arts && gd[Genres.Martial_Arts].Count < DEFAULT_LIST_SIZE) gd[Genres.Martial_Arts].Add(me.ToBasicMedia());
-                        if (me.Genre_Mini_Series && gd[Genres.Mini_Series].Count < DEFAULT_LIST_SIZE) gd[Genres.Mini_Series].Add(me.ToBasicMedia());
-                        if (me.Genre_Music && gd[Genres.Music].Count < DEFAULT_LIST_SIZE) gd[Genres.Music].Add(me.ToBasicMedia());
-                        if (me.Genre_Musical && gd[Genres.Musical].Count < DEFAULT_LIST_SIZE) gd[Genres.Musical].Add(me.ToBasicMedia());
-                        if (me.Genre_Mystery && gd[Genres.Mystery].Count < DEFAULT_LIST_SIZE) gd[Genres.Mystery].Add(me.ToBasicMedia());
-                        if (me.Genre_News && gd[Genres.News].Count < DEFAULT_LIST_SIZE) gd[Genres.News].Add(me.ToBasicMedia());
-                        if (me.Genre_Podcast && gd[Genres.Podcast].Count < DEFAULT_LIST_SIZE) gd[Genres.Podcast].Add(me.ToBasicMedia());
-                        if (me.Genre_Political && gd[Genres.Political].Count < DEFAULT_LIST_SIZE) gd[Genres.Political].Add(me.ToBasicMedia());
-                        if (me.Genre_Reality && gd[Genres.Reality].Count < DEFAULT_LIST_SIZE) gd[Genres.Reality].Add(me.ToBasicMedia());
-                        if (me.Genre_Romance && gd[Genres.Romance].Count < DEFAULT_LIST_SIZE) gd[Genres.Romance].Add(me.ToBasicMedia());
-                        if (me.Genre_Science_Fiction && gd[Genres.Science_Fiction].Count < DEFAULT_LIST_SIZE) gd[Genres.Science_Fiction].Add(me.ToBasicMedia());
-                        if (me.Genre_Soap && gd[Genres.Soap].Count < DEFAULT_LIST_SIZE) gd[Genres.Soap].Add(me.ToBasicMedia());
-                        if (me.Genre_Sports && gd[Genres.Sports].Count < DEFAULT_LIST_SIZE) gd[Genres.Sports].Add(me.ToBasicMedia());
-                        if (me.Genre_Suspense && gd[Genres.Suspense].Count < DEFAULT_LIST_SIZE) gd[Genres.Suspense].Add(me.ToBasicMedia());
-                        if (me.Genre_Talk_Show && gd[Genres.Talk_Show].Count < DEFAULT_LIST_SIZE) gd[Genres.Talk_Show].Add(me.ToBasicMedia());
-                        if (me.Genre_Thriller && gd[Genres.Thriller].Count < DEFAULT_LIST_SIZE) gd[Genres.Thriller].Add(me.ToBasicMedia());
-                        if (me.Genre_Travel && gd[Genres.Travel].Count < DEFAULT_LIST_SIZE) gd[Genres.Travel].Add(me.ToBasicMedia());
-                        if (me.Genre_TV_Movie && gd[Genres.TV_Movie].Count < DEFAULT_LIST_SIZE) gd[Genres.TV_Movie].Add(me.ToBasicMedia());
-                        if (me.Genre_War && gd[Genres.War].Count < DEFAULT_LIST_SIZE) gd[Genres.War].Add(me.ToBasicMedia());
-                        if (me.Genre_Western && gd[Genres.Western].Count < DEFAULT_LIST_SIZE) gd[Genres.Western].Add(me.ToBasicMedia());
-
-                        bool doneScanning = true;
-                        foreach (List<BasicMedia> lst in gd.Values)
-                            if (lst.Count < DEFAULT_LIST_SIZE)
-                            {
-                                doneScanning = false;
-                                break;
-                            }
-                        if (doneScanning)
-                            break;
+                        if (me.Genre_Action && ForceGenre(gd, Genres.Action).Count < DEFAULT_LIST_SIZE) gd[Genres.Action].Add(me.ToBasicMedia());
+                        if (me.Genre_Adventure && ForceGenre(gd, Genres.Adventure).Count < DEFAULT_LIST_SIZE) gd[Genres.Adventure].Add(me.ToBasicMedia());
+                        if (me.Genre_Animation && ForceGenre(gd, Genres.Animation).Count < DEFAULT_LIST_SIZE) gd[Genres.Animation].Add(me.ToBasicMedia());
+                        if (me.Genre_Anime && ForceGenre(gd, Genres.Anime).Count < DEFAULT_LIST_SIZE) gd[Genres.Anime].Add(me.ToBasicMedia());
+                        if (me.Genre_Awards_Show && ForceGenre(gd, Genres.Awards_Show).Count < DEFAULT_LIST_SIZE) gd[Genres.Awards_Show].Add(me.ToBasicMedia());
+                        if (me.Genre_Children && ForceGenre(gd, Genres.Children).Count < DEFAULT_LIST_SIZE) gd[Genres.Children].Add(me.ToBasicMedia());
+                        if (me.Genre_Comedy && ForceGenre(gd, Genres.Comedy).Count < DEFAULT_LIST_SIZE) gd[Genres.Comedy].Add(me.ToBasicMedia());
+                        if (me.Genre_Crime && ForceGenre(gd, Genres.Crime).Count < DEFAULT_LIST_SIZE) gd[Genres.Crime].Add(me.ToBasicMedia());
+                        if (me.Genre_Documentary && ForceGenre(gd, Genres.Documentary).Count < DEFAULT_LIST_SIZE) gd[Genres.Documentary].Add(me.ToBasicMedia());
+                        if (me.Genre_Drama && ForceGenre(gd, Genres.Drama).Count < DEFAULT_LIST_SIZE) gd[Genres.Drama].Add(me.ToBasicMedia());
+                        if (me.Genre_Family && ForceGenre(gd, Genres.Family).Count < DEFAULT_LIST_SIZE) gd[Genres.Family].Add(me.ToBasicMedia());
+                        if (me.Genre_Fantasy && ForceGenre(gd, Genres.Fantasy).Count < DEFAULT_LIST_SIZE) gd[Genres.Fantasy].Add(me.ToBasicMedia());
+                        if (me.Genre_Food && ForceGenre(gd, Genres.Food).Count < DEFAULT_LIST_SIZE) gd[Genres.Food].Add(me.ToBasicMedia());
+                        if (me.Genre_Game_Show && ForceGenre(gd, Genres.Game_Show).Count < DEFAULT_LIST_SIZE) gd[Genres.Game_Show].Add(me.ToBasicMedia());
+                        if (me.Genre_History && ForceGenre(gd, Genres.History).Count < DEFAULT_LIST_SIZE) gd[Genres.History].Add(me.ToBasicMedia());
+                        if (me.Genre_Home_and_Garden && ForceGenre(gd, Genres.Home_and_Garden).Count < DEFAULT_LIST_SIZE) gd[Genres.Home_and_Garden].Add(me.ToBasicMedia());
+                        if (me.Genre_Horror && ForceGenre(gd, Genres.Horror).Count < DEFAULT_LIST_SIZE) gd[Genres.Horror].Add(me.ToBasicMedia());
+                        if (me.Genre_Indie && ForceGenre(gd, Genres.Indie).Count < DEFAULT_LIST_SIZE) gd[Genres.Indie].Add(me.ToBasicMedia());
+                        if (me.Genre_Martial_Arts && ForceGenre(gd, Genres.Martial_Arts).Count < DEFAULT_LIST_SIZE) gd[Genres.Martial_Arts].Add(me.ToBasicMedia());
+                        if (me.Genre_Mini_Series && ForceGenre(gd, Genres.Mini_Series).Count < DEFAULT_LIST_SIZE) gd[Genres.Mini_Series].Add(me.ToBasicMedia());
+                        if (me.Genre_Music && ForceGenre(gd, Genres.Music).Count < DEFAULT_LIST_SIZE) gd[Genres.Music].Add(me.ToBasicMedia());
+                        if (me.Genre_Musical && ForceGenre(gd, Genres.Musical).Count < DEFAULT_LIST_SIZE) gd[Genres.Musical].Add(me.ToBasicMedia());
+                        if (me.Genre_Mystery && ForceGenre(gd, Genres.Mystery).Count < DEFAULT_LIST_SIZE) gd[Genres.Mystery].Add(me.ToBasicMedia());
+                        if (me.Genre_News && ForceGenre(gd, Genres.News).Count < DEFAULT_LIST_SIZE) gd[Genres.News].Add(me.ToBasicMedia());
+                        if (me.Genre_Podcast && ForceGenre(gd, Genres.Podcast).Count < DEFAULT_LIST_SIZE) gd[Genres.Podcast].Add(me.ToBasicMedia());
+                        if (me.Genre_Political && ForceGenre(gd, Genres.Political).Count < DEFAULT_LIST_SIZE) gd[Genres.Political].Add(me.ToBasicMedia());
+                        if (me.Genre_Reality && ForceGenre(gd, Genres.Reality).Count < DEFAULT_LIST_SIZE) gd[Genres.Reality].Add(me.ToBasicMedia());
+                        if (me.Genre_Romance && ForceGenre(gd, Genres.Romance).Count < DEFAULT_LIST_SIZE) gd[Genres.Romance].Add(me.ToBasicMedia());
+                        if (me.Genre_Science_Fiction && ForceGenre(gd, Genres.Science_Fiction).Count < DEFAULT_LIST_SIZE) gd[Genres.Science_Fiction].Add(me.ToBasicMedia());
+                        if (me.Genre_Soap && ForceGenre(gd, Genres.Soap).Count < DEFAULT_LIST_SIZE) gd[Genres.Soap].Add(me.ToBasicMedia());
+                        if (me.Genre_Sports && ForceGenre(gd, Genres.Sports).Count < DEFAULT_LIST_SIZE) gd[Genres.Sports].Add(me.ToBasicMedia());
+                        if (me.Genre_Suspense && ForceGenre(gd, Genres.Suspense).Count < DEFAULT_LIST_SIZE) gd[Genres.Suspense].Add(me.ToBasicMedia());
+                        if (me.Genre_Talk_Show && ForceGenre(gd, Genres.Talk_Show).Count < DEFAULT_LIST_SIZE) gd[Genres.Talk_Show].Add(me.ToBasicMedia());
+                        if (me.Genre_Thriller && ForceGenre(gd, Genres.Thriller).Count < DEFAULT_LIST_SIZE) gd[Genres.Thriller].Add(me.ToBasicMedia());
+                        if (me.Genre_Travel && ForceGenre(gd, Genres.Travel).Count < DEFAULT_LIST_SIZE) gd[Genres.Travel].Add(me.ToBasicMedia());
+                        if (me.Genre_TV_Movie && ForceGenre(gd, Genres.TV_Movie).Count < DEFAULT_LIST_SIZE) gd[Genres.TV_Movie].Add(me.ToBasicMedia());
+                        if (me.Genre_War && ForceGenre(gd, Genres.War).Count < DEFAULT_LIST_SIZE) gd[Genres.War].Add(me.ToBasicMedia());
+                        if (me.Genre_Western && ForceGenre(gd, Genres.Western).Count < DEFAULT_LIST_SIZE) gd[Genres.Western].Add(me.ToBasicMedia());                       
                     }
 
                     foreach (Genres g in gd.Keys)
@@ -181,7 +166,7 @@ namespace DustyPig.Server.Controllers.v3
                             {
                                 ListId = (long)g,
                                 Title = g.AsString(),
-                                Items = gd[g].Take(take).ToList()
+                                Items = gd[g].Take(DEFAULT_LIST_SIZE).ToList()
                             });
 
                 }
@@ -196,6 +181,10 @@ namespace DustyPig.Server.Controllers.v3
                             Items = result.Select(item => item.ToBasicMedia()).ToList()
                         });
                 }
+
+
+            
+
 
             ret.Sections.Sort((x, y) => x.ListId.CompareTo(y.ListId));
             return new ResponseWrapper<HomeScreen>(ret);
@@ -235,7 +224,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Genres
             if (request.ListId > 0 && request.ListId <= Enum.GetValues(typeof(Genres)).Cast<long>().Max())
-                results = (await GenresAsync(DB, (Genres)request.ListId, request.Start, DEFAULT_LIST_SIZE, SortOrder.Popularity_Descending)).Select(item => item.ToBasicMedia()).ToList();
+                results = (await GenresAsync(DB, (Genres)request.ListId, request.Start, DEFAULT_LIST_SIZE)).Select(item => item.ToBasicMedia()).ToList();
 
             return new ResponseWrapper<List<BasicMedia>>(results);
         }
@@ -267,79 +256,10 @@ namespace DustyPig.Server.Controllers.v3
             /****************************************
              * Get available items
              ****************************************/
-            var q =
-                from me in DB.MediaEntries
-                join lib in DB.Libraries on me.LibraryId equals lib.Id
-
-                join fls in DB.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in DB.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in DB.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to view filters
-                    Constants.TOP_LEVEL_MEDIA_TYPES.Contains(me.EntryType)
-                    &&
-                    (
-                        (
-                            UserProfile.IsMain
-                            &&
-                            (
-                                lib.AccountId == UserAccount.Id
-                                || 
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            pls != null
-                            && ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Series
-                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                                )
-                                ||
-                                (
-                                    UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled
-                                )
-                            )
-                        )
-                        || ovrride.State == OverrideState.Allow
-                    )
-
-                select me;
+            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
 
             foreach (var term in terms)
-                q =
-                    from me in q
-                    join msb in DB.MediaSearchBridges
-                        .Where(item => item.SearchTerm.Term.Contains(term))
-                        on me.Id equals msb.MediaEntryId
-                    select me;
+                q = q.Where(m => m.MediaSearchBridges.Any(b => b.SearchTerm.Term.Contains(term)));
 
             var mediaEntries = await q
                 .AsNoTracking()
@@ -391,57 +311,10 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet("{id}")]
         public async Task<ResponseWrapper> AddToWatchlist(int id)
         {
-            var mediaEntry = await DB.MediaEntries
+            var mediaEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
-
-                .Where(m => m.Id == id)
-                .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
-
-                .Where(m =>
-
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            m.Library.AccountId == UserAccount.Id
-                            ||
-                            (
-                                m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == UserAccount.Id || f.Friendship.Account2Id == UserAccount.Id)
-                                && !m.TitleOverrides
-                                    .Where(t => t.ProfileId == UserProfile.Id)
-                                    .Where(t => t.State == OverrideState.Block)
-                                    .Any()
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                        && !m.TitleOverrides
-                            .Where(t => t.ProfileId == UserProfile.Id)
-                            .Where(t => t.State == OverrideState.Block)
-                            .Any()
-                        &&
-                        (
-                            (
-                                m.EntryType == MediaTypes.Movie
-                                && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
-                            )
-                            ||
-                            (
-                                m.EntryType == MediaTypes.Series
-                                && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
-                            )
-                        )
-                    )
-                    || m.TitleOverrides
-                        .Where(t => t.ProfileId == UserProfile.Id)
-                        .Where(t => t.State == OverrideState.Allow)
-                        .Any()
-                )
-
-
                 .Include(m => m.WatchlistItems.Where(w => w.ProfileId == UserProfile.Id))
+                .Where(m => m.Id == id)
                 .FirstOrDefaultAsync();
 
             if (mediaEntry == null)
@@ -511,69 +384,12 @@ namespace DustyPig.Server.Controllers.v3
                 hist.Id = maybeEpisode.LinkedToId.Value;
 
 
-            var mediaEntry = await DB.MediaEntries
+            var mediaEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
-
-                .Include(m => m.TitleOverrides
-                    .Where(t => t.ProfileId == UserProfile.Id)
-                    .Where(t => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(t.State))
-                )
                 .Include(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
-
-                .Include(m => m.LinkedTo)
-                .ThenInclude(m => m.TitleOverrides
-                    .Where(t => t.ProfileId == UserProfile.Id)
-                    .Where(t => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(t.State))
-                )
-
-                .Include(m => m.LinkedTo)
-                .ThenInclude(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
-
-
                 .Where(m => m.Id == hist.Id)
-                .Where(m =>
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            m.Library.AccountId == UserAccount.Id
-                            ||
-                            (
-                                m.Library.FriendLibraryShares.Any(s => s.Friendship.Account1Id == UserAccount.Id || s.Friendship.Account2Id == UserAccount.Id)
-                                && !m.TitleOverrides.Any(t => 
-                                    t.ProfileId == UserProfile.Id
-                                    && t.State == OverrideState.Block
-                                )
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        m.Library.ProfileLibraryShares.Any(p => p.ProfileId == UserProfile.Id)
-                        && !m.TitleOverrides.Any(t =>
-                            t.ProfileId == UserProfile.Id
-                            && t.State == OverrideState.Block
-                        )
-                        &&
-                        (
-                            (
-                                m.EntryType == MediaTypes.Movie
-                                && UserProfile.MaxMovieRating >= (m.MovieRating ?? MovieRatings.Unrated)
-                            )
-                            ||
-                            (
-                                m.EntryType == MediaTypes.Episode
-                                && UserProfile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
-                            )
-                        )
-                    )
-                    || m.TitleOverrides.Any(t =>
-                        t.ProfileId == UserProfile.Id
-                        && t.State == OverrideState.Allow
-                    )
-                )
                 .FirstOrDefaultAsync();
-
+                        
 
             if (mediaEntry == null)
                 return CommonResponses.NotFound(nameof(hist.Id));
@@ -1389,160 +1205,28 @@ namespace DustyPig.Server.Controllers.v3
                 .Select(item => item.MediaEntry)
                 .Skip(skip)
                 .Take(take)
+                .AsNoTracking()
                 .ToListAsync();
-        }
+        }       
 
         Task<List<MediaEntry>> WatchlistAsync(AppDbContext dbInstance, int skip, int take)
         {
-
-            var q =
-                from me in dbInstance.MediaEntries
-                join lib in dbInstance.Libraries on me.LibraryId equals lib.Id
-
-                join wli in dbInstance.WatchListItems
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id }
-                    equals new { wli.MediaEntryId, wli.ProfileId }
-
-                join fls in dbInstance.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in dbInstance.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in dbInstance.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    Constants.TOP_LEVEL_MEDIA_TYPES.Contains(me.EntryType)
-                    &&
-                    (
-                        (
-                            UserProfile.IsMain
-                            &&
-                            (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            pls != null
-                            && ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Series
-                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                                )
-                            )
-                        )
-                        || ovrride.State == OverrideState.Allow
-                    )
-
-                orderby wli.Added
-
-                select me;
-
-            return q
-                .AsNoTracking()
-                .Distinct()
-                .Skip(skip)
-                .Take(take)
-                .ToListAsync();
-        }
-
-        IQueryable<MediaEntry> TopLevelWatchableByProfileQuery(AppDbContext dbInstance)
-        {
             return
-                from me in dbInstance.MediaEntries
-                join lib in dbInstance.Libraries on me.LibraryId equals lib.Id
-
-                join fls in dbInstance.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in dbInstance.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in dbInstance.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    Constants.TOP_LEVEL_MEDIA_TYPES.Contains(me.EntryType)
-                    &&
-                    (
-                        (
-                            UserProfile.IsMain
-                            &&
-                            (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            pls != null
-                            && ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Series
-                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                                )
-                            )
-                        )
-                        || ovrride.State == OverrideState.Allow
-                    )
-
-
-                select me;
-
+                dbInstance.WatchListItems
+                    .AsNoTracking()
+                    .Where(w => w.ProfileId == UserProfile.Id)
+                    .Where(w => dbInstance.TopLevelWatchableMediaByProfileQuery( UserProfile).Any(m => m.Id == w.MediaEntryId))
+                    .OrderBy(w => w.Added)
+                    .Skip(skip)
+                    .Take(take)
+                    .Select(w => w.MediaEntry)
+                    .ToListAsync();
         }
 
         Task<List<MediaEntry>> RecentlyAddedAsync(AppDbContext dbInstance, int skip, int take)
         {
-            return TopLevelWatchableByProfileQuery(dbInstance)
+            return dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
-                .Distinct()
                 .ApplySortOrder(SortOrder.Added_Descending)
                 .Skip(skip)
                 .Take(take)
@@ -1551,214 +1235,151 @@ namespace DustyPig.Server.Controllers.v3
 
         Task<List<MediaEntry>> PopularAsync(AppDbContext dbInstance, int skip, int take)
         {
-            return TopLevelWatchableByProfileQuery(dbInstance)
+            return dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
-                .Distinct()
+                .Where(m => m.Popularity.HasValue)
+                .Where(m => m.Popularity > 0)
                 .ApplySortOrder(SortOrder.Popularity_Descending)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
         }
 
-        Task<List<MediaEntry>> GenresAsync(AppDbContext dbInstance, Genres genre, int skip, int take, SortOrder orderBy)
+        Task<List<MediaEntry>> GenresAsync(AppDbContext dbInstance, Genres genre, int skip, int take)
         {
             long g = (long)genre;
 
-            var q =
-                from me in dbInstance.MediaEntries
-                join lib in dbInstance.Libraries on me.LibraryId equals lib.Id
 
-                join fls in dbInstance.FriendLibraryShares
-                    .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                    .Select(t => (int?)t.LibraryId)
-                    on lib.Id equals fls into fls_lj
-                from fls in fls_lj.DefaultIfEmpty()
-
-                join pls in dbInstance.ProfileLibraryShares
-                    on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                    equals new { pls.LibraryId, pls.ProfileId }
-                    into pls_lj
-                from pls in pls_lj.DefaultIfEmpty()
-
-                join ovrride in dbInstance.TitleOverrides
-                    on new { MediaEntryId = me.Id, ProfileId = UserProfile.Id, Valid = true }
-                    equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                    into ovrride_lj
-                from ovrride in ovrride_lj.DefaultIfEmpty()
-
-                where
-
-                    //Allow to play filters
-                    new MediaTypes[] { MediaTypes.Movie, MediaTypes.Series }.Contains(me.EntryType)
-                    &&
-                    (
-                        //So far this is the most optimized I know how to do this using LINQ.
-                        //Using this big old if then else expression simplifies the query if only 1 genre is flagged,
-                        //and also handles Genres.Unknown.
-                        genre == Genres.Unknown ?
-                        (
-                            me.Genre_Action == false
-                            && me.Genre_Adventure == false
-                            && me.Genre_Animation == false
-                            && me.Genre_Anime == false
-                            && me.Genre_Awards_Show == false
-                            && me.Genre_Children == false
-                            && me.Genre_Comedy == false
-                            && me.Genre_Crime == false
-                            && me.Genre_Documentary == false
-                            && me.Genre_Drama == false
-                            && me.Genre_Family == false
-                            && me.Genre_Fantasy == false
-                            && me.Genre_Food == false
-                            && me.Genre_Game_Show == false
-                            && me.Genre_History == false
-                            && me.Genre_Home_and_Garden == false
-                            && me.Genre_Horror == false
-                            && me.Genre_Indie == false
-                            && me.Genre_Martial_Arts == false
-                            && me.Genre_Mini_Series == false
-                            && me.Genre_Music == false
-                            && me.Genre_Musical == false
-                            && me.Genre_Mystery == false
-                            && me.Genre_News == false
-                            && me.Genre_Podcast == false
-                            && me.Genre_Political == false
-                            && me.Genre_Reality == false
-                            && me.Genre_Romance == false
-                            && me.Genre_Science_Fiction == false
-                            && me.Genre_Soap == false
-                            && me.Genre_Sports == false
-                            && me.Genre_Suspense == false
-                            && me.Genre_Talk_Show == false
-                            && me.Genre_Thriller == false
-                            && me.Genre_Travel == false
-                            && me.Genre_TV_Movie == false
-                            && me.Genre_War == false
-                            && me.Genre_Western == false
-                        ) :
-                        genre == Genres.Action ? me.Genre_Action :
-                        genre == Genres.Adventure ? me.Genre_Adventure :
-                        genre == Genres.Animation ? me.Genre_Adventure :
-                        genre == Genres.Anime ? me.Genre_Anime :
-                        genre == Genres.Awards_Show ? me.Genre_Awards_Show :
-                        genre == Genres.Children ? me.Genre_Children :
-                        genre == Genres.Comedy ? me.Genre_Comedy :
-                        genre == Genres.Crime ? me.Genre_Crime :
-                        genre == Genres.Documentary ? me.Genre_Documentary :
-                        genre == Genres.Drama ? me.Genre_Drama :
-                        genre == Genres.Family ? me.Genre_Family :
-                        genre == Genres.Fantasy ? me.Genre_Family :
-                        genre == Genres.Food ? me.Genre_Food :
-                        genre == Genres.Game_Show ? me.Genre_Game_Show :
-                        genre == Genres.History ? me.Genre_History :
-                        genre == Genres.Home_and_Garden ? me.Genre_Home_and_Garden :
-                        genre == Genres.Horror ? me.Genre_Horror :
-                        genre == Genres.Indie ? me.Genre_Indie :
-                        genre == Genres.Martial_Arts ? me.Genre_Martial_Arts :
-                        genre == Genres.Mini_Series ? me.Genre_Mini_Series :
-                        genre == Genres.Music ? me.Genre_Music :
-                        genre == Genres.Musical ? me.Genre_Musical :
-                        genre == Genres.Mystery ? me.Genre_Mystery :
-                        genre == Genres.News ? me.Genre_News :
-                        genre == Genres.Podcast ? me.Genre_Podcast :
-                        genre == Genres.Political ? me.Genre_Political :
-                        genre == Genres.Reality ? me.Genre_Reality :
-                        genre == Genres.Romance ? me.Genre_Romance :
-                        genre == Genres.Science_Fiction ? me.Genre_Science_Fiction :
-                        genre == Genres.Soap ? me.Genre_Soap :
-                        genre == Genres.Sports ? me.Genre_Sports :
-                        genre == Genres.Suspense ? me.Genre_Suspense :
-                        genre == Genres.Talk_Show ? me.Genre_Talk_Show :
-                        genre == Genres.Thriller ? me.Genre_Thriller :
-                        genre == Genres.Travel ? me.Genre_Travel :
-                        genre == Genres.TV_Movie ? me.Genre_TV_Movie :
-                        genre == Genres.War ? me.Genre_War :
-                        genre == Genres.Western ? me.Genre_Western :
-                        (
-                            // genre is not a single flag.
-                            // If it's a valid combo of flags (like Genres.Action | Genres.Western), this will return the correct rows
-                            // If it's an invalid flag (like -1), this will return zero rows
-                            (((g & (long)Genres.Action) == (long)Genres.Action) && me.Genre_Action)
-                            || (((g & (long)Genres.Adventure) == (long)Genres.Adventure) && me.Genre_Adventure)
-                            || (((g & (long)Genres.Animation) == (long)Genres.Animation) && me.Genre_Animation)
-                            || (((g & (long)Genres.Anime) == (long)Genres.Anime) && me.Genre_Anime)
-                            || (((g & (long)Genres.Awards_Show) == (long)Genres.Awards_Show) && me.Genre_Awards_Show)
-                            || (((g & (long)Genres.Children) == (long)Genres.Children) && me.Genre_Children)
-                            || (((g & (long)Genres.Comedy) == (long)Genres.Comedy) && me.Genre_Comedy)
-                            || (((g & (long)Genres.Crime) == (long)Genres.Crime) && me.Genre_Crime)
-                            || (((g & (long)Genres.Documentary) == (long)Genres.Documentary) && me.Genre_Documentary)
-                            || (((g & (long)Genres.Drama) == (long)Genres.Drama) && me.Genre_Drama)
-                            || (((g & (long)Genres.Family) == (long)Genres.Family) && me.Genre_Family)
-                            || (((g & (long)Genres.Fantasy) == (long)Genres.Fantasy) && me.Genre_Fantasy)
-                            || (((g & (long)Genres.Food) == (long)Genres.Food) && me.Genre_Food)
-                            || (((g & (long)Genres.Game_Show) == (long)Genres.Game_Show) && me.Genre_Game_Show)
-                            || (((g & (long)Genres.History) == (long)Genres.History) && me.Genre_History)
-                            || (((g & (long)Genres.Home_and_Garden) == (long)Genres.Home_and_Garden) && me.Genre_Home_and_Garden)
-                            || (((g & (long)Genres.Horror) == (long)Genres.Horror) && me.Genre_Horror)
-                            || (((g & (long)Genres.Indie) == (long)Genres.Indie) && me.Genre_Indie)
-                            || (((g & (long)Genres.Martial_Arts) == (long)Genres.Martial_Arts) && me.Genre_Martial_Arts)
-                            || (((g & (long)Genres.Mini_Series) == (long)Genres.Mini_Series) && me.Genre_Mini_Series)
-                            || (((g & (long)Genres.Music) == (long)Genres.Music) && me.Genre_Music)
-                            || (((g & (long)Genres.Musical) == (long)Genres.Musical) && me.Genre_Musical)
-                            || (((g & (long)Genres.Mystery) == (long)Genres.Mystery) && me.Genre_Mystery)
-                            || (((g & (long)Genres.News) == (long)Genres.News) && me.Genre_News)
-                            || (((g & (long)Genres.Podcast) == (long)Genres.Podcast) && me.Genre_Podcast)
-                            || (((g & (long)Genres.Political) == (long)Genres.Political) && me.Genre_Political)
-                            || (((g & (long)Genres.Reality) == (long)Genres.Reality) && me.Genre_Reality)
-                            || (((g & (long)Genres.Romance) == (long)Genres.Romance) && me.Genre_Romance)
-                            || (((g & (long)Genres.Science_Fiction) == (long)Genres.Science_Fiction) && me.Genre_Science_Fiction)
-                            || (((g & (long)Genres.Soap) == (long)Genres.Soap) && me.Genre_Soap)
-                            || (((g & (long)Genres.Sports) == (long)Genres.Sports) && me.Genre_Sports)
-                            || (((g & (long)Genres.Suspense) == (long)Genres.Suspense) && me.Genre_Suspense)
-                            || (((g & (long)Genres.Talk_Show) == (long)Genres.Talk_Show) && me.Genre_Talk_Show)
-                            || (((g & (long)Genres.Thriller) == (long)Genres.Thriller) && me.Genre_Thriller)
-                            || (((g & (long)Genres.Travel) == (long)Genres.Travel) && me.Genre_Travel)
-                            || (((g & (long)Genres.TV_Movie) == (long)Genres.TV_Movie) && me.Genre_TV_Movie)
-                            || (((g & (long)Genres.War) == (long)Genres.War) && me.Genre_War)
-                            || (((g & (long)Genres.Western) == (long)Genres.Western) && me.Genre_Western)
-                        )
-                    )
-                    &&
-                    (
-                        // Watch permissions
-                        (
-                            UserProfile.IsMain
-                            &&
-                            (
-                                lib.AccountId == UserAccount.Id
-                                ||
-                                (
-                                    fls.HasValue
-                                    && ovrride.State != OverrideState.Block
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            pls != null
-                            && ovrride.State != OverrideState.Block
-                            &&
-                            (
-                                (
-                                    me.EntryType == MediaTypes.Movie
-                                    && UserProfile.MaxMovieRating >= (me.MovieRating ?? MovieRatings.Unrated)
-                                )
-                                ||
-                                (
-                                    me.EntryType == MediaTypes.Series
-                                    && UserProfile.MaxTVRating >= (me.TVRating ?? TVRatings.NotRated)
-                                )
-                            )
-                        )
-                        || ovrride.State == OverrideState.Allow
-                    )
-
-
-                select me;
-
-            return q.ApplySortOrder(orderBy)
+            return dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
-                .Distinct()
+                .Where(me =>
+                    //So far this is the most optimized I know how to do this using LINQ.
+                    //Using this big old if then else expression simplifies the query if only 1 genre is flagged,
+                    //and also handles Genres.Unknown.
+                    genre == Genres.Unknown ?
+                    (
+                        me.Genre_Action == false
+                        && me.Genre_Adventure == false
+                        && me.Genre_Animation == false
+                        && me.Genre_Anime == false
+                        && me.Genre_Awards_Show == false
+                        && me.Genre_Children == false
+                        && me.Genre_Comedy == false
+                        && me.Genre_Crime == false
+                        && me.Genre_Documentary == false
+                        && me.Genre_Drama == false
+                        && me.Genre_Family == false
+                        && me.Genre_Fantasy == false
+                        && me.Genre_Food == false
+                        && me.Genre_Game_Show == false
+                        && me.Genre_History == false
+                        && me.Genre_Home_and_Garden == false
+                        && me.Genre_Horror == false
+                        && me.Genre_Indie == false
+                        && me.Genre_Martial_Arts == false
+                        && me.Genre_Mini_Series == false
+                        && me.Genre_Music == false
+                        && me.Genre_Musical == false
+                        && me.Genre_Mystery == false
+                        && me.Genre_News == false
+                        && me.Genre_Podcast == false
+                        && me.Genre_Political == false
+                        && me.Genre_Reality == false
+                        && me.Genre_Romance == false
+                        && me.Genre_Science_Fiction == false
+                        && me.Genre_Soap == false
+                        && me.Genre_Sports == false
+                        && me.Genre_Suspense == false
+                        && me.Genre_Talk_Show == false
+                        && me.Genre_Thriller == false
+                        && me.Genre_Travel == false
+                        && me.Genre_TV_Movie == false
+                        && me.Genre_War == false
+                        && me.Genre_Western == false
+                    ) :
+                    genre == Genres.Action ? me.Genre_Action :
+                    genre == Genres.Adventure ? me.Genre_Adventure :
+                    genre == Genres.Animation ? me.Genre_Adventure :
+                    genre == Genres.Anime ? me.Genre_Anime :
+                    genre == Genres.Awards_Show ? me.Genre_Awards_Show :
+                    genre == Genres.Children ? me.Genre_Children :
+                    genre == Genres.Comedy ? me.Genre_Comedy :
+                    genre == Genres.Crime ? me.Genre_Crime :
+                    genre == Genres.Documentary ? me.Genre_Documentary :
+                    genre == Genres.Drama ? me.Genre_Drama :
+                    genre == Genres.Family ? me.Genre_Family :
+                    genre == Genres.Fantasy ? me.Genre_Family :
+                    genre == Genres.Food ? me.Genre_Food :
+                    genre == Genres.Game_Show ? me.Genre_Game_Show :
+                    genre == Genres.History ? me.Genre_History :
+                    genre == Genres.Home_and_Garden ? me.Genre_Home_and_Garden :
+                    genre == Genres.Horror ? me.Genre_Horror :
+                    genre == Genres.Indie ? me.Genre_Indie :
+                    genre == Genres.Martial_Arts ? me.Genre_Martial_Arts :
+                    genre == Genres.Mini_Series ? me.Genre_Mini_Series :
+                    genre == Genres.Music ? me.Genre_Music :
+                    genre == Genres.Musical ? me.Genre_Musical :
+                    genre == Genres.Mystery ? me.Genre_Mystery :
+                    genre == Genres.News ? me.Genre_News :
+                    genre == Genres.Podcast ? me.Genre_Podcast :
+                    genre == Genres.Political ? me.Genre_Political :
+                    genre == Genres.Reality ? me.Genre_Reality :
+                    genre == Genres.Romance ? me.Genre_Romance :
+                    genre == Genres.Science_Fiction ? me.Genre_Science_Fiction :
+                    genre == Genres.Soap ? me.Genre_Soap :
+                    genre == Genres.Sports ? me.Genre_Sports :
+                    genre == Genres.Suspense ? me.Genre_Suspense :
+                    genre == Genres.Talk_Show ? me.Genre_Talk_Show :
+                    genre == Genres.Thriller ? me.Genre_Thriller :
+                    genre == Genres.Travel ? me.Genre_Travel :
+                    genre == Genres.TV_Movie ? me.Genre_TV_Movie :
+                    genre == Genres.War ? me.Genre_War :
+                    genre == Genres.Western ? me.Genre_Western :
+                    (
+                        // genre is not a single flag.
+                        // If it's a valid combo of flags (like Genres.Action | Genres.Western), this will return the correct rows
+                        // If it's an invalid flag (like -1), this will return zero rows
+                        (((g & (long)Genres.Action) == (long)Genres.Action) && me.Genre_Action)
+                        || (((g & (long)Genres.Adventure) == (long)Genres.Adventure) && me.Genre_Adventure)
+                        || (((g & (long)Genres.Animation) == (long)Genres.Animation) && me.Genre_Animation)
+                        || (((g & (long)Genres.Anime) == (long)Genres.Anime) && me.Genre_Anime)
+                        || (((g & (long)Genres.Awards_Show) == (long)Genres.Awards_Show) && me.Genre_Awards_Show)
+                        || (((g & (long)Genres.Children) == (long)Genres.Children) && me.Genre_Children)
+                        || (((g & (long)Genres.Comedy) == (long)Genres.Comedy) && me.Genre_Comedy)
+                        || (((g & (long)Genres.Crime) == (long)Genres.Crime) && me.Genre_Crime)
+                        || (((g & (long)Genres.Documentary) == (long)Genres.Documentary) && me.Genre_Documentary)
+                        || (((g & (long)Genres.Drama) == (long)Genres.Drama) && me.Genre_Drama)
+                        || (((g & (long)Genres.Family) == (long)Genres.Family) && me.Genre_Family)
+                        || (((g & (long)Genres.Fantasy) == (long)Genres.Fantasy) && me.Genre_Fantasy)
+                        || (((g & (long)Genres.Food) == (long)Genres.Food) && me.Genre_Food)
+                        || (((g & (long)Genres.Game_Show) == (long)Genres.Game_Show) && me.Genre_Game_Show)
+                        || (((g & (long)Genres.History) == (long)Genres.History) && me.Genre_History)
+                        || (((g & (long)Genres.Home_and_Garden) == (long)Genres.Home_and_Garden) && me.Genre_Home_and_Garden)
+                        || (((g & (long)Genres.Horror) == (long)Genres.Horror) && me.Genre_Horror)
+                        || (((g & (long)Genres.Indie) == (long)Genres.Indie) && me.Genre_Indie)
+                        || (((g & (long)Genres.Martial_Arts) == (long)Genres.Martial_Arts) && me.Genre_Martial_Arts)
+                        || (((g & (long)Genres.Mini_Series) == (long)Genres.Mini_Series) && me.Genre_Mini_Series)
+                        || (((g & (long)Genres.Music) == (long)Genres.Music) && me.Genre_Music)
+                        || (((g & (long)Genres.Musical) == (long)Genres.Musical) && me.Genre_Musical)
+                        || (((g & (long)Genres.Mystery) == (long)Genres.Mystery) && me.Genre_Mystery)
+                        || (((g & (long)Genres.News) == (long)Genres.News) && me.Genre_News)
+                        || (((g & (long)Genres.Podcast) == (long)Genres.Podcast) && me.Genre_Podcast)
+                        || (((g & (long)Genres.Political) == (long)Genres.Political) && me.Genre_Political)
+                        || (((g & (long)Genres.Reality) == (long)Genres.Reality) && me.Genre_Reality)
+                        || (((g & (long)Genres.Romance) == (long)Genres.Romance) && me.Genre_Romance)
+                        || (((g & (long)Genres.Science_Fiction) == (long)Genres.Science_Fiction) && me.Genre_Science_Fiction)
+                        || (((g & (long)Genres.Soap) == (long)Genres.Soap) && me.Genre_Soap)
+                        || (((g & (long)Genres.Sports) == (long)Genres.Sports) && me.Genre_Sports)
+                        || (((g & (long)Genres.Suspense) == (long)Genres.Suspense) && me.Genre_Suspense)
+                        || (((g & (long)Genres.Talk_Show) == (long)Genres.Talk_Show) && me.Genre_Talk_Show)
+                        || (((g & (long)Genres.Thriller) == (long)Genres.Thriller) && me.Genre_Thriller)
+                        || (((g & (long)Genres.Travel) == (long)Genres.Travel) && me.Genre_Travel)
+                        || (((g & (long)Genres.TV_Movie) == (long)Genres.TV_Movie) && me.Genre_TV_Movie)
+                        || (((g & (long)Genres.War) == (long)Genres.War) && me.Genre_War)
+                        || (((g & (long)Genres.Western) == (long)Genres.Western) && me.Genre_Western)
+                    )
+                )
+                .ApplySortOrder(SortOrder.Popularity_Descending)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
@@ -1767,13 +1388,26 @@ namespace DustyPig.Server.Controllers.v3
         Task<List<Data.Models.Playlist>> PlaylistsAsync(AppDbContext db, int skip, int take)
         {
             return db.Playlists
+                .AsNoTracking()
                 .Where(item => item.ProfileId == UserProfile.Id)
-                .Distinct()
                 .OrderBy(item => item.Name)
                 .Skip(skip)
                 .Take(take)
                 .ToListAsync();
         }
+
+
+
+        static List<BasicMedia> ForceGenre(Dictionary<Genres, List<BasicMedia>> dict, Genres g)
+        {
+            if(!dict.TryGetValue(g, out var list))
+            {
+                list = new();
+                dict.Add(g, list);
+            }
+            return list;
+        }
+
 
     }
 }
