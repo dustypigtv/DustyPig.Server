@@ -20,7 +20,7 @@ namespace DustyPig.Server.Controllers.v3
         [Route("api/v{version:apiVersion}/Playlists/SetPlaylistProgress")]
         public IActionResult Preflight()
         {
-            Response.Headers.AccessControlAllowOrigin = "https://s3.dustypig.tv";
+            Response.Headers.AccessControlAllowOrigin = "*";
             Response.Headers.AccessControlAllowMethods = "GET, OPTIONS, POST";
             Response.Headers.AccessControlAllowHeaders = "*";
             Response.Headers.AccessControlAllowCredentials = "true";
