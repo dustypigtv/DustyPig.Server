@@ -316,6 +316,7 @@ namespace DustyPig.Server
             });
 
             app.UseRouting();
+            app.UseCors();
 
             app.UseAuthentication();
             app.UseAuthorization();
