@@ -344,16 +344,11 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Set the currently playing index</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper> SetPlaylistProgress(SetPlaylistProgress info)
+        public async Task<ResponseWrapper> SetPlaylistProgress(PlaybackProgress info)
         {
-            //Validate
-            try { info.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
-
-
             var playlist = await DB.PlaylistItems
                 .Include(pli => pli.Playlist)
-                .Where(pli => pli.Id == info.PlaylistItemId)
+                .Where(pli => pli.Id == info.Id)
                 .Where(pli => pli.Playlist.ProfileId == UserProfile.Id)
                 .Select(pli => pli.Playlist)
                 .Distinct()
@@ -363,10 +358,10 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return CommonResponses.NotFound();
 
-            if (playlist.CurrentItemId != info.PlaylistItemId || playlist.CurrentProgress != info.NewProgress)
+            if (playlist.CurrentItemId != info.Id || playlist.CurrentProgress != info.Seconds)
             {
-                playlist.CurrentItemId = info.PlaylistItemId;
-                playlist.CurrentProgress = info.NewProgress;
+                playlist.CurrentItemId = info.Id;
+                playlist.CurrentProgress = info.Seconds;
                 await DB.SaveChangesAsync();
             }
 

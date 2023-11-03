@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal;
-using DustyPig.API.v3;
+﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -10,7 +9,6 @@ using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Ocsp;
 using SixLabors.ImageSharp;
 using System;
 using System.Collections.Generic;
