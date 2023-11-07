@@ -111,6 +111,8 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
 
+                .Include(item => item.Subscriptions.Where(item2 => item2.ProfileId == UserProfile.Id))
+
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .FirstOrDefaultAsync();
@@ -156,7 +158,8 @@ namespace DustyPig.Server.Controllers.v3
                 Title = media.Title,
                 TitleRequestPermission = TitleRequestLogic.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any()),
                 TMDB_Id = media.TMDB_Id,
-                Writers = media.GetPeople(Roles.Writer)
+                Writers = media.GetPeople(Roles.Writer),
+                Subscribed = media.Subscriptions.Any(),
             };
 
             ret.CanManage = UserProfile.IsMain
