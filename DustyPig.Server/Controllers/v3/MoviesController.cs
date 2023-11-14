@@ -263,8 +263,11 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Added = DateTime.UtcNow,
                 ArtworkUrl = movieInfo.ArtworkUrl,
+                ArtworkSize = movieInfo.ArtworkSize,
                 BackdropUrl = movieInfo.BackdropUrl,
+                BackdropSize = movieInfo.BackdropSize,
                 BifUrl = movieInfo.BifUrl,
+                BifSize = movieInfo.BifSize,
                 CreditsStartTime = movieInfo.CreditsStartTime,
                 Date = movieInfo.Date,
                 Description = movieInfo.Description,
@@ -277,7 +280,8 @@ namespace DustyPig.Server.Controllers.v3
                 SortTitle = StringUtils.SortTitle(movieInfo.Title),
                 Title = movieInfo.Title,
                 TMDB_Id = movieInfo.TMDB_Id,
-                VideoUrl = movieInfo.VideoUrl
+                VideoUrl = movieInfo.VideoUrl,
+                VideoSize = movieInfo.VideoSize
             };
             newItem.SetGenreFlags(movieInfo.Genres);
             newItem.Hash = newItem.ComputeHash();
@@ -319,7 +323,8 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntry = newItem,
                         Name = srt.Name,
-                        Url = srt.Url
+                        Url = srt.Url,
+                        FileSize = srt.FileSize
                     });
                 save = true;
             }
@@ -407,8 +412,11 @@ namespace DustyPig.Server.Controllers.v3
             //Don't update Added
 
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
+            existingItem.ArtworkSize = movieInfo.ArtworkSize;
             existingItem.BackdropUrl = movieInfo.BackdropUrl;
+            existingItem.BackdropSize = movieInfo.BackdropSize;
             existingItem.BifUrl = movieInfo.BifUrl;
+            existingItem.BifSize = movieInfo.BifSize;
             existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
             existingItem.Date = movieInfo.Date;
             existingItem.Description = movieInfo.Description;
@@ -422,6 +430,7 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.Title = movieInfo.Title;
             existingItem.TMDB_Id = movieInfo.TMDB_Id;
             existingItem.VideoUrl = movieInfo.VideoUrl;
+            existingItem.VideoSize = movieInfo.VideoSize;
 
             existingItem.Hash = existingItem.ComputeHash();
 
@@ -482,7 +491,8 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntryId = existingItem.Id,
                         Name = srt.Name,
-                        Url = srt.Url
+                        Url = srt.Url,
+                        FileSize = srt.FileSize
                     });
 
                 await DB.SaveChangesAsync();

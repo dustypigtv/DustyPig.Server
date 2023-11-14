@@ -108,7 +108,9 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedEpisode
             {
                 ArtworkUrl = episode.ArtworkUrl,
+                ArtworkSize = episode.ArtworkSize,
                 BifUrl = episode.BifUrl,
+                BifSize = episode.BifSize,
                 CreditsStartTime = episode.CreditsStartTime,
                 Date = episode.Date.Value,
                 Description = episode.Description,
@@ -122,7 +124,8 @@ namespace DustyPig.Server.Controllers.v3
                 SeriesTitle = series.Title,
                 Title = episode.Title,
                 TMDB_Id = episode.TMDB_Id,
-                VideoUrl = playable ? episode.VideoUrl : null
+                VideoUrl = playable ? episode.VideoUrl : null,
+                VideoSize = episode.VideoSize
             };
 
             ret.ExternalSubtitles = episode
@@ -221,7 +224,9 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Added = DateTime.UtcNow,
                 ArtworkUrl = episodeInfo.ArtworkUrl,
+                ArtworkSize = episodeInfo.ArtworkSize,
                 BifUrl = episodeInfo.BifUrl,
+                BifSize = episodeInfo.BifSize,
                 CreditsStartTime = episodeInfo.CreditsStartTime,
                 Date = episodeInfo.Date,
                 Description = episodeInfo.Description,
@@ -236,7 +241,8 @@ namespace DustyPig.Server.Controllers.v3
                 Season = episodeInfo.SeasonNumber,
                 Title = episodeInfo.Title,
                 TMDB_Id = episodeInfo.TMDB_Id,
-                VideoUrl = episodeInfo.VideoUrl
+                VideoUrl = episodeInfo.VideoUrl,
+                VideoSize = episodeInfo.VideoSize
             };
 
             newItem.Hash = newItem.ComputeHash();
@@ -266,7 +272,8 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntry = newItem,
                         Name = srt.Name,
-                        Url = srt.Url
+                        Url = srt.Url,
+                        FileSize = srt.FileSize
                     });
 
             //Notifications
@@ -424,7 +431,9 @@ namespace DustyPig.Server.Controllers.v3
             //Don't update Added or EntryType
 
             existingEpisode.ArtworkUrl = episodeInfo.ArtworkUrl;
+            existingEpisode.ArtworkSize = episodeInfo.ArtworkSize;
             existingEpisode.BifUrl = episodeInfo.BifUrl;
+            existingEpisode.BifSize = episodeInfo.BifSize;
             existingEpisode.CreditsStartTime = episodeInfo.CreditsStartTime;
             existingEpisode.Date = episodeInfo.Date;
             existingEpisode.Description = episodeInfo.Description;
@@ -436,6 +445,7 @@ namespace DustyPig.Server.Controllers.v3
             existingEpisode.Title = episodeInfo.Title;
             existingEpisode.TMDB_Id = episodeInfo.TMDB_Id;
             existingEpisode.VideoUrl = episodeInfo.VideoUrl;
+            existingEpisode.VideoSize = episodeInfo.VideoSize;
 
             existingEpisode.Hash = existingEpisode.ComputeHash();
             existingEpisode.Xid = existingEpisode.ComputeXid();
@@ -466,7 +476,8 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         MediaEntryId = existingEpisode.Id,
                         Name = srt.Name,
-                        Url = srt.Url
+                        Url = srt.Url,
+                        FileSize = srt.FileSize
                     });
 
             //Moment of truth!

@@ -155,7 +155,8 @@ namespace DustyPig.Server.Controllers.v3
                 Name = playlist.Name,
                 CurrentItemId = playlist.CurrentItemId,
                 CurrentProgress = playlist.CurrentProgress,
-                ArtworkUrl = playlist.ArtworkUrl
+                ArtworkUrl = playlist.ArtworkUrl,
+                ArtworkSize = playlist.ArtworkSize
             };
 
             foreach (var dbPlaylistItem in playlist.PlaylistItems.OrderBy(p => p.Index))
@@ -172,7 +173,9 @@ namespace DustyPig.Server.Controllers.v3
                     MediaId = dbPlaylistItem.MediaEntryId,
                     MediaType = dbPlaylistItem.MediaEntry.EntryType,
                     BifUrl = dbPlaylistItem.MediaEntry.BifUrl,
-                    VideoUrl = dbPlaylistItem.MediaEntry.VideoUrl
+                    BifSize = dbPlaylistItem.MediaEntry.BifSize,
+                    VideoUrl = dbPlaylistItem.MediaEntry.VideoUrl,
+                    VideoSize = dbPlaylistItem.MediaEntry.VideoSize
                 };
 
 
@@ -183,12 +186,22 @@ namespace DustyPig.Server.Controllers.v3
                         pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.Season:00}e{dbPlaylistItem.MediaEntry.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
                         pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
                         pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        pli.ArtworkSize = dbPlaylistItem.MediaEntry.ArtworkSize;
                         break;
 
                     case MediaTypes.Movie:
 
                         pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
-                        pli.ArtworkUrl = StringUtils.Coalesce(dbPlaylistItem.MediaEntry.BackdropUrl, dbPlaylistItem.MediaEntry.ArtworkUrl);
+                        if (string.IsNullOrWhiteSpace(dbPlaylistItem.MediaEntry.BackdropUrl))
+                        {
+                            pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                            pli.ArtworkSize = dbPlaylistItem.MediaEntry.ArtworkSize;
+                        }
+                        else
+                        {
+                            pli.ArtworkUrl = dbPlaylistItem.MediaEntry.BackdropUrl;
+                            pli.ArtworkSize = dbPlaylistItem.MediaEntry.BackdropSize;
+                        }
                         break;
                 }
 
@@ -262,7 +275,8 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Name = info.Name,
                 ProfileId = UserProfile.Id,
-                ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE
+                ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE,
+                ArtworkSize = Constants.DEFAULT_PLAYLIST_IMAGE_SIZE
             };
 
             DB.Playlists.Add(playlist);

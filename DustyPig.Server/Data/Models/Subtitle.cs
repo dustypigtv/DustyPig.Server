@@ -22,6 +22,11 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string Url { get; set; }
 
+        /// <summary>
+        /// Size in Bytes
+        /// </summary>
+        public ulong FileSize { get; set; }
+
         public int CompareTo(object obj)
         {
             return Name.CompareTo(((Subtitle)obj).Name);

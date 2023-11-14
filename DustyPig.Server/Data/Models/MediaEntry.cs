@@ -130,6 +130,26 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BifUrl { get; set; }
 
+        /// <summary>
+        /// Size in Bytes
+        /// </summary>
+        public ulong ArtworkSize { get; set; }
+
+        /// <summary>
+        /// Size in Bytes
+        /// </summary>
+        public ulong BackdropSize { get; set; }
+
+        /// <summary>
+        /// Size in Bytes
+        /// </summary>
+        public ulong VideoSize { get; set; }
+
+        /// <summary>
+        /// Size in Bytes
+        /// </summary>
+        public ulong BifSize { get; set; }
+
 
         public List<MediaPersonBridge> People { get; set; }
 
