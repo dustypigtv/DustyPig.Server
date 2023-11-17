@@ -258,8 +258,24 @@ namespace DustyPig.Server.Controllers.v3
              ****************************************/
             var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
 
+
+
+            //foreach (var term in terms)
+            //    q = q.Where(m => m.MediaSearchBridges.Any(b => b.SearchTerm.Term.Contains(term)));
+
+            
+            //The above method generates sql that is literally 500 times slower than this inner join method
             foreach (var term in terms)
-                q = q.Where(m => m.MediaSearchBridges.Any(b => b.SearchTerm.Term.Contains(term)));
+                q =
+                    from me in q
+                    join msb in DB.MediaSearchBridges
+                        .Where(item => item.SearchTerm.Term.Contains(term))
+                        on me.Id equals msb.MediaEntryId
+                    select me;
+
+
+
+
 
             var mediaEntries = await q
                 .AsNoTracking()
