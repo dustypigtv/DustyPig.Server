@@ -160,7 +160,10 @@ namespace DustyPig.Server.HostedServices
             if (_cancellationToken.IsCancellationRequested)
                 return;
 
-            var response = await FirebaseMessaging.DefaultInstance.SendAllAsync(msgs, _cancellationToken);
+            //Deprecated
+            //var response = await FirebaseMessaging.DefaultInstance.SendAllAsync(msgs, _cancellationToken);
+            var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(msgs, _cancellationToken);
+
             for (int i = 0; i < response.Responses.Count; i++)
                 if (response.Responses[i].IsSuccess)
                     dict[i].Sent = true;
