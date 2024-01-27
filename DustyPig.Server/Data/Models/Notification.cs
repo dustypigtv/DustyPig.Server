@@ -5,9 +5,24 @@ namespace DustyPig.Server.Data.Models
 {
     public enum NotificationType
     {
+        /// <summary>
+        /// Movie or episode available
+        /// </summary>
         Media = 1,
+
+        /// <summary>
+        /// Friendship status notification
+        /// </summary>
         Friend = 2,
+
+        /// <summary>
+        /// Wants or granted access to existing media
+        /// </summary>
         OverrideRequest = 3,
+
+        /// <summary>
+        /// Request to get new media
+        /// </summary>
         GetRequest = 4
     }
 
