@@ -2,7 +2,7 @@
 
  <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-	
+	 <LangVersion>12</LangVersion>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	<NoWarn>$(NoWarn);1591,CS1573,IDE0090</NoWarn>
 
@@ -21,10 +21,10 @@
 <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc" Version="7.1.0" />
     <PackageReference Include="AsyncAwaitBestPractices" Version="7.0.0" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.304.5" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.305.22" />
     <PackageReference Include="DustyPig.API" Version="3.3.0.179" />
-    <PackageReference Include="DustyPig.Firebase.Auth" Version="3.0.1.8" />
-    <PackageReference Include="DustyPig.TMDB" Version="3.0.2.12" />
+    <PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.12" />
+    <PackageReference Include="DustyPig.TMDB" Version="3.1.0.15" />
     <PackageReference Include="FirebaseAdmin" Version="2.4.0" />
     <PackageReference Include="Krypto.WonderDog" Version="22.4.24.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.13" />
