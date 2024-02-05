@@ -31,20 +31,39 @@ namespace DustyPig.Server.Controllers.v3
             var notifications = await DB.Notifications
                 .AsNoTracking()
                 .Include(item => item.MediaEntry)
+                .Include(item => item.GetRequest)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .OrderBy(item => item.Timestamp)
                 .Skip(start)
                 .Take(LIST_SIZE)
                 .ToListAsync();
 
-            return new ResponseWrapper<List<APINotification>>(notifications.Select(item => new APINotification
+            return new ResponseWrapper<List<APINotification>>(notifications.Select(item =>
             {
-                Id = item.Id,
-                Message = item.Message,
-                Seen = item.Seen,
-                Timestamp = item.Timestamp,
-                Title = item.Title,
-                DeepLink = DeepLinks.Create(item)
+                return new APINotification
+                {
+                    Id = item.Id,
+                    Message = item.Message,
+                    Seen = item.Seen,
+                    Timestamp = item.Timestamp,
+                    Title = item.Title,
+                    FriendshipId = item.FriendshipId,
+                    NotificationType = item.NotificationType,
+                    ProfileId = UserProfile.Id,
+                    MediaId = item.MediaEntryId,
+                    MediaType = item.NotificationType switch
+                    {
+                        NotificationTypes.NewMediaAvailable => MediaTypes.Series,
+                        NotificationTypes.NewMediaFulfilled => item.MediaEntry.EntryType,
+                        NotificationTypes.NewMediaPending => item.GetRequest.EntryType == TMDB_MediaTypes.Series ? MediaTypes.Series : MediaTypes.Movie,
+                        NotificationTypes.NewMediaRejected => item.GetRequest.EntryType == TMDB_MediaTypes.Series ? MediaTypes.Series : MediaTypes.Movie,
+                        NotificationTypes.NewMediaRequested => item.GetRequest.EntryType == TMDB_MediaTypes.Series ? MediaTypes.Series : MediaTypes.Movie,
+                        NotificationTypes.OverrideMediaGranted => item.MediaEntry.EntryType,
+                        NotificationTypes.OverrideMediaRejected => item.MediaEntry.EntryType,
+                        NotificationTypes.OverrideMediaRequested => item.MediaEntry.EntryType,
+                        _ => null
+                    }
+                };
             }).ToList());
         }
 

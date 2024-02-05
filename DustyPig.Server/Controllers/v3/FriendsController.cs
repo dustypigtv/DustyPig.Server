@@ -179,7 +179,7 @@ namespace DustyPig.Server.Controllers.v3
                 Friendship = friendship,
                 Title = "Friend Request",
                 Message = $"{UserProfile.Name} has sent you a friend request",
-                NotificationType = NotificationType.Friend,
+                NotificationType = NotificationTypes.FriendshipInvited,
                 ProfileId = friendAccount.Profiles.Single(item => item.IsMain).Id,
                 Timestamp = DateTime.UtcNow
             });
@@ -235,7 +235,7 @@ namespace DustyPig.Server.Controllers.v3
                     FriendshipId = friendship.Id,
                     Title = "You have a new friend!",
                     Message = $"{UserProfile.Name} has accepted your friend request",
-                    NotificationType = NotificationType.Friend,
+                    NotificationType = NotificationTypes.FriendshipAccepted,
                     ProfileId = friendship.Account1.Profiles.Single(item => item.IsMain).Id,
                     Timestamp = DateTime.UtcNow
                 });

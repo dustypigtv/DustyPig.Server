@@ -354,30 +354,31 @@ namespace DustyPig.Server.Controllers.v3
                     ProfileId = UserProfile.Id
                 });
 
-                string msg = null;
-                switch (existingReq.Status)
+                string msg = existingReq.Status switch
                 {
-                    case RequestStatus.Denied:
-                        msg = "has been denied";
-                        break;
-
-                    case RequestStatus.Fulfilled:
-                        msg = "has been fulfilled";
-                        break;
-
-                    case RequestStatus.Pending:
-                        msg = "has been granted and is pending fulfillment";
-                        break;
-                }
+                    RequestStatus.Denied => "has been denied",
+                    RequestStatus.Fulfilled => "has been fulfilled",
+                    RequestStatus.Pending => "has been granted and is pending fulfillment",
+                    _ => null
+                };
 
                 //Notification
                 if (msg != null)
                 {
+                    var nType = existingReq.Status switch
+                    {
+                        RequestStatus.Denied => NotificationTypes.NewMediaRejected,
+                        RequestStatus.Fulfilled => NotificationTypes.NewMediaFulfilled,
+                        RequestStatus.Pending => NotificationTypes.NewMediaPending,
+                        _ => throw new Exception("Imposible value for existingReq.Status")
+                    };
+
+
                     DB.Notifications.Add(new Data.Models.Notification
                     {
                         GetRequestId = existingReq.Id,
                         Message = $"Your requested {data.MediaType.ToString().ToLower()} \"" + title + "\" " + msg,
-                        NotificationType = NotificationType.GetRequest,
+                        NotificationType = nType,
                         ProfileId = targetAcct.Profiles.First(item => item.IsMain).Id,
                         Timestamp = DateTime.UtcNow,
                         Title = data.MediaType.ToString() + " Requested"
@@ -411,7 +412,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     GetRequest = newReq,
                     Message = UserProfile.Name + $" has requested the {data.MediaType.ToString().ToLower()} \"" + title + "\"",
-                    NotificationType = NotificationType.GetRequest,
+                    NotificationType = NotificationTypes.NewMediaRequested,
                     ProfileId = targetAcct.Profiles.First(item => item.IsMain).Id,
                     Timestamp = DateTime.UtcNow,
                     Title = data.MediaType.ToString() + " Requested"

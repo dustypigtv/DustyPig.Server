@@ -298,7 +298,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             MediaEntry = newItem,
                             Message = "\"" + ownedSeries.Title + "\" is now availble!",
-                            NotificationType = NotificationType.GetRequest,
+                            NotificationType = NotificationTypes.NewMediaFulfilled,
                             ProfileId = sub.ProfileId,
                             Timestamp = DateTime.UtcNow,
                             Title = "Your Series Is Now Available"
@@ -317,7 +317,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             MediaEntry = newItem,
                             Message = $"{ownedSeries.Title} - s{episodeInfo.SeasonNumber:00}e{episodeInfo.EpisodeNumber:00} is now available",
-                            NotificationType = NotificationType.Media,
+                            NotificationType = NotificationTypes.NewMediaAvailable,
                             ProfileId = subscription.ProfileId,
                             Timestamp = DateTime.UtcNow,
                             Title = "New Episode Available"

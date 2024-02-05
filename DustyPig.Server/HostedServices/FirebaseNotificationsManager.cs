@@ -1,7 +1,9 @@
-﻿using DustyPig.Server.Data;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Utilities;
 using FirebaseAdmin.Messaging;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -92,6 +94,8 @@ namespace DustyPig.Server.HostedServices
 
 
 
+        
+
         private async Task SendNotificationsAsync()
         {
             using var db = new AppDbContext();
@@ -103,6 +107,8 @@ namespace DustyPig.Server.HostedServices
                     .Include(item => item.Profile)
                     .ThenInclude(item => item.FCMTokens)
                     .Include(item => item.MediaEntry)
+                    .Include(item => item.GetRequest)
+                    .Include(item => item.Friendship)
                     .Where(item => item.Sent == false)
                     .Where(item => item.Seen == false)
                     .OrderBy(item => item.Id)
@@ -121,6 +127,36 @@ namespace DustyPig.Server.HostedServices
                     {
                         foreach (var fcmToken in notification.Profile.FCMTokens)
                         {
+                            var msgData = new Dictionary<string, string>
+                            {
+                                { "id", notification.Id.ToString() },
+                                { "title", notification.Title },
+                                { "message", notification.Message },
+                                { "profile_id", notification.ProfileId.ToString() },
+                                { "notificaiton_type", ((int)notification.NotificationType).ToString() }
+                            };
+
+
+                            if(notification.MediaEntry != null)
+                            {
+                                msgData.Add("media_id", notification.MediaEntry.Id.ToString());
+                                msgData.Add("media_type", ((int)notification.MediaEntry.EntryType).ToString());
+                            }
+                            else
+                            {
+                                var newMediaNotificationTypes = new NotificationTypes[]
+                                {
+                                    NotificationTypes.NewMediaPending,
+                                    NotificationTypes.NewMediaRejected,
+                                    NotificationTypes.NewMediaRequested
+                                };
+
+                                if (newMediaNotificationTypes.Contains(notification.NotificationType))
+                                    msgData.Add("media_id", notification.GetRequest.TMDB_Id.ToString());
+                            }
+                            
+                            if(notification.Friendship != null)
+                                msgData.Add("friendship_id", notification.FriendshipId.ToString());
 
                             var msg = new Message
                             {
@@ -128,10 +164,10 @@ namespace DustyPig.Server.HostedServices
                                 Data = new Dictionary<string, string>
                                 {
                                     { "id", notification.Id.ToString() },
+                                    { "profile_id", notification.ProfileId.ToString() },
                                     { "title", notification.Title },
                                     { "message", notification.Message },
-                                    { "profileid", notification.ProfileId.ToString() },
-                                    { "deeplink", DeepLinks.Create(notification) }
+                                    { "notificaiton_type", ((int)notification.NotificationType).ToString() },
                                 }
                             };
 

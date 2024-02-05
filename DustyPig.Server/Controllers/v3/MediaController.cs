@@ -565,7 +565,7 @@ namespace DustyPig.Server.Controllers.v3
                     MediaEntryId = id,
                     TitleOverrideId = existingOverride.Id,
                     Message = $"{UserProfile.Name} has requsted access to \"{mediaEntry.FormattedTitle()}\"",
-                    NotificationType = NotificationType.OverrideRequest,
+                    NotificationType = NotificationTypes.OverrideMediaRequested,
                     ProfileId = UserAccount.Profiles.First(item => item.IsMain).Id,
                     Title = "Access Request",
                     Timestamp = DateTime.UtcNow
@@ -586,7 +586,7 @@ namespace DustyPig.Server.Controllers.v3
                     MediaEntryId = id,
                     TitleOverride = request,
                     Message = $"{UserProfile.Name} has requsted access to \"{mediaEntry.FormattedTitle()}\"",
-                    NotificationType = NotificationType.OverrideRequest,
+                    NotificationType = NotificationTypes.OverrideMediaRequested,
                     ProfileId = UserAccount.Profiles.First(item => item.IsMain).Id,
                     Title = "Access Request",
                     Timestamp = DateTime.UtcNow
@@ -1021,7 +1021,7 @@ namespace DustyPig.Server.Controllers.v3
                             MediaEntryId = info.MediaId,
                             TitleOverrideId = overrideEntity.Id,
                             Message = $"{UserAccount.Profiles.First(item => item.Id == info.ProfileId).Name} has {overrideEntity.Status.ToString().ToLower()} access to \"{mediaEntry.FormattedTitle()}\"",
-                            NotificationType = NotificationType.OverrideRequest,
+                            NotificationType = overrideEntity.Status == OverrideRequestStatus.Granted ? NotificationTypes.OverrideMediaGranted : NotificationTypes.OverrideMediaRejected,
                             ProfileId = info.ProfileId,
                             Title = "Access Request",
                             Timestamp = DateTime.UtcNow

@@ -350,7 +350,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             MediaEntry = newItem,
                             Message = "\"" + newItem.Title + "\" is now availble!",
-                            NotificationType = NotificationType.GetRequest,
+                            NotificationType = NotificationTypes.NewMediaFulfilled,
                             ProfileId = sub.ProfileId,
                             Timestamp = DateTime.UtcNow,
                             Title = "Your Movie Is Now Available"

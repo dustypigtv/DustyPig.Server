@@ -1,31 +1,9 @@
-﻿using System;
+﻿using DustyPig.API.v3.Models;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
 {
-    public enum NotificationType
-    {
-        /// <summary>
-        /// Movie or episode available
-        /// </summary>
-        Media = 1,
-
-        /// <summary>
-        /// Friendship status notification
-        /// </summary>
-        Friend = 2,
-
-        /// <summary>
-        /// Wants or granted access to existing media
-        /// </summary>
-        OverrideRequest = 3,
-
-        /// <summary>
-        /// Request to get new media
-        /// </summary>
-        GetRequest = 4
-    }
-
     public class Notification
     {
         public int Id { get; set; }
@@ -39,7 +17,7 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(1000)]
         public string Message { get; set; }
 
-        public NotificationType NotificationType { get; set; }
+        public NotificationTypes NotificationType { get; set; }
 
         public int? FriendshipId { get; set; }
         public Friendship Friendship { get; set; }
