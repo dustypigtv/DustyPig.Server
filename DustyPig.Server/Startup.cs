@@ -224,22 +224,22 @@ namespace DustyPig.Server
                     Description = "JWT Token"
                 });
 
-                options.AddSecurityRequirement(new OpenApiSecurityRequirement()
-                {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "bearerAuth"
-                            },
-                            In = ParameterLocation.Header,
-                        },
-                        Array.Empty<string>()
-                    }
-                });
-
+                //options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                //{
+                //    {
+                //        new OpenApiSecurityScheme
+                //        {
+                //            Reference = new OpenApiReference
+                //            {
+                //                Type = ReferenceType.SecurityScheme,
+                //                Id = "bearerAuth"
+                //            },
+                //            In = ParameterLocation.Header,
+                //        },
+                //        Array.Empty<string>()
+                //    }
+                //});
+                options.OperationFilter<AuthorizeCheckOperationFilter>();
 
 
                 options.OrderActionsBy((desc) =>
