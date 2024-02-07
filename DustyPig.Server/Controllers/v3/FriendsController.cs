@@ -20,7 +20,6 @@ namespace DustyPig.Server.Controllers.v3
     [ApiController]
     [ExceptionLogger(typeof(FriendsController))]
     [RequireMainProfile]
-    [SwaggerResponse((int)HttpStatusCode.Forbidden)]
     public class FriendsController : _BaseProfileController
     {
         public FriendsController(AppDbContext db) : base(db) { }
@@ -30,7 +29,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         [HttpGet]
-        public async Task<ResponseWrapper<List<BasicFriend>>> List()
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicFriend>))]
+        public async Task<ActionResult<List<BasicFriend>>> List()
         {
             var friends = await DB.Friendships
                 .AsNoTracking()
@@ -44,12 +44,10 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
                 .ToListAsync();
 
-            var ret = friends
-                .Select(item => item.ToBasicFriendInfo(UserAccount.Id))
-                .ToList();
+            var ret = friends.Select(item => item.ToBasicFriendInfo(UserAccount.Id)).ToList();
+            ret.Sort();
 
-            ret.Sort((x, y) => x.DisplayName.CompareTo(y.DisplayName));
-            return new ResponseWrapper<List<BasicFriend>>(ret);
+            return ret;
         }
 
 
@@ -58,7 +56,9 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper<DetailedFriend>> Details(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedFriend))]
+        public async Task<ActionResult<DetailedFriend>> Details(int id)
         {
             var friend = await DB.Friendships
                 .AsNoTracking()
@@ -77,7 +77,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (friend == null)
-                return CommonResponses.NotFound<DetailedFriend>();
+                return CommonResponses.ValueNotFound(nameof(id));
 
             var ret = new DetailedFriend
             {
@@ -92,16 +92,18 @@ namespace DustyPig.Server.Controllers.v3
                 var lib = share.Library.ToBasicLibraryInfo();
                 if (share.Library.AccountId == UserAccount.Id)
                 {
+                    ret.SharedWithFriend ??= new();
                     ret.SharedWithFriend.Add(lib);
                 }
                 else
                 {
                     lib.Name = share.LibraryDisplayName;
+                    ret.SharedWithMe ??= new();
                     ret.SharedWithMe.Add(lib);
                 }
             }
 
-            return new ResponseWrapper<DetailedFriend>(ret);
+            return ret;
         }
 
 
@@ -112,10 +114,12 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Invite another user to be friends</remarks>
         [HttpPost]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Invite(SimpleValue<string> email)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Invite(StringValue email)
         {
             if (string.IsNullOrWhiteSpace(email.Value))
-                return new ResponseWrapper("email must be spcified");
+                return CommonResponses.InvalidValue(nameof(email));
 
             email.Value = email.Value.Trim();
 
@@ -128,7 +132,7 @@ namespace DustyPig.Server.Controllers.v3
             catch (FirebaseAuthException ex)
             {
                 if (ex.Message.StartsWith("Failed to get user with email:"))
-                    return new ResponseWrapper("Account does not exist");
+                    return BadRequest("Account does not exist");
                 throw;
             }
 
@@ -140,10 +144,10 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (friendAccount == null)
-                return new ResponseWrapper("THe specified email doesn't appear to be a Dusty Pig account");
+                return BadRequest("Account does not exist");
 
             if (friendAccount.Id == UserAccount.Id)
-                return new ResponseWrapper("Cannot friend yourself");
+                return BadRequest("Cannot friend yourself");
 
             string uniqueFriendId = Utils.UniqueFriendId(UserAccount.Id, friendAccount.Id);
             var friendship = await DB.Friendships
@@ -154,14 +158,14 @@ namespace DustyPig.Server.Controllers.v3
             {
                 if (friendship.Accepted)
                 {
-                    return new ResponseWrapper("You are already friends");
+                    return BadRequest("You are already friends");
                 }
                 else
                 {
                     if (friendship.Account1Id == UserAccount.Id)
-                        return new ResponseWrapper("You already sent a friendship request to this account");
+                        return BadRequest("You already sent a friendship request to this account");
                     else
-                        return new ResponseWrapper("This account already sent you a friendship request, and is waiting for you to accept it");
+                        return BadRequest("This account already sent you a friendship request, and is waiting for you to accept it");
                 }
             }
 
@@ -186,7 +190,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -197,10 +201,12 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Use this to accept friend requests and update display names</remarks>
         [HttpPost]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Update(UpdateFriend info)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Update(UpdateFriend info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
             var friendship = await DB.Friendships
@@ -213,17 +219,17 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (friendship == null)
-                return CommonResponses.NotFound();
+                return CommonResponses.ValueNotFound(nameof(info.Id));
 
             //Note: Invites always go from Account1Id to Account2Id
 
             //Cannot accept on behalf of other person
             if (friendship.Account1Id == UserAccount.Id && !friendship.Accepted && info.Accepted)
-                return new ResponseWrapper("Cannot accept friend request on behalf of another person");
+                return BadRequest("Cannot accept friend request on behalf of another person");
 
             //Cannot go from Accepted to Invited
             if (friendship.Accepted && !info.Accepted)
-                return new ResponseWrapper("Cannot go from Accepted to Invited. Please use the delete method");
+                return BadRequest("Cannot go from Accepted to Invited. Please use the delete method");
 
 
             if (info.Accepted && !friendship.Accepted)
@@ -251,7 +257,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -260,7 +266,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<ResponseWrapper> Unfriend(int id)
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Unfriend(int id)
         {
             var friend = await DB.Friendships
                 .Where(item => item.Id == id)
@@ -285,7 +292,7 @@ namespace DustyPig.Server.Controllers.v3
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -296,8 +303,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.NotFound)]
-        public Task<ResponseWrapper> ShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public Task<IActionResult> ShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
 
 
@@ -307,7 +314,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<ResponseWrapper> UnShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<IActionResult> UnShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
     }
 }

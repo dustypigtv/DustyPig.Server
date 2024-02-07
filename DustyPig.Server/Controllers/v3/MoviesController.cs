@@ -9,9 +9,11 @@ using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -27,14 +29,16 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 2
         /// </summary>
-        /// <remarks>Returns the next 100 movies based on start position and sort order</remarks>
+        /// <remarks>Returns the next 25 movies based on start position and sort order</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper<List<BasicMedia>>> List(ListRequest request)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
+        public async Task<ActionResult<List<BasicMedia>>> List(ListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
-                       
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+
 
             var movies = await DB.WatchableMoviesByProfileQuery(UserProfile)
                 .AsNoTracking()
@@ -43,19 +47,23 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync();
 
-            
 
-            return new ResponseWrapper<List<BasicMedia>>(movies.Select(item => item.ToBasicMedia()).ToList());
+
+            return movies.Select(item => item.ToBasicMedia()).ToList();
         }
 
 
         /// <summary>
         /// Level 3
         /// </summary>
-        /// <remarks>Returns the next 100 movies based on start position and sort order. Designed for admin tools, will return all mvoies owned by the account</remarks>
+        /// <remarks>
+        /// Returns the next 100 movies based on start position and sort order. Designed for admin tools, will return all mvoies owned by the account.
+        /// If you specify a value > 0 for libId, it will filter on movies only in the specified library
+        /// </remarks>
         [HttpGet("{start}/{libId}")]
         [RequireMainProfile]
-        public async Task<ResponseWrapper<List<BasicMedia>>> AdminList(int start, int libId)
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
+        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start, int libId)
         {
             var q = DB.MediaEntries
                 .AsNoTracking()
@@ -72,7 +80,7 @@ namespace DustyPig.Server.Controllers.v3
                  .Take(ADMIN_LIST_SIZE)
                  .ToListAsync();
 
-            return new ResponseWrapper<List<BasicMedia>>(movies.Select(item => item.ToBasicMedia()).ToList());
+            return movies.Select(item => item.ToBasicMedia()).ToList();
         }
 
 
@@ -81,7 +89,9 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper<DetailedMovie>> Details(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedMovie))]
+        public async Task<ActionResult<DetailedMovie>> Details(int id)
         {
             var media = await DB.MediaEntries
                 .AsNoTracking()
@@ -120,13 +130,13 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (media == null)
-                return CommonResponses.NotFound<DetailedMovie>();
+                return CommonResponses.ValueNotFound(nameof(id));
 
             if (media.Library.AccountId != UserAccount.Id)
                 if (!media.Library.FriendLibraryShares.Any())
                     if (!media.TitleOverrides.Any())
                         if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                            return CommonResponses.NotFound<DetailedMovie>();
+                            return CommonResponses.ValueNotFound(nameof(id));
 
             bool playable = (UserProfile.IsMain)
                 || media.TitleOverrides.Any(item => item.State == OverrideState.Allow)
@@ -180,7 +190,7 @@ namespace DustyPig.Server.Controllers.v3
                     ret.AccessRequestedStatus = overrideRequest.Status;
             }
 
-            ret.CanManage = UserProfile.IsMain 
+            ret.CanManage = UserProfile.IsMain
                 &&
                 (
                     UserAccount.Profiles.Count > 1
@@ -191,7 +201,7 @@ namespace DustyPig.Server.Controllers.v3
                     )
                 );
 
-            return new ResponseWrapper<DetailedMovie>(ret);
+            return ret;
         }
 
 
@@ -201,7 +211,9 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Designed for admin tools, this will return info on any movie owned by the account</remarks>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        public async Task<ResponseWrapper<DetailedMovie>> AdminDetails(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedMovie))]
+        public async Task<ActionResult<DetailedMovie>> AdminDetails(int id)
         {
             //Get the media entry
             var mediaEntry = await DB.MediaEntries
@@ -218,7 +230,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null)
-                return CommonResponses.NotFound<DetailedMovie>();
+                return CommonResponses.ValueNotFound(nameof(id));
 
             var ret = mediaEntry.ToDetailedMovie(true);
 
@@ -230,7 +242,7 @@ namespace DustyPig.Server.Controllers.v3
 
             ret.CanManage = true;
 
-            return new ResponseWrapper<DetailedMovie>(ret);
+            return ret;
         }
 
 
@@ -241,11 +253,13 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper<SimpleValue<int>>> Create(CreateMovie movieInfo)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
+        public async Task<ActionResult<IntValue>> Create(CreateMovie movieInfo)
         {
             // ***** Tons of validation *****
             try { movieInfo.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
             //Make sure the library is owned
@@ -255,7 +269,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.Id == movieInfo.LibraryId)
                 .AnyAsync();
             if (!ownedLib)
-                return CommonResponses.NotFound<SimpleValue<int>>(nameof(movieInfo.LibraryId));
+                return CommonResponses.ValueNotFound(nameof(movieInfo.LibraryId));
 
 
             // ***** Ok at this point the mediaInfo has all required data, build the new entries *****
@@ -297,7 +311,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return new ResponseWrapper<SimpleValue<int>>($"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}");
+                return BadRequest($"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}");
 
             //Get popularity
             await UpdatePopularity(newItem);
@@ -316,9 +330,9 @@ namespace DustyPig.Server.Controllers.v3
 
             //Add Subtitles
             bool save = false;
-            if (movieInfo.ExternalSubtitles != null && movieInfo.ExternalSubtitles.Count > 0)
+            if (movieInfo.SRTSubtitles != null && movieInfo.SRTSubtitles.Count > 0)
             {
-                foreach (var srt in movieInfo.ExternalSubtitles)
+                foreach (var srt in movieInfo.SRTSubtitles)
                     DB.Subtitles.Add(new Subtitle
                     {
                         MediaEntry = newItem,
@@ -365,7 +379,7 @@ namespace DustyPig.Server.Controllers.v3
             if (save)
                 await DB.SaveChangesAsync();
 
-            return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(newItem.Id));
+            return new IntValue(newItem.Id);
         }
 
 
@@ -375,11 +389,13 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Update(UpdateMovie movieInfo)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Update(UpdateMovie movieInfo)
         {
             // ***** Tons of validation *****
             try { movieInfo.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
             var existingItem = await DB.MediaEntries
@@ -388,7 +404,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (existingItem == null)
-                return CommonResponses.NotFound();
+                return CommonResponses.ValueNotFound(nameof(movieInfo.Id));
 
             //Make sure this item is owned
             var ownedLibs = await DB.Libraries
@@ -398,10 +414,10 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             if (!ownedLibs.Contains(existingItem.LibraryId))
-                return CommonResponses.NotFound(nameof(movieInfo.Id));
+                return CommonResponses.ValueNotFound(nameof(movieInfo.Id));
 
             if (!ownedLibs.Contains(movieInfo.LibraryId))
-                return CommonResponses.NotFound(nameof(movieInfo.LibraryId));
+                return CommonResponses.ValueNotFound(nameof(movieInfo.LibraryId));
 
 
 
@@ -445,7 +461,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (dup)
-                return new ResponseWrapper($"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}");
+                return BadRequest($"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}");
 
             //Get popularity
             if (tmdb_changed)
@@ -484,9 +500,9 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            if (movieInfo.ExternalSubtitles != null && movieInfo.ExternalSubtitles.Count > 0)
+            if (movieInfo.SRTSubtitles != null && movieInfo.SRTSubtitles.Count > 0)
             {
-                foreach (var srt in movieInfo.ExternalSubtitles)
+                foreach (var srt in movieInfo.SRTSubtitles)
                     DB.Subtitles.Add(new Subtitle
                     {
                         MediaEntryId = existingItem.Id,
@@ -498,7 +514,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -508,6 +524,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public Task<ResponseWrapper> Delete(int id) => DeleteMedia(id);
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public Task<IActionResult> Delete(int id) => DeleteMedia(id);
     }
 }

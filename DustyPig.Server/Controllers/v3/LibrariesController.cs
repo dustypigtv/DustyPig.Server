@@ -7,9 +7,11 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -24,7 +26,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        public async Task<ResponseWrapper<List<BasicLibrary>>> List()
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicLibrary>))]
+        public async Task<ActionResult<List<BasicLibrary>>> List()
         {
             //Libs owned by the account
             var ownedLibs = await DB.Libraries
@@ -62,7 +65,8 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Add(share.ToBasicLibraryInfo(UserAccount.Id));
 
             ret.Sort();
-            return new ResponseWrapper<List<BasicLibrary>>(ret);
+
+            return ret;
         }
 
 
@@ -71,7 +75,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet]
         [RequireMainProfile]
-        public async Task<ResponseWrapper<List<DetailedLibrary>>> AdminList()
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<DetailedLibrary>))]
+        public async Task<ActionResult<List<DetailedLibrary>>> AdminList()
         {
             var ret = new List<DetailedLibrary>();
 
@@ -105,21 +110,30 @@ namespace DustyPig.Server.Controllers.v3
 
                 foreach (var share in lib.ProfileLibraryShares)
                     if (UserAccount.Profiles.Select(item => item.Id).Contains(share.ProfileId))
+                    {
+                        dl.Profiles ??= new();
                         dl.Profiles.Add(share.Profile.ToBasicProfileInfo());
+                    }
 
                 foreach (var friendship in lib.FriendLibraryShares.Select(item => item.Friendship))
+                {
+                    dl.SharedWith ??= new();
                     dl.SharedWith.Add(friendship.ToBasicFriendInfo(UserAccount.Id));
+                }
 
                 ret.Add(dl);
             }
 
             ret.Sort();
-            return new ResponseWrapper<List<DetailedLibrary>>(ret);
+
+            return ret;
         }
 
 
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper<BasicLibrary>> GetBasic(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(BasicLibrary))]
+        public async Task<ActionResult<BasicLibrary>> GetBasic(int id)
         {
             //Libs owned by the account
             var lib = await DB.Libraries
@@ -129,7 +143,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (lib != null)
-                return new ResponseWrapper<BasicLibrary>(lib.ToBasicLibraryInfo());
+                return lib.ToBasicLibraryInfo();
 
             var sharedLibs = await DB.FriendLibraryShares
                 .AsNoTracking()
@@ -151,9 +165,9 @@ namespace DustyPig.Server.Controllers.v3
 
             var share = sharedLibs.FirstOrDefault(item => item.LibraryId == id);
             if (share != null)
-                return new ResponseWrapper<BasicLibrary>(share.ToBasicLibraryInfo(UserAccount.Id));
+                return share.ToBasicLibraryInfo(UserAccount.Id);
 
-            return CommonResponses.NotFound<BasicLibrary>("Library");
+            return CommonResponses.ValueNotFound(nameof(id));
         }
 
         /// <summary>
@@ -161,7 +175,9 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        public async Task<ResponseWrapper<DetailedLibrary>> Details(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedLibrary))]
+        public async Task<ActionResult<DetailedLibrary>> Details(int id)
         {
             //Try to get owned lib
             var lib = await DB.Libraries
@@ -206,7 +222,7 @@ namespace DustyPig.Server.Controllers.v3
                     .SingleOrDefaultAsync();
 
                 if (share == null)
-                    return CommonResponses.NotFound<DetailedLibrary>();
+                    return CommonResponses.ValueNotFound(nameof(id));
 
                 var ret = new DetailedLibrary
                 {
@@ -218,9 +234,12 @@ namespace DustyPig.Server.Controllers.v3
 
                 foreach (var pls in share.Library.ProfileLibraryShares)
                     if (UserAccount.Profiles.Select(item => item.Id).Contains(pls.ProfileId))
+                    {
+                        ret.Profiles ??= new();
                         ret.Profiles.Add(pls.Profile.ToBasicProfileInfo());
+                    }
 
-                return new ResponseWrapper<DetailedLibrary>(ret);
+                return ret;
             }
             else
             {
@@ -234,12 +253,18 @@ namespace DustyPig.Server.Controllers.v3
 
                 foreach (var share in lib.ProfileLibraryShares)
                     if (UserAccount.Profiles.Select(item => item.Id).Contains(share.ProfileId))
+                    {
+                        ret.Profiles ??= new();
                         ret.Profiles.Add(share.Profile.ToBasicProfileInfo());
+                    }
 
                 foreach (var friendship in lib.FriendLibraryShares.Select(item => item.Friendship))
+                {
+                    ret.SharedWith ??= new();
                     ret.SharedWith.Add(friendship.ToBasicFriendInfo(UserAccount.Id));
+                }
 
-                return new ResponseWrapper<DetailedLibrary>(ret);
+                return ret;
             }
         }
 
@@ -251,11 +276,13 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper<SimpleValue<int>>> Create(CreateLibrary info)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
+        public async Task<ActionResult<IntValue>> Create(CreateLibrary info)
         {
             //Validate object
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
 
@@ -266,7 +293,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.Name == info.Name)
                 .AnyAsync();
             if (alreadyExists)
-                return new ResponseWrapper<SimpleValue<int>>("A library with the specified name already exists in this account");
+                return BadRequest("A library with the specified name already exists in this account");
 
             var lib = DB.Libraries.Add(new Library
             {
@@ -284,7 +311,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(lib.Id));
+            return new IntValue(lib.Id);
         }
 
 
@@ -294,10 +321,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Update(UpdateLibrary info)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Update(UpdateLibrary info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
 
@@ -307,7 +336,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var lib = allLibs.SingleOrDefault(item => item.Id == info.Id);
             if (lib == null)
-                CommonResponses.NotFound("Library");
+                CommonResponses.ValueNotFound("Library");
 
             //Make sure the new name is unique
             if (lib.Name != info.Name)
@@ -318,14 +347,14 @@ namespace DustyPig.Server.Controllers.v3
                     .Any();
 
                 if (nameExists)
-                    return new ResponseWrapper("A library with the specified name already exists in this account");
+                    return BadRequest("A library with the specified name already exists in this account");
             }
 
             lib.IsTV = info.IsTV;
             lib.Name = info.Name;
 
             await DB.SaveChangesAsync();
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -336,7 +365,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Delete(int id)
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Delete(int id)
         {
             var lib = await DB.Libraries
                 .Where(item => item.AccountId == UserAccount.Id)
@@ -358,7 +388,7 @@ namespace DustyPig.Server.Controllers.v3
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -368,7 +398,9 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        public Task<ResponseWrapper> LinkToProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public Task<IActionResult> LinkToProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -377,7 +409,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        public Task<ResponseWrapper> UnLinkFromProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public Task<IActionResult> UnLinkFromProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -386,7 +419,9 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public Task<ResponseWrapper> ShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        public Task<IActionResult> ShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
 
         /// <summary>
@@ -395,7 +430,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public Task<ResponseWrapper> UnShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public Task<IActionResult> UnShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
     }
 }

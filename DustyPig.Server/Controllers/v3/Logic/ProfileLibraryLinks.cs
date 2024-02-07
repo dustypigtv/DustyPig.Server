@@ -1,7 +1,7 @@
-﻿using DustyPig.API.v3.Models;
-using DustyPig.Server.Data;
+﻿using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,12 +11,12 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     public static class ProfileLibraryLinks
     {
-        public static async Task<ResponseWrapper> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        public static async Task<IActionResult> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
             var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
-            if(profile == null)
-                return CommonResponses.NotFound("Profile");
+            if (profile == null)
+                return CommonResponses.ValueNotFound("Profile");
 
             //See if already linked
             using var db = new AppDbContext();
@@ -30,17 +30,17 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .SingleOrDefaultAsync();
 
             if (library == null)
-                return CommonResponses.NotFound("Library");
+                return CommonResponses.ValueNotFound("Library");
 
             if (library.AccountId != account.Id)
                 if (!library.FriendLibraryShares.Any(item => item.Friendship.Account1Id == account.Id))
                     if (!library.FriendLibraryShares.Any(item => item.Friendship.Account2Id == account.Id))
-                        return CommonResponses.NotFound("Library");
+                        return CommonResponses.ValueNotFound("Library");
 
 
             //Main profile has access to everything at this point without links
             if (profile.IsMain)
-                return CommonResponses.Ok();
+                return new OkResult();
 
             db.ProfileLibraryShares.Add(new ProfileLibraryShare
             {
@@ -58,19 +58,19 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var playlistIds = await GetPlaylistIds(db, profileId, libraryId);
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return CommonResponses.Ok();
+            return new OkResult();
         }
 
-        public static async Task<ResponseWrapper> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        public static async Task<IActionResult> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
             var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
             if (profile == null)
-                return CommonResponses.NotFound("Profile");
+                return new OkResult();
 
             //Main profile has access to libs without links, so nothing to delete
             if (profile.IsMain)
-                return CommonResponses.Ok();
+                return new OkResult();
 
             //Get the link
             using var db = new AppDbContext();
@@ -88,7 +88,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return CommonResponses.Ok();
+            return new OkResult();
         }
 
         static Task<List<int>> GetPlaylistIds(AppDbContext db, int profileId, int libraryId)

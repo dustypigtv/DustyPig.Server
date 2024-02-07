@@ -41,10 +41,16 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             foreach (var share in self.ProfileLibraryShares)
                 if (self.Account.Profiles.Select(item => item.Id).Contains(share.ProfileId))
+                {
+                    ret.Profiles ??= new();
                     ret.Profiles.Add(share.Profile.ToBasicProfileInfo());
+                }
 
             foreach (var friendship in self.FriendLibraryShares.Select(item => item.Friendship))
+            {
+                ret.SharedWith ??= new();
                 ret.SharedWith.Add(friendship.ToBasicFriendInfo(self.AccountId));
+            }
 
             return ret;
         }

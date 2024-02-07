@@ -35,8 +35,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             string displayName = friend.Account1Id == accountId ? friend.DisplayName2 : friend.DisplayName1;
             string acctName = friend.Account1Id == accountId
-                ? friend.Account2.Profiles.Where(item => item.IsMain).Single().Name
-                : friend.Account1.Profiles.Where(item => item.IsMain).Single().Name;
+                ? friend.Account2.Profiles.Where(item => item.IsMain).First().Name
+                : friend.Account1.Profiles.Where(item => item.IsMain).First().Name;
 
             return Utils.Coalesce(displayName, acctName);
         }
@@ -51,8 +51,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static string GetFriendAvatar(this Friendship friend, int accountId)
         {
             return friend.Account1Id == accountId
-                ? friend.Account2.Profiles.Where(item => item.IsMain).Single().AvatarUrl
-                : friend.Account1.Profiles.Where(item => item.IsMain).Single().AvatarUrl;
+                ? friend.Account2.Profiles.Where(item => item.IsMain).First().AvatarUrl
+                : friend.Account1.Profiles.Where(item => item.IsMain).First().AvatarUrl;
         }
 
 

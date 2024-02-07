@@ -3,6 +3,7 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -27,11 +28,10 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task<ResponseWrapper> DeleteMedia(int id)
+        internal async Task<IActionResult> DeleteMedia(int id)
         {
             if (!UserProfile.IsMain)
                 return CommonResponses.RequireMainProfile();
-
 
             //Get the object, making sure it's owned
             var mediaEntry = await DB.MediaEntries
@@ -41,7 +41,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (mediaEntry == null)
-                return CommonResponses.NotFound(nameof(id));
+                return Ok();
 
             // Flag playlist artwork for updates
             var playlists = mediaEntry.EntryType == MediaTypes.Series ?
@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 

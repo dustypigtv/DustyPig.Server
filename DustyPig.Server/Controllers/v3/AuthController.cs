@@ -36,46 +36,43 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 0
         /// </summary>
         [HttpPost]
-        public async Task<ResponseWrapper<LoginResponse>> LoginWithFirebaseToken(SimpleValue<string> token)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(LoginResponse))]
+        public async Task<ActionResult<LoginResponse>> LoginWithFirebaseToken(StringValue token)
         {
             //For mobile clients that login using the Firebase lib, this will convert the Firebase token to a DustyPig token
 
-            try
+            if (string.IsNullOrEmpty(token.Value))
+                return CommonResponses.RequiredValueMissing(nameof(token));
+
+            var verifyResponse = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token.Value, true);
+
+            bool emailVerified = GetFBClaim(verifyResponse.Claims, "email_verified", false);
+            if (!emailVerified)
+                return CommonResponses.Forbid("You must verify your email address before you can sign in");
+
+            string displayName = GetFBClaim(verifyResponse.Claims, "name", default(string));
+            string email = GetFBClaim(verifyResponse.Claims, "email", default(string));
+            string picture = GetFBClaim(verifyResponse.Claims, "picture", default(string));
+
+            var account = await GetOrCreateAccountAsync(verifyResponse.Uid, displayName, email, picture);
+            if (account.Profiles.Count == 1)
             {
-                var verifyResponse = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token.Value, true);
-
-                bool emailVerified = GetFBClaim(verifyResponse.Claims, "email_verified", false);
-                if (!emailVerified)
-                    return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
-
-                string displayName = GetFBClaim(verifyResponse.Claims, "name", default(string));
-                string email = GetFBClaim(verifyResponse.Claims, "email", default(string));
-                string picture = GetFBClaim(verifyResponse.Claims, "picture", default(string));
-
-                var account = await GetOrCreateAccountAsync(verifyResponse.Uid, displayName, email, picture);
-                if (account.Profiles.Count == 1)
+                return new LoginResponse
                 {
-                    return new ResponseWrapper<LoginResponse>(new LoginResponse
-                    {
-                        LoginType = LoginType.MainProfile,
-                        ProfileId = account.Profiles.First().Id,
-                        Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null)
-                    });
-                }
-                else
-                {
-                    return new ResponseWrapper<LoginResponse>(new LoginResponse
-                    {
-                        LoginType = LoginType.Account,
-                        Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
-                    });
-                }
+                    LoginType = LoginType.MainProfile,
+                    ProfileId = account.Profiles.First().Id,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null)
+                };
             }
-            catch (Exception ex)
+            else
             {
-                if (ex is AggregateException aex)
-                    ex = aex.InnerException;
-                return new ResponseWrapper<LoginResponse>(ex.Message);
+                return new LoginResponse
+                {
+                    LoginType = LoginType.Account,
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                };
             }
         }
 
@@ -85,18 +82,22 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 0
         /// </summary>
         [HttpPost]
-        public async Task<ResponseWrapper<LoginResponse>> PasswordLogin(PasswordCredentials credentials)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(LoginResponse))]
+        public async Task<ActionResult<LoginResponse>> PasswordLogin(PasswordCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<LoginResponse>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             Account account;
 
             if (credentials.Email.ToLower().Trim() == TestAccount.Email)
             {
                 if (credentials.Password != TestAccount.Password)
-                    return new ResponseWrapper<LoginResponse>("Invalid Password");
+                    return Unauthorized();
 
                 account = await GetOrCreateAccountAsync(TestAccount.FirebaseId, null, TestAccount.Email, null);
             }
@@ -104,15 +105,15 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
                 if (!signInResponse.Success)
-                    return new ResponseWrapper<LoginResponse>(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
+                    return signInResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.PasswordSignin);
 
                 var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
                 if (!dataResponse.Success)
-                    return new ResponseWrapper<LoginResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+                    return dataResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.GetUserData);
 
                 var user = dataResponse.Data.Users.First();
                 if (!user.EmailVerified)
-                    return new ResponseWrapper<LoginResponse>("You must verify your email address before you can sign in");
+                    return CommonResponses.Forbid("You must verify your email address before you can sign in");
 
                 account = await GetOrCreateAccountAsync(user.LocalId, user.DisplayName, user.Email, user.PhotoUrl);
             }
@@ -123,20 +124,20 @@ namespace DustyPig.Server.Controllers.v3
                     null :
                     await EnsureFCMTokenAssociatedWithProfile(account.Profiles.First(), credentials.FCMToken);
 
-                return new ResponseWrapper<LoginResponse>(new LoginResponse
+                return new LoginResponse
                 {
                     LoginType = LoginType.MainProfile,
                     ProfileId = account.Profiles.First().Id,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId)
-                });
+                };
             }
             else
             {
-                return new ResponseWrapper<LoginResponse>(new LoginResponse
+                return new LoginResponse
                 {
                     LoginType = LoginType.Account,
                     Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
-                });
+                };
             }
         }
 
@@ -146,24 +147,27 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Sends a new account verification email</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper> SendVerificationEmail(PasswordCredentials credentials)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> SendVerificationEmail(PasswordCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             if (credentials.Email == TestAccount.Email)
                 return CommonResponses.ProhibitTestUser();
 
             var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
-                return new ResponseWrapper(signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin));
+                return signInResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.PasswordSignin);
 
             var sendVerificationEmailResponse = await _firebaseClient.SendEmailVerificationAsync(signInResponse.Data.IdToken);
             if (!sendVerificationEmailResponse.Success)
-                return new ResponseWrapper(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
+                return sendVerificationEmailResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.SendVerificationEmail);
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -172,10 +176,13 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Sends a password reset email</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper> SendPasswordResetEmail(SimpleValue<string> email)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> SendPasswordResetEmail(StringValue email)
         {
             if (string.IsNullOrWhiteSpace(email.Value))
-                return new ResponseWrapper(nameof(email) + " must be specified");
+                return CommonResponses.RequiredValueMissing(nameof(email));
 
             if (email.Value.ToLower().Trim() == TestAccount.Email)
                 return CommonResponses.ProhibitTestUser();
@@ -183,9 +190,9 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
             if (!ret.Success)
-                return new ResponseWrapper(ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset));
+                return ret.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.PasswordReset);
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -198,7 +205,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns a code that can be used to login a device with no keyboard (streaming devices, smart tvs, etc)</remarks>
         [HttpGet]
-        public async Task<ResponseWrapper<SimpleValue<string>>> GenerateDeviceLoginCode()
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(StringValue))]
+        public async Task<ActionResult<StringValue>> GenerateDeviceLoginCode()
         {
             const string chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -215,7 +223,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     DB.ActivationCodes.Add(activationCode);
                     await DB.SaveChangesAsync();
-                    return new ResponseWrapper<SimpleValue<string>>(new SimpleValue<string>(activationCode.Code));
+                    return new StringValue(activationCode.Code);
                 }
                 catch
                 {
@@ -230,14 +238,16 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Check the generated code to see if it has been authorized, and if so returns an account level bearer token. Once this returns true, the generated code will be deleted</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper<DeviceCodeStatus>> VerifyDeviceLoginCode(SimpleValue<string> code)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DeviceCodeStatus))]
+        public async Task<ActionResult<DeviceCodeStatus>> VerifyDeviceLoginCode(StringValue code)
         {
             if (string.IsNullOrWhiteSpace(code.Value))
-                return new ResponseWrapper<DeviceCodeStatus>("value must be specified");
+                return CommonResponses.RequiredValueMissing(nameof(code));
 
             code.Value = code.Value.Trim();
             if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
-                return CommonResponses.BadRequest<DeviceCodeStatus>($"Invalid {nameof(code)}");
+                return CommonResponses.InvalidValue(nameof(code));
 
             var rec = await DB.ActivationCodes
                 .AsNoTracking()
@@ -247,7 +257,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (rec == null)
-                return CommonResponses.NotFound<DeviceCodeStatus>(nameof(code));
+                return CommonResponses.ValueNotFound(nameof(code));
 
 
             var ret = new DeviceCodeStatus { Activated = rec.AccountId != null };
@@ -268,7 +278,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-            return new ResponseWrapper<DeviceCodeStatus>(ret);
+            return ret;
         }
 
 
@@ -280,22 +290,26 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Associates the generated code with logged in user account, allowing a subsequent call to VerifyLoginCode by the device to get an account token</remarks>
         [HttpPost]
         [Authorize]
-        public async Task<ResponseWrapper> LoginDeviceWithCode(SimpleValue<string> code)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> LoginDeviceWithCode(StringValue code)
         {
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
-                return CommonResponses.Unauthorized();
+                return Unauthorized();
 
             if (profile.Locked)
                 return CommonResponses.ProfileIsLocked();
 
 
             if (string.IsNullOrWhiteSpace(code.Value))
-                return CommonResponses.BadRequest($"Invalid {nameof(code)}");
+                return CommonResponses.InvalidValue(nameof(code));
 
             code.Value = code.Value.Trim();
             if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
-                return CommonResponses.BadRequest($"Invalid {nameof(code)}");
+                return CommonResponses.InvalidValue(nameof(code));
 
             var rec = await DB.ActivationCodes
                 .Where(item => item.Code == code.Value)
@@ -303,12 +317,12 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (rec == null)
-                return CommonResponses.BadRequest($"Invalid {nameof(code)}");
+                return CommonResponses.ValueNotFound(nameof(code));
 
             rec.AccountId = account.Id;
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -321,16 +335,20 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Returns a profile level bearer token</remarks>
         [HttpPost]
         [Authorize]
-        public async Task<ResponseWrapper<LoginResponse>> ProfileLogin(ProfileCredentials credentials)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(LoginResponse))]
+        public async Task<ActionResult<LoginResponse>> ProfileLogin(ProfileCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<LoginResponse>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             var (account, _) = await User.VerifyAsync();
 
             if (account == null)
-                return CommonResponses.Unauthorized<LoginResponse>();
+                return Unauthorized();
 
             using var db = new AppDbContext();
             var profile = await db.Profiles
@@ -341,27 +359,27 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (profile == null)
-                return CommonResponses.BadRequest<LoginResponse>("Profile does not exist");
+                return CommonResponses.ValueNotFound(nameof(credentials.Id));
 
             if (profile.PinNumber != null && profile.PinNumber >= 1000 && profile.PinNumber <= 9999)
             {
                 if (credentials.Pin == null || credentials.Pin != profile.PinNumber)
-                    return CommonResponses.BadRequest<LoginResponse>("Invalid pin");
+                    return Unauthorized("Invalid pin");
             }
 
             if (!profile.IsMain && profile.Locked)
-                return CommonResponses.ProfileIsLocked<LoginResponse>();
+                return CommonResponses.ProfileIsLocked();
 
             int? fcmId = string.IsNullOrWhiteSpace(credentials.FCMToken) ?
                 null :
                 await EnsureFCMTokenAssociatedWithProfile(profile, credentials.FCMToken);
 
-            return new ResponseWrapper<LoginResponse>(new LoginResponse
+            return new LoginResponse
             {
                 ProfileId = profile.Id,
                 LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
                 Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, fcmId)
-            });
+            };
         }
 
         /// <summary>
@@ -370,16 +388,18 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>If presenting an account level token, will sign out of the account. If presenting a profile level token,will sign out of the profile</remarks>
         [HttpGet]
         [Authorize]
-        public async Task<ResponseWrapper> Signout()
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        public async Task<IActionResult> Signout()
         {
             var (account, profile) = await User.VerifyAsync();
 
             if (account == null)
-                return CommonResponses.Unauthorized();
+                return Ok();
 
             var acctToken = account.AccountTokens.FirstOrDefault(item => item.Id == User.GetAuthTokenId());
             if (acctToken == null)
-                return CommonResponses.Unauthorized();
+                return Ok();
 
             DB.AccountTokens.Remove(acctToken);
 
@@ -396,7 +416,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -406,7 +426,10 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Sign all users out of all devices</remarks>
         [HttpGet]
         [Authorize]
-        public async Task<ResponseWrapper> SignoutEverywhere()
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        public async Task<IActionResult> SignoutEverywhere()
         {
             var acctId = User.GetAccountId();
             var authTokenId = User.GetAuthTokenId();
@@ -414,7 +437,7 @@ namespace DustyPig.Server.Controllers.v3
             var fcmTokenId = User.GetFCMTokenId();
 
             if (acctId == null || authTokenId == null)
-                return CommonResponses.Unauthorized();
+                return Unauthorized();
 
             var account = await DB.Accounts
                 .AsNoTracking()
@@ -425,14 +448,14 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (account == null)
-                return CommonResponses.Unauthorized();
+                return Unauthorized();
 
             var profile = account.Profiles
                 .Where(item => item.Id == profId)
                 .FirstOrDefault();
 
             if (profile == null)
-                return CommonResponses.Unauthorized();
+                return Unauthorized();
 
             if (!profile.IsMain)
                 return CommonResponses.RequireMainProfile();
@@ -445,7 +468,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -456,48 +479,42 @@ namespace DustyPig.Server.Controllers.v3
         /// <returns>Verifies the current auth token (and if not null, the FirebaseCloudMessaging token) and returns the type. This may include a new AuthToken</returns>
         [HttpPost]
         [Authorize]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        public async Task<ResponseWrapper<LoginResponse>> UpdateAuthToken(SimpleValue<string> fcmToken)
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(LoginResponse))]
+        public async Task<ActionResult<LoginResponse>> UpdateAuthToken(StringValue fcmToken)
         {
             var (account, profile) = await User.VerifyAsync();
 
-            if (account == null)
-                return CommonResponses.Unauthorized<LoginResponse>();
-
             if (profile == null)
-            {
-                return new ResponseWrapper<LoginResponse>(new LoginResponse { LoginType = LoginType.Account });
-            }
+                return Unauthorized();
+
+
+            int? newFCMId = null;
+            string newFCMVal = fcmToken == null ? null : fcmToken.Value;
+
+            if (string.IsNullOrWhiteSpace(newFCMVal))
+                await DeleteCurrentFCMToken(profile);
             else
+                newFCMId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMVal);
+
+            var authId = User.GetAuthTokenId();
+            var oldAuthToken = await DB.AccountTokens
+                .AsNoTracking()
+                .Where(item => item.Id == authId)
+                .FirstOrDefaultAsync();
+
+            if (oldAuthToken != null)
             {
-                int? newFCMId = null;
-                string newFCMVal = fcmToken == null ? null : fcmToken.Value;
-
-                if (string.IsNullOrWhiteSpace(newFCMVal))
-                    await DeleteCurrentFCMToken(profile);
-                else
-                    newFCMId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMVal);
-
-                var authId = User.GetAuthTokenId();
-                var oldAuthToken = await DB.AccountTokens
-                    .AsNoTracking()
-                    .Where(item => item.Id == authId)
-                    .FirstOrDefaultAsync();
-
-                if (oldAuthToken != null)
-                {
-                    DB.AccountTokens.Remove(oldAuthToken);
-                    await DB.SaveChangesAsync();
-                }
-
-                return new ResponseWrapper<LoginResponse>(new LoginResponse
-                {
-                    LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
-                    ProfileId = profile.Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMId)
-                });
+                DB.AccountTokens.Remove(oldAuthToken);
+                await DB.SaveChangesAsync();
             }
+
+            return new LoginResponse
+            {
+                LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
+                ProfileId = profile.Id,
+                Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMId)
+            };
         }
 
 
@@ -507,14 +524,14 @@ namespace DustyPig.Server.Controllers.v3
         /// <returns>Updates the device token for Firebase Cloud Messaging, and returns a new JWT</returns>
         [HttpPost]
         [Authorize]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        public async Task<ResponseWrapper<SimpleValue<string>>> UpdateFCMToken(SimpleValue<string> newFCMToken)
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(StringValue))]
+        public async Task<ActionResult<StringValue>> UpdateFCMToken(StringValue newFCMToken)
         {
             var (account, profile) = await User.VerifyAsync();
 
             if (account == null || profile == null)
-                return CommonResponses.Unauthorized<SimpleValue<string>>();
+                return Unauthorized();
 
             string newJWT;
 
@@ -529,7 +546,7 @@ namespace DustyPig.Server.Controllers.v3
                 newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId);
             }
 
-            return new ResponseWrapper<SimpleValue<string>>(new SimpleValue<string>(newJWT));
+            return new StringValue(newJWT);
         }
 
 
@@ -569,6 +586,7 @@ namespace DustyPig.Server.Controllers.v3
                 }).Entity;
                 dbNewToken.ComputeHash();
                 await DB.SaveChangesAsync();
+
                 return dbNewToken.Id;
             }
             else
@@ -595,6 +613,7 @@ namespace DustyPig.Server.Controllers.v3
                 dbNewToken.ProfileId = profile.Id;
                 DB.FCMTokens.Update(dbNewToken);
                 await DB.SaveChangesAsync();
+
                 return dbNewToken.Id;
             }
         }

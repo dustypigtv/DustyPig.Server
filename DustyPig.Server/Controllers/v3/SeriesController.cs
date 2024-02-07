@@ -10,9 +10,11 @@ using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
+using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -31,11 +33,13 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns the next 100 series based on start position and sort order</remarks>
         [HttpPost]
-        public async Task<ResponseWrapper<List<BasicMedia>>> List(ListRequest request)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
+        public async Task<ActionResult<List<BasicMedia>>> List(ListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<List<BasicMedia>>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
@@ -44,18 +48,26 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync();
 
-            return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
+            return series.Select(item => item.ToBasicMedia()).ToList();
         }
 
 
         /// <summary>
         /// Level 3
         /// </summary>
-        /// <remarks>Returns the next 100 series based on start position and sort order. Designed for admin tools, will return all series owned by the account</remarks>
+        /// <remarks>
+        /// Returns the next 100 series based on start position and sort order. Designed for admin tools, will return all series owned by the account.
+        /// If you specify libId > 0, this will filter on series in that library
+        /// </remarks>
         [HttpGet("{start}/{libId}")]
         [RequireMainProfile]
-        public async Task<ResponseWrapper<List<BasicMedia>>> AdminList(int start, int libId)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
+        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start, int libId)
         {
+            if (start < 100)
+                return CommonResponses.InvalidValue(nameof(start));
+
             var q = DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.Library.AccountId == UserAccount.Id)
@@ -71,7 +83,7 @@ namespace DustyPig.Server.Controllers.v3
                  .Take(ADMIN_LIST_SIZE)
                  .ToListAsync();
 
-            return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
+            return series.Select(item => item.ToBasicMedia()).ToList();
         }
 
 
@@ -79,7 +91,9 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper<DetailedSeries>> Details(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedSeries))]
+        public async Task<ActionResult<DetailedSeries>> Details(int id)
         {
             var media = await DB.MediaEntries
                 .AsNoTracking()
@@ -118,13 +132,13 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (media == null)
-                return CommonResponses.NotFound<DetailedSeries>();
+                return CommonResponses.ValueNotFound(nameof(id));
 
             if (media.Library.AccountId != UserAccount.Id)
                 if (!media.Library.FriendLibraryShares.Any())
                     if (!media.TitleOverrides.Any())
                         if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                            return CommonResponses.NotFound<DetailedSeries>();
+                            return CommonResponses.ValueNotFound(nameof(id));
 
 
             bool playable = (UserProfile.IsMain)
@@ -202,40 +216,42 @@ namespace DustyPig.Server.Controllers.v3
                 .OrderBy(item => item.Xid)
                 .ToListAsync();
 
-
-            foreach (var dbEp in dbEps)
+            if (dbEps.Count > 0)
             {
-                var ep = new DetailedEpisode
+                ret.Episodes ??= new();
+                foreach (var dbEp in dbEps)
                 {
-                    ArtworkUrl = dbEp.ArtworkUrl,
-                    ArtworkSize = dbEp.ArtworkSize,
-                    BifUrl = playable ? dbEp.BifUrl : null,
-                    BifSize = dbEp.BifSize,
-                    CreditsStartTime = dbEp.CreditsStartTime,
-                    Date = dbEp.Date.Value,
-                    Description = dbEp.Description,
-                    EpisodeNumber = (ushort)dbEp.Episode.Value,
-                    ExternalSubtitles = playable ? dbEp.Subtitles.ToExternalSubtitleList() : null,
-                    Id = dbEp.Id,
-                    IntroEndTime = dbEp.IntroEndTime,
-                    IntroStartTime = dbEp.IntroStartTime,
-                    Length = dbEp.Length.Value,
-                    SeasonNumber = (ushort)dbEp.Season.Value,
-                    SeriesId = id,
-                    SeriesTitle = media.Title,
-                    Title = dbEp.Title,
-                    TMDB_Id = dbEp.TMDB_Id,
-                    VideoUrl = playable ? dbEp.VideoUrl : null,
-                    VideoSize = dbEp.VideoSize
-                };
+                    var ep = new DetailedEpisode
+                    {
+                        ArtworkUrl = dbEp.ArtworkUrl,
+                        ArtworkSize = dbEp.ArtworkSize,
+                        BifUrl = playable ? dbEp.BifUrl : null,
+                        BifSize = dbEp.BifSize,
+                        CreditsStartTime = dbEp.CreditsStartTime,
+                        Date = dbEp.Date.Value,
+                        Description = dbEp.Description,
+                        EpisodeNumber = (ushort)dbEp.Episode.Value,
+                        SRTSubtitles = playable ? dbEp.Subtitles.ToSRTSubtitleList() : null,
+                        Id = dbEp.Id,
+                        IntroEndTime = dbEp.IntroEndTime,
+                        IntroStartTime = dbEp.IntroStartTime,
+                        Length = dbEp.Length.Value,
+                        SeasonNumber = (ushort)dbEp.Season.Value,
+                        SeriesId = id,
+                        SeriesTitle = media.Title,
+                        Title = dbEp.Title,
+                        TMDB_Id = dbEp.TMDB_Id,
+                        VideoUrl = playable ? dbEp.VideoUrl : null,
+                        VideoSize = dbEp.VideoSize
+                    };
 
-                ret.Episodes.Add(ep);
+                    ret.Episodes.Add(ep);
+                }
             }
-
 
             if (playable)
             {
-                if (ret.Episodes.Count > 0)
+                if (ret.Episodes != null && ret.Episodes.Count > 0)
                 {
                     if (progress != null)
                     {
@@ -277,7 +293,7 @@ namespace DustyPig.Server.Controllers.v3
                     ret.AccessRequestedStatus = overrideRequest.Status;
             }
 
-            return new ResponseWrapper<DetailedSeries>(ret);
+            return ret;
         }
 
 
@@ -288,7 +304,9 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Designed for admin tools, this will return info on any series owned by the account</remarks>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        public async Task<ResponseWrapper<DetailedSeries>> AdminDetails(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedSeries))]
+        public async Task<ActionResult<DetailedSeries>> AdminDetails(int id)
         {
             //Get the media entry
             var mediaEntry = await DB.MediaEntries
@@ -304,7 +322,7 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (mediaEntry == null)
-                return CommonResponses.NotFound<DetailedSeries>();
+                return CommonResponses.ValueNotFound(nameof(id));
 
             //Build the response
             var ret = new DetailedSeries
@@ -333,31 +351,34 @@ namespace DustyPig.Server.Controllers.v3
                 .OrderBy(item => item.Xid)
                 .ToListAsync();
 
-
-            foreach (var dbEp in dbEps)
+            if (dbEps.Count > 0)
             {
-                var ep = new DetailedEpisode
+                ret.Episodes ??= new();
+                foreach (var dbEp in dbEps)
                 {
-                    ArtworkUrl = dbEp.ArtworkUrl,
-                    BifUrl = dbEp.BifUrl,
-                    CreditsStartTime = dbEp.CreditsStartTime,
-                    Date = dbEp.Date.Value,
-                    Description = dbEp.Description,
-                    EpisodeNumber = (ushort)dbEp.Episode.Value,
-                    Id = dbEp.Id,
-                    IntroEndTime = dbEp.IntroEndTime,
-                    IntroStartTime = dbEp.IntroStartTime,
-                    Length = dbEp.Length.Value,
-                    SeasonNumber = (ushort)dbEp.Season.Value,
-                    SeriesId = id,
-                    Title = dbEp.Title,
-                    TMDB_Id = dbEp.TMDB_Id,
-                    VideoUrl = dbEp.VideoUrl
-                };
+                    var ep = new DetailedEpisode
+                    {
+                        ArtworkUrl = dbEp.ArtworkUrl,
+                        BifUrl = dbEp.BifUrl,
+                        CreditsStartTime = dbEp.CreditsStartTime,
+                        Date = dbEp.Date.Value,
+                        Description = dbEp.Description,
+                        EpisodeNumber = (ushort)dbEp.Episode.Value,
+                        Id = dbEp.Id,
+                        IntroEndTime = dbEp.IntroEndTime,
+                        IntroStartTime = dbEp.IntroStartTime,
+                        Length = dbEp.Length.Value,
+                        SeasonNumber = (ushort)dbEp.Season.Value,
+                        SeriesId = id,
+                        Title = dbEp.Title,
+                        TMDB_Id = dbEp.TMDB_Id,
+                        VideoUrl = dbEp.VideoUrl
+                    };
 
-                ep.ExternalSubtitles = dbEp.Subtitles.ToExternalSubtitleList();
+                    ep.SRTSubtitles = dbEp.Subtitles.ToSRTSubtitleList();
 
-                ret.Episodes.Add(ep);
+                    ret.Episodes.Add(ep);
+                }
             }
 
             //Extra Search Terms
@@ -367,7 +388,7 @@ namespace DustyPig.Server.Controllers.v3
             ret.ExtraSearchTerms = allTerms;
             ret.CanManage = true;
 
-            return new ResponseWrapper<DetailedSeries>(ret);
+            return ret;
         }
 
 
@@ -377,11 +398,13 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper<SimpleValue<int>>> Create(CreateSeries seriesInfo)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
+        public async Task<ActionResult<IntValue>> Create(CreateSeries seriesInfo)
         {
             // ***** Tons of validation *****
             try { seriesInfo.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<SimpleValue<int>>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
             //Make sure the library is owned
@@ -391,7 +414,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.Id == seriesInfo.LibraryId)
                 .AnyAsync();
             if (!ownedLib)
-                return CommonResponses.NotFound<SimpleValue<int>>(nameof(seriesInfo.LibraryId));
+                return CommonResponses.ValueNotFound(nameof(seriesInfo.LibraryId));
 
 
             var newItem = new MediaEntry
@@ -421,7 +444,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return CommonResponses.BadRequest<SimpleValue<int>>($"An series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}");
+                return BadRequest($"An series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}");
 
             //Get popularity
             await UpdatePopularity(newItem);
@@ -437,7 +460,7 @@ namespace DustyPig.Server.Controllers.v3
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, seriesInfo.ExtraSearchTerms));
 
-            return new ResponseWrapper<SimpleValue<int>>(new SimpleValue<int>(newItem.Id));
+            return new IntValue(newItem.Id);
         }
 
 
@@ -447,11 +470,13 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Update(UpdateSeries seriesInfo)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Update(UpdateSeries seriesInfo)
         {
             // ***** Tons of validation *****
             try { seriesInfo.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
 
             var existingItem = await DB.MediaEntries
@@ -460,7 +485,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (existingItem == null)
-                return CommonResponses.NotFound("series");
+                return CommonResponses.ValueNotFound(nameof(seriesInfo.Id));
 
             //Make sure this item is owned
             var ownedLibs = await DB.Libraries
@@ -470,10 +495,10 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             if (!ownedLibs.Contains(existingItem.LibraryId))
-                return CommonResponses.BadRequest("This account does not own this series");
+                return BadRequest("This account does not own this series");
 
             if (!ownedLibs.Contains(seriesInfo.LibraryId))
-                return CommonResponses.NotFound(nameof(seriesInfo.LibraryId));
+                return CommonResponses.ValueNotFound(nameof(seriesInfo.LibraryId));
 
 
             //Update info
@@ -505,7 +530,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (dup)
-                return CommonResponses.BadRequest($"A series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}");
+                return BadRequest($"A series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}");
 
             //Get popularity
             if (tmdb_changed)
@@ -548,7 +573,7 @@ namespace DustyPig.Server.Controllers.v3
             //Playlists
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -560,22 +585,24 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        public Task<ResponseWrapper> Delete(int id) => DeleteMedia(id);
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public Task<IActionResult> Delete(int id) => DeleteMedia(id);
 
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpGet]
-        public async Task<ResponseWrapper<List<BasicMedia>>> ListSubscriptions()
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
+        public async Task<ActionResult<List<BasicMedia>>> ListSubscriptions()
         {
             var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
                 .Where(m => m.Subscriptions.Any(s => s.ProfileId == UserProfile.Id))
                 .ApplySortOrder(SortOrder.Alphabetical)
-                .ToListAsync();            
+                .ToListAsync();
 
-            return new ResponseWrapper<List<BasicMedia>>(series.Select(item => item.ToBasicMedia()).ToList());
+            return series.Select(item => item.ToBasicMedia()).ToList();
         }
 
 
@@ -585,7 +612,9 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Subscribe to notificaitons when new episodes are added to a series</remarks>
         [HttpGet("{id}")]
         [ProhibitTestUser]
-        public async Task<ResponseWrapper> Subscribe(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Subscribe(int id)
         {
             //Get the series
             var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
@@ -595,7 +624,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (series == null)
-                return CommonResponses.NotFound(nameof(id));
+                return CommonResponses.ValueNotFound(nameof(id));
 
             if (series.Subscriptions.FirstOrDefault() == null)
             {
@@ -608,7 +637,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -618,8 +647,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Unsubcribe from notifications when new episodes are added to a series</remarks>
         [HttpDelete("{id}")]
-        public async Task<ResponseWrapper> Unsubscribe(int id)
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Unsubscribe(int id)
         {
+            if (id < 0)
+                return Ok();
+
             var rec = await DB.Subscriptions
                 .Where(item => item.MediaEntryId == id)
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -631,7 +664,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -639,10 +672,11 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper> RemoveFromContinueWatching(int id)
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> RemoveFromContinueWatching(int id)
         {
             if (id <= 0)
-                return CommonResponses.NotFound();
+                return Ok();
 
             var prog = await DB.ProfileMediaProgresses
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -656,17 +690,18 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper> MarkSeriesWatched(int id)
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> MarkSeriesWatched(int id)
         {
             if (id <= 0)
-                return CommonResponses.NotFound();
+                return Ok();
 
             var lastEpisode = await DB.MediaEntries
                 .AsNoTracking()
@@ -713,7 +748,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (lastEpisode == null)
-                return CommonResponses.NotFound(nameof(id));
+                return Ok();
 
 
             var progress = lastEpisode.LinkedTo.ProfileMediaProgress.FirstOrDefault();
@@ -738,7 +773,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
     }

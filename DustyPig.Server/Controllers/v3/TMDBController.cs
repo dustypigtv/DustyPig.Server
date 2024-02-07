@@ -22,11 +22,8 @@ namespace DustyPig.Server.Controllers.v3
     [ApiController]
     [ProhibitTestUser]
     [ExceptionLogger(typeof(TMDBController))]
-    [SwaggerResponse((int)HttpStatusCode.OK)]
-    [SwaggerResponse((int)HttpStatusCode.BadRequest)]
     [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
     [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-    [SwaggerResponse((int)HttpStatusCode.NotFound)]
     public class TMDBController : _BaseProfileController
     {
         private readonly TMDBClient _client;
@@ -40,18 +37,20 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper<DetailedTMDB>> GetMovie(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedTMDB))]
+        public async Task<ActionResult<DetailedTMDB>> GetMovie(int id)
         {
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
-                return CommonResponses.Forbid<DetailedTMDB>();
+                return CommonResponses.Forbid();
 
             var movie = await _client.GetMovieAsync(id);
             if (!movie.Success)
             {
                 if (movie.Error.InnerException is System.Net.Http.HttpRequestException httpEx)
                     if (httpEx.StatusCode == HttpStatusCode.NotFound)
-                        return new ResponseWrapper<DetailedTMDB>(movie.Error.GetErrorResponse().StatusMessage);
-                return new ResponseWrapper<DetailedTMDB>(movie.Error.GetErrorResponse().StatusMessage);
+                        return NotFound(movie.Error.GetErrorResponse().StatusMessage);
+                return BadRequest(movie.Error.GetErrorResponse().StatusMessage);
             }
 
             var ret = new DetailedTMDB
@@ -71,11 +70,14 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                movie.Data.Releases.Countries.Sort((x, y) => -x.ReleaseDate.CompareTo(y.ReleaseDate));
-                foreach (var release in movie.Data.Releases.Countries.Where(item => item.Name == "US"))
+                if (movie.Data.Releases != null && movie.Data.Releases.Countries != null)
                 {
-                    ret.Year = release.ReleaseDate.Year;
-                    break;
+                    movie.Data.Releases.Countries.Sort();
+                    foreach (var release in movie.Data.Releases.Countries.Where(item => item.Name == "US"))
+                    {
+                        ret.Year = release.ReleaseDate.Year;
+                        break;
+                    }
                 }
             }
 
@@ -131,7 +133,7 @@ namespace DustyPig.Server.Controllers.v3
             ret.RequestPermission = reqPerm.Permission;
             ret.RequestStatus = reqPerm.Status;
 
-            return new ResponseWrapper<DetailedTMDB>(ret);
+            return ret;
         }
 
 
@@ -140,18 +142,20 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ResponseWrapper<DetailedTMDB>> GetSeries(int id)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedTMDB))]
+        public async Task<ActionResult<DetailedTMDB>> GetSeries(int id)
         {
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
-                return CommonResponses.Forbid<DetailedTMDB>();
+                return CommonResponses.Forbid();
 
             var series = await _client.GetSeriesAsync(id);
             if (!series.Success)
             {
                 if (series.Error.InnerException is System.Net.Http.HttpRequestException httpEx)
                     if (httpEx.StatusCode == HttpStatusCode.NotFound)
-                        return new ResponseWrapper<DetailedTMDB>(series.Error.GetErrorResponse().StatusMessage);
-                return new ResponseWrapper<DetailedTMDB>(series.Error.GetErrorResponse().StatusMessage);
+                        return NotFound(series.Error.GetErrorResponse().StatusMessage);
+                return BadRequest(series.Error.GetErrorResponse().StatusMessage);
             }
 
             // Response
@@ -217,13 +221,13 @@ namespace DustyPig.Server.Controllers.v3
             ret.Available = available
                 .Select(item => item.ToBasicMedia())
                 .ToList();
-                              
+
 
             var reqPerm = await CalculateTitleRequestStatusAsync(id, TMDB_MediaTypes.Series);
             ret.RequestPermission = reqPerm.Permission;
             ret.RequestStatus = reqPerm.Status;
 
-            return new ResponseWrapper<DetailedTMDB>(ret);
+            return ret;
         }
 
 
@@ -231,21 +235,24 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        public async Task<ResponseWrapper<SimpleValue<TitleRequestPermissions>>> GetRequestTitlePermission()
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(TitleRequestPermissionsValue))]
+        public async Task<ActionResult<TitleRequestPermissionsValue>> GetRequestTitlePermission()
         {
             var ret = await CalculateTitleRequestPermissionsAsync();
-            return new ResponseWrapper<SimpleValue<TitleRequestPermissions>>(new SimpleValue<TitleRequestPermissions>(ret));
+            return new TitleRequestPermissionsValue(ret);
         }
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpPost]
-        public async Task<ResponseWrapper> RequestTitle(TitleRequest data)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> RequestTitle(TitleRequest data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             //Check for existing request
             var existingSubscription = await DB.GetRequestSubscriptions
@@ -257,7 +264,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingSubscription)
-                return new ResponseWrapper("You have already requested this title");
+                return BadRequest("You have already requested this title");
 
 
 
@@ -266,10 +273,10 @@ namespace DustyPig.Server.Controllers.v3
             if (UserProfile.IsMain)
             {
                 if (data.FriendId == null)
-                    return new ResponseWrapper("You cannot request a title from yourself");
+                    return BadRequest("You cannot request a title from yourself");
 
                 if (data.FriendId.Value <= 0)
-                    return new ResponseWrapper($"Invalid {nameof(data.FriendId)}");
+                    return CommonResponses.InvalidValue(nameof(data.FriendId));
 
                 var friend = await DB.Friendships
                     .AsNoTracking()
@@ -281,7 +288,7 @@ namespace DustyPig.Server.Controllers.v3
                     .FirstOrDefaultAsync();
 
                 if (friend == null)
-                    return CommonResponses.NotFound("Friend");
+                    return CommonResponses.ValueNotFound(nameof(data.FriendId));
 
                 targetAcct = friend.Account1Id == UserAccount.Id
                     ? friend.Account2
@@ -290,7 +297,7 @@ namespace DustyPig.Server.Controllers.v3
             else
             {
                 if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                    return new ResponseWrapper("You are not authorized to request titles");
+                    return Forbid("You are not authorized to request titles");
 
                 if (UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
                 {
@@ -298,7 +305,7 @@ namespace DustyPig.Server.Controllers.v3
                     if (data.FriendId != null)
                     {
                         if (data.FriendId.Value <= 0)
-                            return new ResponseWrapper($"Invalid {nameof(data.FriendId)}");
+                            return CommonResponses.InvalidValue(nameof(data.FriendId));
 
                         var friend = await DB.Friendships
                             .AsNoTracking()
@@ -310,7 +317,7 @@ namespace DustyPig.Server.Controllers.v3
                             .FirstOrDefaultAsync();
 
                         if (friend == null)
-                            return CommonResponses.NotFound("Friend");
+                            return CommonResponses.ValueNotFound(nameof(data.FriendId));
 
                         targetAcct = friend.Account1Id == UserAccount.Id
                             ? friend.Account2
@@ -325,14 +332,14 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var response = await _client.GetMovieAsync(data.TMDB_Id);
                 if (!response.Success)
-                    return CommonResponses.NotFound("Movie");
+                    return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
                 title = response.Data.Title;
             }
             else
             {
                 var response = await _client.GetSeriesAsync(data.TMDB_Id);
                 if (!response.Success)
-                    return CommonResponses.NotFound("Series");
+                    return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
                 title = response.Data.Title;
             }
 
@@ -424,7 +431,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -432,11 +439,13 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        public async Task<ResponseWrapper> CancelTitleRequest(TitleRequest data)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> CancelTitleRequest(TitleRequest data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             var req = await DB.GetRequestSubscriptions
                 .AsNoTracking()
@@ -452,7 +461,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -522,42 +531,33 @@ namespace DustyPig.Server.Controllers.v3
         {
             if (credits != null)
             {
-                if (credits.Cast != null)
+                if (credits.Cast != null && credits.Cast.Count > 0)
                 {
+                    ret.Cast ??= new();
                     foreach (var cast in credits.Cast.OrderBy(item => item.Order).Take(10))
-                    {
-                        if (ret.Cast == null)
-                            ret.Cast = new List<string>();
-
                         if (!ret.Cast.Contains(cast.Name))
                             ret.Cast.Add(cast.Name);
-                    }
                 }
 
                 if (credits.Crew != null)
                 {
                     foreach (var director in credits.Crew.Where(item => item.Job.ICEquals("Director")).Take(2))
                     {
-                        if (ret.Directors == null)
-                            ret.Directors = new List<string>();
-
+                        ret.Directors ??= new();
                         if (!ret.Directors.Contains(director.Name))
                             ret.Directors.Add(director.Name);
                     }
 
                     foreach (var producer in credits.Crew.Where(item => item.Job.ICEquals("Producer")).Take(2))
                     {
-                        if (ret.Producers == null)
-                            ret.Producers = new List<string>();
-
+                        ret.Producers ??= new();
                         if (!ret.Producers.Contains(producer.Name))
                             ret.Producers.Add(producer.Name);
                     }
 
                     foreach (var writer in credits.Crew.Where(item => item.Job.ICEquals("Screenplay")).Take(2))
                     {
-                        if (ret.Writers == null)
-                            ret.Writers = new List<string>();
+                        ret.Writers ??= new();
                         if (!ret.Writers.Contains(writer.Name))
                             ret.Writers.Add(writer.Name);
                     }

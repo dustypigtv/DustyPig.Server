@@ -98,7 +98,7 @@ namespace DustyPig.Server.HostedServices
 
             try
             {
-               
+
                 var q =
                     from me in db.MediaEntries
                     join lib in db.Libraries on me.LibraryId equals lib.Id

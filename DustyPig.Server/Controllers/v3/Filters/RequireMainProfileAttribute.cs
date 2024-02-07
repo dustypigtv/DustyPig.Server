@@ -1,5 +1,4 @@
 ﻿using DustyPig.Server.Controllers.v3.Logic;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System;
 
@@ -12,7 +11,7 @@ namespace DustyPig.Server.Controllers.v3.Filters
         {
             var profile = ((_BaseController)context.Controller).UserProfile;
             if (!profile.IsMain)
-                context.Result = new OkObjectResult(CommonResponses.RequireMainProfile());
+                context.Result = CommonResponses.RequireMainProfile();
         }
 
         public void OnActionExecuted(ActionExecutedContext context)

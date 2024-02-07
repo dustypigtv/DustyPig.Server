@@ -1,8 +1,9 @@
 ﻿using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Swashbuckle.AspNetCore.Annotations;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -11,6 +12,8 @@ namespace DustyPig.Server.Controllers.v3
     /// This base class ensures the user is logged in with a profile
     /// </summary>
     [Authorize]
+    [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+    [SwaggerResponse((int)HttpStatusCode.Forbidden)]
     public abstract class _BaseProfileController : _BaseController
     {
         protected _BaseProfileController(AppDbContext db) : base(db) { }
@@ -33,7 +36,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (profile.Locked)
             {
-                context.Result = new OkObjectResult(CommonResponses.ProfileIsLocked());
+                context.Result = CommonResponses.ProfileIsLocked();
                 return;
             }
 

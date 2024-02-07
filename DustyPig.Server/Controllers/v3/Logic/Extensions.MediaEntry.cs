@@ -44,8 +44,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return ret;
         }
 
-        public static ExternalSubtitle ToExternalSubtitle(this Subtitle self) =>
-            new ExternalSubtitle
+        public static SRTSubtitle ToSRTSubtitle(this Subtitle self) =>
+            new SRTSubtitle
             {
                 Name = self.Name,
                 Url = self.Url,
@@ -53,7 +53,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             };
 
 
-        public static List<ExternalSubtitle> ToExternalSubtitleList(this List<Subtitle> self)
+        public static List<SRTSubtitle> ToSRTSubtitleList(this List<Subtitle> self)
         {
             if (self == null)
                 return null;
@@ -62,9 +62,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 return null;
 
             self.Sort();
-            var ret = new List<ExternalSubtitle>();
+            var ret = new List<SRTSubtitle>();
             foreach (var item in self)
-                ret.Add(item.ToExternalSubtitle());
+                ret.Add(item.ToSRTSubtitle());
             return ret;
         }
 
@@ -104,7 +104,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             //Subs
             if (playable)
-                ret.ExternalSubtitles = self.Subtitles.ToExternalSubtitleList();
+                ret.SRTSubtitles = self.Subtitles.ToSRTSubtitleList();
 
             return ret;
         }

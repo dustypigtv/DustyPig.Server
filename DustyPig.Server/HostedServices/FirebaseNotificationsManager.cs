@@ -1,9 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.Utilities;
 using FirebaseAdmin.Messaging;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -94,7 +92,7 @@ namespace DustyPig.Server.HostedServices
 
 
 
-        
+
 
         private async Task SendNotificationsAsync()
         {
@@ -137,7 +135,7 @@ namespace DustyPig.Server.HostedServices
                             };
 
 
-                            if(notification.MediaEntry != null)
+                            if (notification.MediaEntry != null)
                             {
                                 msgData.Add("media_id", notification.MediaEntry.Id.ToString());
                                 msgData.Add("media_type", ((int)notification.MediaEntry.EntryType).ToString());
@@ -154,8 +152,8 @@ namespace DustyPig.Server.HostedServices
                                 if (newMediaNotificationTypes.Contains(notification.NotificationType))
                                     msgData.Add("media_id", notification.GetRequest.TMDB_Id.ToString());
                             }
-                            
-                            if(notification.Friendship != null)
+
+                            if (notification.Friendship != null)
                                 msgData.Add("friendship_id", notification.FriendshipId.ToString());
 
                             var msg = new Message

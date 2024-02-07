@@ -15,6 +15,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -39,11 +40,14 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>This will create the Firebase account and send a confirmation email</remarks>
         [HttpPost]
         [SwaggerOperation(OperationId = "Create")]
-        public async Task<ResponseWrapper<CreateAccountResponse>> Create(CreateAccount info)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(AccountCreated))]
+        public async Task<ActionResult<AccountCreated>> Create(CreateAccount info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return new ResponseWrapper<CreateAccountResponse>(ex.ToString()); }
+            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
 
             try
             {
@@ -57,11 +61,11 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     //This means the user sent the same password that already exists.
                     //Go ahead and send a response with the email verificaiton parameter
-                    return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = !existingUser.EmailVerified });
+                    return new AccountCreated { EmailVerificationRequired = !existingUser.EmailVerified };
                 }
 
 
-                return new ResponseWrapper<CreateAccountResponse>("Account already exists");
+                return BadRequest("Account already exists");
             }
             catch { }
 
@@ -95,21 +99,21 @@ namespace DustyPig.Server.Controllers.v3
                 //Send verification mail
                 var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
                 if (!dataResponse.Success)
-                    return new ResponseWrapper<CreateAccountResponse>(dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData));
+                    return dataResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.GetUserData);
 
                 bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
                 if (emailVerificationRequired)
                 {
                     var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
                     if (!sendVerificationEmailResponse.Success)
-                        return new ResponseWrapper<CreateAccountResponse>(sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail));
+                        return sendVerificationEmailResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.SendVerificationEmail);
                 }
 
-                return new ResponseWrapper<CreateAccountResponse>(new CreateAccountResponse { EmailVerificationRequired = emailVerificationRequired });
+                return new AccountCreated { EmailVerificationRequired = emailVerificationRequired };
             }
             else
             {
-                return new ResponseWrapper<CreateAccountResponse>(signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup));
+                return signupResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.PasswordSignup);
             }
         }
 
@@ -120,7 +124,10 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>WARNING: This will permanently delete the account and ALL data. This is not recoverable!</remarks>
         [HttpDelete]
         [Authorize]
-        public async Task<ResponseWrapper> Delete()
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> Delete()
         {
             var (account, profile) = await User.VerifyAsync();
 
@@ -167,7 +174,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             catch { }
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 
@@ -177,14 +184,18 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Change the password for the account</remarks>
         [HttpPost]
         [Authorize]
-        public async Task<ResponseWrapper> ChangePassword(SimpleValue<string> newPassword)
+        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
+        [SwaggerResponse((int)HttpStatusCode.OK)]
+        public async Task<IActionResult> ChangePassword(StringValue newPassword)
         {
             if (string.IsNullOrWhiteSpace(newPassword.Value))
-                return new ResponseWrapper(nameof(newPassword) + " must be specified");
+                return CommonResponses.RequiredValueMissing(nameof(newPassword));
 
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
-                return CommonResponses.Unauthorized();
+                return Unauthorized();
 
             if (profile.Locked)
                 return CommonResponses.ProfileIsLocked();
@@ -206,7 +217,7 @@ namespace DustyPig.Server.Controllers.v3
             });
 
 
-            return CommonResponses.Ok();
+            return Ok();
         }
 
 

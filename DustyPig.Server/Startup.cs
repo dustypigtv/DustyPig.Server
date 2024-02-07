@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace DustyPig.Server
 {
@@ -35,6 +36,8 @@ namespace DustyPig.Server
         {
             Configuration = configuration;
 
+
+            //*** Database Connection ***
 #if DEBUG
             // debug-conn-str
             AppDbContext.Configure(Configuration["mysql-server-v3"]);
@@ -42,19 +45,28 @@ namespace DustyPig.Server
             AppDbContext.Configure(Configuration["mysql-server-v3"]);
 #endif
 
-            //Use this for messaging
+
+            //*** Firebase Cloud Messaging ***
             FirebaseApp.Create(new AppOptions()
             {
                 Credential = GoogleCredential.FromJson(Configuration["firebase-config"])
             });
 
+
+            //*** TMDB ***
             TMDBClient.Configure(Configuration["tmdb-api-key"]);
 
-            JWTProvider.Configure(Configuration["jwt-key"]);
 
+            //*** JWT Encryption Key ***
+            JWTProvider.Configure(Configuration["jwt-key"]);
+            
+
+            //*** S3 credentials for artwork ***
             S3.Configure(Configuration["s3-url"], Configuration["s3-key"], Configuration["s3-secret"]);
 
-            //Write logs to sql database
+
+
+            //*** Configure Logging ***
             var config = new LoggingConfiguration();
             var nullTarget = new NullTarget("null");
             config.AddTarget(nullTarget);
@@ -95,11 +107,19 @@ namespace DustyPig.Server
             LogManager.Configuration = config;
         }
 
+
+
+
         public IConfiguration Configuration { get; }
+
+
+
+
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //*** CORS ***
             services.AddCors(options =>
             {
                 options.AddDefaultPolicy(
@@ -111,10 +131,22 @@ namespace DustyPig.Server
                     });
             });
 
+
+
+
+            //*** Memory Caching ***
             services.AddMemoryCache();
 
+
+
+
+            //*** DB Context ***
             services.AddDbContext<AppDbContext>();
 
+
+
+
+            //*** Authentication and Authorization ***
             services
                 .AddAuthentication(options =>
                 {
@@ -138,20 +170,35 @@ namespace DustyPig.Server
 
             services.AddAuthorization();
 
-            services
-                .AddControllers()
-                .AddNewtonsoftJson();
 
+
+
+            //*** Controller ***
+            services.AddControllers()
+                    .AddJsonOptions(options =>
+                    {
+                        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                    });
+
+
+
+            //*** API Versioning ***
             services.AddApiVersioning(options =>
             {
                 options.AssumeDefaultVersionWhenUnspecified = true;
                 options.DefaultApiVersion = new ApiVersion(3, 0);
             });
 
-            //services.AddRouting(options => options.LowercaseUrls = true);
+
+
+            //*** Routing ***
             services.AddRouting();
 
 
+
+            //*******************************
+            // SWAGGER
+            //*******************************
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v3", new OpenApiInfo
@@ -273,11 +320,17 @@ namespace DustyPig.Server
                     return versions?.Any(v => $"v{v}" == version) == true && (!maps.Any() || maps.Any(v => $"v{v}" == version));
                 });
             });
-            services.AddSwaggerGenNewtonsoftSupport();
+            //services.AddSwaggerGenNewtonsoftSupport();
 
+
+
+            //*** Pages ***
             services.AddControllersWithViews();
             services.AddRazorPages();
 
+
+
+            //*** Dependency Injection ***
             services.AddScoped<TMDBClient>();
             services.AddScoped<FirebaseAuthClient>();
             services.AddScoped<JWTProvider>();
@@ -287,13 +340,16 @@ namespace DustyPig.Server
             services.AddHostedService<ArtworkUpdater>();
         }
 
+
+
+
+
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-
             }
             else
             {
@@ -308,6 +364,7 @@ namespace DustyPig.Server
 
 
             app.UseHttpsRedirection();
+
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"wwwroot/.well-known")),
@@ -316,6 +373,7 @@ namespace DustyPig.Server
             });
 
             app.UseRouting();
+            
             app.UseCors();
 
             app.UseAuthentication();
