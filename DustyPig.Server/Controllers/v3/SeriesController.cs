@@ -63,7 +63,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
         public async Task<Result<List<BasicMedia>>> AdminList(int start, int libId)
         {
-            if (start < 100)
+            if (start < 0)
                 return CommonResponses.InvalidValue(nameof(start));
 
             var q = DB.MediaEntries
