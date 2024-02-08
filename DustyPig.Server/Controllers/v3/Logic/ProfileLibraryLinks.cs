@@ -1,4 +1,5 @@
-﻿using DustyPig.Server.Data;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 {
     public static class ProfileLibraryLinks
     {
-        public static async Task<IActionResult> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        public static async Task<Result> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
             var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
@@ -40,7 +41,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             //Main profile has access to everything at this point without links
             if (profile.IsMain)
-                return new OkResult();
+                return Result.BuildSuccess();
 
             db.ProfileLibraryShares.Add(new ProfileLibraryShare
             {
@@ -58,19 +59,19 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var playlistIds = await GetPlaylistIds(db, profileId, libraryId);
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return new OkResult();
+            return Result.BuildSuccess();
         }
 
-        public static async Task<IActionResult> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        public static async Task<Result> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
         {
             //Double check profile is owned by account
             var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
             if (profile == null)
-                return new OkResult();
+                return Result.BuildSuccess();
 
             //Main profile has access to libs without links, so nothing to delete
             if (profile.IsMain)
-                return new OkResult();
+                return Result.BuildSuccess();
 
             //Get the link
             using var db = new AppDbContext();
@@ -88,7 +89,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return new OkResult();
+            return Result.BuildSuccess();
         }
 
         static Task<List<int>> GetPlaylistIds(AppDbContext db, int profileId, int libraryId)

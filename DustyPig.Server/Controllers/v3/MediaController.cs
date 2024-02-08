@@ -6,6 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -33,8 +34,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(HomeScreen))]
-        public async Task<ActionResult<HomeScreen>> HomeScreen()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<HomeScreen>))]
+        public async Task<Result<HomeScreen>> HomeScreen()
         {
             var ret = new HomeScreen();
 
@@ -211,13 +212,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns more items for the specified home screen list based on start position</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
-        public async Task<ActionResult<List<BasicMedia>>> LoadMoreHomeScreenItems(HomeScreenListRequest request)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> LoadMoreHomeScreenItems(HomeScreenListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var results = new List<BasicMedia>();
 
@@ -250,12 +250,9 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 2
         /// </summary>
-        /// <param name="request">
-        /// Url encoded title to search for
-        /// </param>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(SearchResults))]
-        public async Task<ActionResult<SearchResults>> Search(SearchRequest request, CancellationToken cancellationToken)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<SearchResults>))]
+        public async Task<Result<SearchResults>> Search(SearchRequest request, CancellationToken cancellationToken)
         {
             var ret = new SearchResults();
 
@@ -349,9 +346,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AddToWatchlist(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> AddToWatchlist(int id)
         {
             var mediaEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
@@ -374,15 +370,15 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> DeleteFromWatchlist(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> DeleteFromWatchlist(int id)
         {
             var item = await DB.WatchListItems
                 .Where(item => item.MediaEntryId == id)
@@ -395,7 +391,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -404,12 +400,11 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> UpdatePlaybackProgress(PlaybackProgress hist)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> UpdatePlaybackProgress(PlaybackProgress hist)
         {
             try { hist.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var maybeEpisode = await DB.MediaEntries
                 .AsNoTracking()
@@ -441,7 +436,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 if (mediaEntry.EntryType == MediaTypes.Movie)
                     if (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9)))
-                        return Ok();
+                        return Result.BuildSuccess();
 
                 //Add
                 DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
@@ -472,7 +467,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -482,9 +477,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> RequestAccessOverride(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> RequestAccessOverride(int id)
         {
             if (!UserProfile.IsMain && UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
                 return CommonResponses.Forbid();
@@ -526,17 +520,17 @@ namespace DustyPig.Server.Controllers.v3
             {
                 //Main profile can already access ALL owned media
                 if (mediaEntry.Library.AccountId == UserAccount.Id)
-                    return Ok();
+                    return Result.BuildSuccess();
 
                 if (mediaEntry.Library.FriendLibraryShares.Any())
                 {
                     //For libs shared with the main profile, they can access anything not specifically blocked
                     if (existingOverride == null)
-                        return Ok();
+                        return Result.BuildSuccess();
 
                     if (existingOverride.State == OverrideState.Block)
-                        return CommonResponses.Forbid($"Access to this {mediaEntry.EntryType.ToString().ToLower()} has been blocked by the owner");
-                    return Ok();
+                        return $"Access to this {mediaEntry.EntryType.ToString().ToLower()} has been blocked by the owner";
+                    return Result.BuildSuccess();
                 }
             }
             else
@@ -546,15 +540,15 @@ namespace DustyPig.Server.Controllers.v3
                     if (mediaEntry.Library.ProfileLibraryShares.Any(item => item.ProfileId == UserProfile.Id))
                     {
                         if (mediaEntry.EntryType == MediaTypes.Movie && UserProfile.MaxMovieRating >= (mediaEntry.MovieRating ?? MovieRatings.Unrated))
-                            return Ok();
+                            return Result.BuildSuccess();
                         if (mediaEntry.EntryType == MediaTypes.Series && UserProfile.MaxTVRating >= (mediaEntry.TVRating ?? TVRatings.NotRated))
-                            return Ok();
+                            return Result.BuildSuccess();
                     }
                 }
                 else
                 {
                     if (existingOverride.State == OverrideState.Block)
-                        return CommonResponses.Forbid($"Access to this {mediaEntry.EntryType.ToString().ToLower()} has been blocked by the owner");
+                        return $"Access to this {mediaEntry.EntryType.ToString().ToLower()} has been blocked by the owner";
                 }
             }
 
@@ -567,7 +561,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 if (mediaEntry.Library.FriendLibraryShares.Any())
                     if (existingOverride.Status != OverrideRequestStatus.NotRequested)
-                        return Ok();
+                        return Result.BuildSuccess();
             }
             else
             {
@@ -576,9 +570,9 @@ namespace DustyPig.Server.Controllers.v3
                     if (existingOverride != null)
                     {
                         if (existingOverride.State == OverrideState.Block)
-                            return CommonResponses.Forbid($"Access to this {mediaEntry.EntryType.ToString().ToLower()} has been blocked by the owner");
+                            return $"Access to this {mediaEntry.EntryType.ToString().ToLower()} has been blocked by the owner";
                         if (existingOverride.Status != OverrideRequestStatus.NotRequested)
-                            return Ok();
+                            return Result.BuildSuccess();
                     }
                 }
             }
@@ -623,7 +617,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -633,9 +627,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(TitlePermissions))]
-        public async Task<ActionResult<TitlePermissions>> GetTitlePermissions(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<TitlePermissions>))]
+        public async Task<Result<TitlePermissions>> GetTitlePermissions(int id)
         {
             if (id < 1)
                 return CommonResponses.ValueNotFound(nameof(id));
@@ -811,18 +804,17 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Set access override for a specific title</remarks>
         [HttpPost]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> SetTitlePermissions(SetTitlePermission info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> SetTitlePermissions(SetTitlePermission info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             // Don't try to set for self
             if (info.ProfileId == UserProfile.Id)
-                return Ok();
+                return Result.BuildSuccess();
 
 
             //Get the media entry
@@ -1071,7 +1063,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 

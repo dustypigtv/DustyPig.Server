@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -31,13 +32,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns the next 25 movies based on start position and sort order</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
-        public async Task<ActionResult<List<BasicMedia>>> List(ListRequest request)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> List(ListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             var movies = await DB.WatchableMoviesByProfileQuery(UserProfile)
@@ -62,9 +62,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </remarks>
         [HttpGet("{start}/{libId}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
-        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start, int libId)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> AdminList(int start, int libId)
         {
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
             var q = DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.Library.AccountId == UserAccount.Id)
@@ -89,9 +92,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedMovie))]
-        public async Task<ActionResult<DetailedMovie>> Details(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedMovie>))]
+        public async Task<Result<DetailedMovie>> Details(int id)
         {
             var media = await DB.MediaEntries
                 .AsNoTracking()
@@ -211,9 +213,8 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Designed for admin tools, this will return info on any movie owned by the account</remarks>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedMovie))]
-        public async Task<ActionResult<DetailedMovie>> AdminDetails(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedMovie>))]
+        public async Task<Result<DetailedMovie>> AdminDetails(int id)
         {
             //Get the media entry
             var mediaEntry = await DB.MediaEntries
@@ -253,13 +254,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
-        public async Task<ActionResult<IntValue>> Create(CreateMovie movieInfo)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+        public async Task<Result<int>> Create(CreateMovie movieInfo)
         {
             // ***** Tons of validation *****
             try { movieInfo.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             //Make sure the library is owned
@@ -311,7 +311,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return BadRequest($"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}");
+                return $"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
 
             //Get popularity
             await UpdatePopularity(newItem);
@@ -379,7 +379,7 @@ namespace DustyPig.Server.Controllers.v3
             if (save)
                 await DB.SaveChangesAsync();
 
-            return new IntValue(newItem.Id);
+            return newItem.Id;
         }
 
 
@@ -389,13 +389,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Update(UpdateMovie movieInfo)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Update(UpdateMovie movieInfo)
         {
             // ***** Tons of validation *****
             try { movieInfo.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             var existingItem = await DB.MediaEntries
@@ -461,7 +460,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (dup)
-                return BadRequest($"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}");
+                return $"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
 
             //Get popularity
             if (tmdb_changed)
@@ -514,7 +513,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -524,7 +523,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<IActionResult> Delete(int id) => DeleteMedia(id);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> Delete(int id) => DeleteMedia(id);
     }
 }

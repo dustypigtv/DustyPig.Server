@@ -7,6 +7,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
@@ -33,13 +34,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Returns the next 100 series based on start position and sort order</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
-        public async Task<ActionResult<List<BasicMedia>>> List(ListRequest request)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> List(ListRequest request)
         {
             //Validate
             try { request.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
@@ -61,9 +61,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </remarks>
         [HttpGet("{start}/{libId}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
-        public async Task<ActionResult<List<BasicMedia>>> AdminList(int start, int libId)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> AdminList(int start, int libId)
         {
             if (start < 100)
                 return CommonResponses.InvalidValue(nameof(start));
@@ -91,9 +90,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedSeries))]
-        public async Task<ActionResult<DetailedSeries>> Details(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedSeries>))]
+        public async Task<Result<DetailedSeries>> Details(int id)
         {
             var media = await DB.MediaEntries
                 .AsNoTracking()
@@ -304,9 +302,8 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Designed for admin tools, this will return info on any series owned by the account</remarks>
         [HttpGet("{id}")]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedSeries))]
-        public async Task<ActionResult<DetailedSeries>> AdminDetails(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedSeries>))]
+        public async Task<Result<DetailedSeries>> AdminDetails(int id)
         {
             //Get the media entry
             var mediaEntry = await DB.MediaEntries
@@ -398,13 +395,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
-        public async Task<ActionResult<IntValue>> Create(CreateSeries seriesInfo)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+        public async Task<Result<int>> Create(CreateSeries seriesInfo)
         {
             // ***** Tons of validation *****
             try { seriesInfo.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             //Make sure the library is owned
@@ -444,7 +440,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return BadRequest($"An series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}");
+                return $"An series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}";
 
             //Get popularity
             await UpdatePopularity(newItem);
@@ -460,7 +456,7 @@ namespace DustyPig.Server.Controllers.v3
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, seriesInfo.ExtraSearchTerms));
 
-            return new IntValue(newItem.Id);
+            return newItem.Id;
         }
 
 
@@ -470,13 +466,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Update(UpdateSeries seriesInfo)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Update(UpdateSeries seriesInfo)
         {
             // ***** Tons of validation *****
             try { seriesInfo.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             var existingItem = await DB.MediaEntries
@@ -495,7 +490,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             if (!ownedLibs.Contains(existingItem.LibraryId))
-                return BadRequest("This account does not own this series");
+                return "This account does not own this series";
 
             if (!ownedLibs.Contains(seriesInfo.LibraryId))
                 return CommonResponses.ValueNotFound(nameof(seriesInfo.LibraryId));
@@ -530,7 +525,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (dup)
-                return BadRequest($"A series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}");
+                return $"A series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}";
 
             //Get popularity
             if (tmdb_changed)
@@ -573,7 +568,7 @@ namespace DustyPig.Server.Controllers.v3
             //Playlists
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -585,16 +580,16 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<IActionResult> Delete(int id) => DeleteMedia(id);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> Delete(int id) => DeleteMedia(id);
 
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicMedia>))]
-        public async Task<ActionResult<List<BasicMedia>>> ListSubscriptions()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> ListSubscriptions()
         {
             var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
                 .AsNoTracking()
@@ -612,9 +607,8 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Subscribe to notificaitons when new episodes are added to a series</remarks>
         [HttpGet("{id}")]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Subscribe(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Subscribe(int id)
         {
             //Get the series
             var series = await DB.WatchableSeriesByProfileQuery(UserProfile)
@@ -637,7 +631,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -647,11 +641,11 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Unsubcribe from notifications when new episodes are added to a series</remarks>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Unsubscribe(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Unsubscribe(int id)
         {
             if (id < 0)
-                return Ok();
+                return Result.BuildSuccess();
 
             var rec = await DB.Subscriptions
                 .Where(item => item.MediaEntryId == id)
@@ -664,7 +658,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -672,11 +666,11 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> RemoveFromContinueWatching(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> RemoveFromContinueWatching(int id)
         {
             if (id <= 0)
-                return Ok();
+                return Result.BuildSuccess();
 
             var prog = await DB.ProfileMediaProgresses
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -690,18 +684,18 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> MarkSeriesWatched(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MarkSeriesWatched(int id)
         {
             if (id <= 0)
-                return Ok();
+                return Result.BuildSuccess();
 
             var lastEpisode = await DB.MediaEntries
                 .AsNoTracking()
@@ -748,7 +742,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (lastEpisode == null)
-                return Ok();
+                return Result.BuildSuccess();
 
 
             var progress = lastEpisode.LinkedTo.ProfileMediaProgress.FirstOrDefault();
@@ -773,7 +767,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
     }

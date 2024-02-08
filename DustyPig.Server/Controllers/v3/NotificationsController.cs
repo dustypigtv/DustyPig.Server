@@ -2,13 +2,13 @@
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using APINotification = DustyPig.API.v3.Models.Notification;
 
@@ -27,9 +27,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Lists the next 25 notifications based on start position</remarks>
         [HttpGet("{start}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<APINotification>))]
-        public async Task<ActionResult<List<APINotification>>> List(int start)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<APINotification>>))]
+        public async Task<Result<List<APINotification>>> List(int start)
         {
             if (start < 0)
                 return CommonResponses.InvalidValue(nameof(start));
@@ -79,9 +78,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Marks a notification as seen</remarks>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> MarkAsRead(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MarkAsRead(int id)
         {
             var dbNotification = await DB.Notifications
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -93,13 +91,13 @@ namespace DustyPig.Server.Controllers.v3
 
             //Don't throw an error, just return
             if (dbNotification.Seen)
-                return Ok();
+                return Result.BuildSuccess();
 
             dbNotification.Seen = true;
             dbNotification.Timestamp = DateTime.UtcNow;
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -107,8 +105,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Delete(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Delete(int id)
         {
             var dbNotification = await DB.Notifications
                 .Where(item => item.ProfileId == UserProfile.Id)
@@ -120,7 +118,7 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Notifications.Remove(dbNotification);
                 await DB.SaveChangesAsync();
             }
-            return Ok();
+            return Result.BuildSuccess();
         }
     }
 }

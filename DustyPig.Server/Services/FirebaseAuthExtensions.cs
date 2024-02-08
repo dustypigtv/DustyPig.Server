@@ -1,8 +1,5 @@
 ﻿// https://firebase.google.com/docs/reference/rest/auth
 
-using DustyPig.Server.Controllers.v3.Logic;
-using Microsoft.AspNetCore.Mvc;
-
 namespace DustyPig.Server.Services
 {
     public enum FirebaseMethods
@@ -17,43 +14,9 @@ namespace DustyPig.Server.Services
         ConfirmEmailVerification
     }
 
-
     public static class FirebaseAuthExtensions
     {
-        public class ErrorInfo
-        {
-            public ErrorInfo(ActionResult result, string text)
-            {
-                Result = result;
-                Text = text;
-            }
-
-            public ActionResult Result { get; set; }
-            public string Text { get; set; }
-        }
-
-
-        private static ErrorInfo GetBadRequest(string text) => new(new BadRequestObjectResult(text), text);
-
-        private static ErrorInfo GetForbid(string text) => new(CommonResponses.Forbid(text), text);
-
-        private static ErrorInfo GetInternalServerError() => new(CommonResponses.InternalServerError(), "Internal server error");
-
-        private static ErrorInfo GetFirebaseErrorInfo(string message)
-        {
-            if (string.IsNullOrWhiteSpace(message))
-                return GetInternalServerError();
-
-            var ret = message.ToLower().Split('_');
-            ret[0] = ret[0][0].ToString().ToUpper() + ret[0][1..];
-            return GetBadRequest(string.Join(' ', ret));
-        }
-
-        /// <summary>
-        /// Produces BAD_REQUEST and FORBID
-        /// </summary>
-        /// <returns></returns>
-        public static ErrorInfo GetFirebaseErrorInfo(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method)
+        public static string TranslateFirebaseError(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method)
         {
             if (error == null || string.IsNullOrWhiteSpace(error.Message))
             {
@@ -66,12 +29,12 @@ namespace DustyPig.Server.Services
                 //        return "Invalid email";
                 //}
 
-                return GetInternalServerError();
+                return "Unknown Firebase.Auth error";
             }
 
             var split = error.Message.Split(':');
             if (split.Length > 1)
-                return new(new BadRequestObjectResult(split[1].Trim()), split[1].Trim());
+                return split[1].Trim();
 
 
             switch (method)
@@ -80,13 +43,13 @@ namespace DustyPig.Server.Services
                     switch (error.Message)
                     {
                         case "EMAIL_EXISTS":
-                            return GetBadRequest("Account already exists");
+                            return "Account already exists";
 
                         case "OPERATION_NOT_ALLOWED":
-                            return GetForbid("Password sign-in is disabled");
+                            return "Password sign-in is disabled";
 
                         case "TOO_MANY_ATTEMPTS_TRY_LATER":
-                            return GetForbid("Too many attempts, try later");
+                            return "Too many attempts, try later";
                     }
                     break;
 
@@ -96,31 +59,36 @@ namespace DustyPig.Server.Services
                     switch (error.Message)
                     {
                         case "EMAIL_NOT_FOUND":
-                            return GetBadRequest("There is no user record corresponding to this identifier. The user may have been deleted");
+                            return "There is no user record corresponding to this identifier. The user may have been deleted";
 
                         case "OPERATION_NOT_ALLOWED":
-                            return GetForbid("Password sign-in is disabled");
+                            return "Password sign-in is disabled";
                     }
                     break;
 
                 case FirebaseMethods.OauthSignin:
                     if (error.Message.StartsWith("INVALID_IDP_RESPONSE : Bad access token:"))
-                        return GetBadRequest("Bad access token");
+                        return "Bad access token";
                     break;
             }
 
             return error.Message switch
             {
-                "EXPIRED_OOB_CODE" => GetForbid("The action code is expired"),
-                "INVALID_OOB_CODE" => GetForbid("The action code is invalid. This can happen if the token is malformed, expired, or has already been used."),
-                "USER_DISABLED" => GetForbid("The user account has been disabled by an administrator"),
-                _ => GetFirebaseErrorInfo(error.Message),
+                "EXPIRED_OOB_CODE" => "The action code is expired",
+                "INVALID_OOB_CODE" => "The action code is invalid. This can happen if the token is malformed, expired, or has already been used.",
+                "USER_DISABLED" => "The user account has been disabled by an administrator",
+                _ => TranslateFirebaseErrorMessage(error.Message),
             };
         }
 
+        private static string TranslateFirebaseErrorMessage(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return "Unknown Firebase error";
 
-        public static ActionResult GetFirebaseErrorActionResult(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method) =>
-            error.GetFirebaseErrorInfo(method).Result;
-
+            var ret = message.ToLower().Split('_');
+            ret[0] = ret[0][0].ToString().ToUpper() + ret[0][1..];
+            return string.Join(' ', ret);
+        }
     }
 }

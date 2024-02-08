@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -34,8 +35,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 1
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicProfile>))]
-        public ActionResult<List<BasicProfile>> List()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicProfile>>))]
+        public Result<List<BasicProfile>> List()
         {
             var ret = UserAccount.Profiles
                 .Select(item => item.ToBasicProfileInfo())
@@ -60,9 +61,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Only the profile owner or the main profile for the account may view this information</remarks>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedProfile))]
-        public async Task<ActionResult<DetailedProfile>> Details(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedProfile>))]
+        public async Task<Result<DetailedProfile>> Details(int id)
         {
             bool allowed = UserProfile.IsMain && UserAccount.Profiles.Select(item => item.Id).Contains(id);
             if (!allowed)
@@ -157,12 +157,11 @@ namespace DustyPig.Server.Controllers.v3
         /// If the profile being updated is the main profile, it cannot be locked</remarks>
         [HttpPost]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Update(UpdateProfile info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Update(UpdateProfile info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             if (info.Id != UserProfile.Id)
                 if (UserProfile.IsMain)
@@ -194,7 +193,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Any();
 
             if (nameExists)
-                return BadRequest("There is already another profile with the specified name on this account");
+                return "There is already another profile with the specified name on this account";
 
             profile.Name = info.Name;
 
@@ -212,7 +211,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.Profiles.Update(profile);
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -226,9 +225,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPut("{id}")]
         [ProhibitTestUser]
         [RequestSizeLimit(1048576)] //Set to 1 MB
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(StringValue))]
-        public async Task<ActionResult<StringValue>> SetProfileAvatarBinary(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+        public async Task<Result<string>> SetProfileAvatarBinary(int id)
         {
             if (id != UserProfile.Id)
                 if (UserProfile.IsMain)
@@ -241,7 +239,7 @@ namespace DustyPig.Server.Controllers.v3
             await Request.Body.CopyToAsync(ms);
 
             if (!IsJpeg(ms))
-                return BadRequest("File does not appear to be a jpeg file");
+                return Result<string>.BuildError("File does not appear to be a jpeg file");
 
             string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
@@ -256,7 +254,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new StringValue(urlPath);
+            return Result<string>.BuildSuccess(urlPath);
         }
 
 
@@ -270,9 +268,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPut("{id}")]
         [ProhibitTestUser]
         [RequestSizeLimit(1048676)] //Set to 1 MB, with an extra 100 kb leeway for multipart encoding
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(StringValue))]
-        public async Task<ActionResult<StringValue>> SetProfileAvatarMultipart(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+        public async Task<Result<string>> SetProfileAvatarMultipart(int id)
         {
             if (id != UserProfile.Id)
                 if (UserProfile.IsMain)
@@ -282,19 +279,19 @@ namespace DustyPig.Server.Controllers.v3
             var profile = UserAccount.Profiles.Single(item => item.Id == id);
 
             if (!Request.Form.Files.Any())
-                return BadRequest("Missing File");
+                return Result<string>.BuildError("Missing File");
 
             if (Request.Form.Files.Count > 1)
-                return BadRequest("Only 1 file allowed");
+                return Result<string>.BuildError("Only 1 file allowed");
 
             var file = Request.Form.Files[0];
             if (!string.IsNullOrWhiteSpace(file.ContentType))
                 if (file.ContentType != "image/jpeg")
-                    return BadRequest("Content-Type does not match image/jpeg");
+                    return Result<string>.BuildError("Content-Type does not match image/jpeg");
 
             var stream = file.OpenReadStream();
             if (!IsJpeg(stream))
-                return BadRequest("File does not appear to be a jpeg file");
+                return Result<string>.BuildError("File does not appear to be a jpeg file");
 
 
             string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
@@ -310,7 +307,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return new StringValue(urlPath);
+            return Result<string>.BuildSuccess(urlPath);
         }
 
 
@@ -321,12 +318,11 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
-        public async Task<ActionResult<IntValue>> Create(CreateProfile info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+        public async Task<Result<int>> Create(CreateProfile info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
 
@@ -335,7 +331,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Any();
 
             if (nameExists)
-                return BadRequest("There is already another profile with the specified name on this account");
+                return "There is already another profile with the specified name on this account";
 
             var profile = new Profile
             {
@@ -352,7 +348,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.Profiles.Add(profile);
             await DB.SaveChangesAsync();
 
-            return new IntValue(profile.Id);
+            return profile.Id;
         }
 
 
@@ -363,16 +359,15 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Delete(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Delete(int id)
         {
             var profile = UserAccount.Profiles.SingleOrDefault(item => item.Id == id);
             if (profile == null)
-                return Ok();
+                return Result.BuildSuccess();
 
             if (profile.IsMain)
-                return BadRequest("Cannot delete main profile");
+                return "Cannot delete main profile";
 
             var playlistArtworkUrls = await DB.Playlists
                 .AsNoTracking()
@@ -389,7 +384,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -405,9 +400,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<IActionResult> LinkToLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> LinkToLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -416,8 +410,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [RequireMainProfile]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<IActionResult> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         static bool IsJpeg(Stream stream)

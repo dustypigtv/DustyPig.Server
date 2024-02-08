@@ -6,13 +6,13 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 // These are kinda slow - multiple DB calls.
@@ -33,8 +33,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicPlaylist>))]
-        public async Task<ActionResult<List<BasicPlaylist>>> List()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicPlaylist>>))]
+        public async Task<Result<List<BasicPlaylist>>> List()
         {
             var ret = new List<BasicPlaylist>();
 
@@ -64,9 +64,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedPlaylist))]
-        public async Task<ActionResult<DetailedPlaylist>> Details(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedPlaylist>))]
+        public async Task<Result<DetailedPlaylist>> Details(int id)
         {
             if (id <= 0)
                 return CommonResponses.ValueNotFound(nameof(id));
@@ -262,13 +261,12 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
-        public async Task<ActionResult<IntValue>> Create(CreatePlaylist info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+        public async Task<Result<int>> Create(CreatePlaylist info)
         {
             //Validate object
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var playlist = await DB.Playlists
                 .AsNoTracking()
@@ -277,7 +275,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (playlist != null)
-                return BadRequest("You already have a playlist with the specified name");
+                return "You already have a playlist with the specified name";
 
             playlist = new Data.Models.Playlist
             {
@@ -290,7 +288,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.Playlists.Add(playlist);
             await DB.SaveChangesAsync();
 
-            return new IntValue(playlist.Id);
+            return playlist.Id;
         }
 
 
@@ -299,13 +297,12 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Update(UpdatePlaylist info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Update(UpdatePlaylist info)
         {
             //Validate object
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var playlist = await DB.Playlists
                 .Where(item => item.Id == info.Id)
@@ -317,7 +314,7 @@ namespace DustyPig.Server.Controllers.v3
 
             info.Name = info.Name.Trim();
             if (playlist.Name == info.Name)
-                return Ok();
+                return Result.BuildSuccess();
 
             //Make sure name is unique
             if (playlist.Name != info.Name)
@@ -330,13 +327,13 @@ namespace DustyPig.Server.Controllers.v3
                     .AnyAsync();
 
                 if (exists)
-                    return BadRequest("Another playlist with the specified name already exists");
+                    return "Another playlist with the specified name already exists";
             }
 
             playlist.Name = info.Name;
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -344,8 +341,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Delete(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Delete(int id)
         {
             var playlist = await DB.Playlists
                 .Where(item => item.Id == id)
@@ -360,7 +357,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -369,9 +366,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Set the currently playing index</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> SetPlaylistProgress(PlaybackProgress info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> SetPlaylistProgress(PlaybackProgress info)
         {
             var playlist = await DB.PlaylistItems
                 .Include(pli => pli.Playlist)
@@ -392,7 +388,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -400,13 +396,12 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
-        public async Task<ActionResult<IntValue>> AddItem(AddPlaylistItem info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+        public async Task<Result<int>> AddItem(AddPlaylistItem info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var playlist = await DB.Playlists
                  .AsNoTracking()
@@ -494,7 +489,7 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(info.PlaylistId);
 
-            return new IntValue(entity.Id);
+            return entity.Id;
         }
 
 
@@ -504,13 +499,12 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Add all episodes from a series to a playlist</remarks>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> AddSeries(AddSeriesToPlaylist info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> AddSeries(AddSeriesToPlaylist info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var playlist = await DB.Playlists
                 .AsNoTracking()
@@ -604,7 +598,7 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
             await ArtworkUpdater.SetNeedsUpdateAsync(info.PlaylistId);
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -613,8 +607,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> DeleteItem(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> DeleteItem(int id)
         {
             var item = await DB.PlaylistItems
                 .Include(p => p.Playlist)
@@ -629,7 +623,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -638,13 +632,12 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> MoveItemToNewIndex(MovePlaylistItem info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MoveItemToNewIndex(MovePlaylistItem info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
@@ -658,7 +651,7 @@ namespace DustyPig.Server.Controllers.v3
             var pli = playlist.PlaylistItems.FirstOrDefault(item => item.Id == info.Id);
 
             if (pli.Index == info.NewIndex)
-                return Ok();
+                return Result.BuildSuccess();
 
 
 
@@ -687,7 +680,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -695,13 +688,12 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> UpdatePlaylistItems(UpdatePlaylistItems data)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> UpdatePlaylistItems(UpdatePlaylistItems data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var playlist = await DB.Playlists
                 .Include(item => item.PlaylistItems)
@@ -760,7 +752,7 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
     }
 }

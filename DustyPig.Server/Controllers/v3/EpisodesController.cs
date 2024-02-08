@@ -6,6 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -19,7 +20,6 @@ namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
     [ExceptionLogger(typeof(EpisodesController))]
-    [SwaggerResponse((int)HttpStatusCode.BadRequest)]
     public class EpisodesController : _MediaControllerBase
     {
         public EpisodesController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
@@ -31,8 +31,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(DetailedEpisode))]
-        public async Task<ActionResult<DetailedEpisode>> Details(int id)
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<DetailedEpisode>))]
+        public async Task<Result<DetailedEpisode>> Details(int id)
         {
 
             var episode = await DB.MediaEntries
@@ -196,12 +196,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(IntValue))]
-        public async Task<ActionResult<IntValue>> Create(CreateEpisode episodeInfo)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
+        public async Task<Result<int>> Create(CreateEpisode episodeInfo)
         {
             // ***** Tons of validation *****
             try { episodeInfo.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             //Make sure the series is owned
             var ownedSeries = await DB.MediaEntries
@@ -257,7 +257,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return BadRequest($"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}");
+                return $"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
             //Add the new item
@@ -396,7 +396,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await HostedServices.ArtworkUpdater.SetNeedsUpdateAsync(playlistsToUpdate);
 
-            return new IntValue(newItem.Id);
+            return newItem.Id;
         }
 
 
@@ -407,11 +407,11 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Update(UpdateEpisode episodeInfo)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Update(UpdateEpisode episodeInfo)
         {
             try { episodeInfo.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             //Update
@@ -461,7 +461,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return BadRequest($"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}");
+                return $"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
 
@@ -483,7 +483,7 @@ namespace DustyPig.Server.Controllers.v3
             //Moment of truth!
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -493,7 +493,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete("{id}")]
         [RequireMainProfile]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<IActionResult> Delete(int id) => DeleteMedia(id);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> Delete(int id) => DeleteMedia(id);
     }
 }

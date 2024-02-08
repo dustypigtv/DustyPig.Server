@@ -28,7 +28,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task<IActionResult> DeleteMedia(int id)
+        internal async Task<Result> DeleteMedia(int id)
         {
             if (!UserProfile.IsMain)
                 return CommonResponses.RequireMainProfile();
@@ -41,7 +41,7 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefaultAsync();
 
             if (mediaEntry == null)
-                return Ok();
+                return Result.BuildSuccess();
 
             // Flag playlist artwork for updates
             var playlists = mediaEntry.EntryType == MediaTypes.Series ?
@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 

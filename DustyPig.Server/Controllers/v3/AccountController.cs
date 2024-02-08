@@ -9,6 +9,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -34,20 +35,18 @@ namespace DustyPig.Server.Controllers.v3
             _jwtProvider = jwtProvider;
         }
 
+        
         /// <summary>
         /// Level 0
         /// </summary>
         /// <remarks>This will create the Firebase account and send a confirmation email</remarks>
         [HttpPost]
-        [SwaggerOperation(OperationId = "Create")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(AccountCreated))]
-        public async Task<ActionResult<AccountCreated>> Create(CreateAccount info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<AccountCreated>))]
+        public async Task<Result<AccountCreated>> Create(CreateAccount info)
         {
             //Validate
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             try
             {
@@ -65,7 +64,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
 
 
-                return BadRequest("Account already exists");
+                return "Account already exists";
             }
             catch { }
 
@@ -99,21 +98,21 @@ namespace DustyPig.Server.Controllers.v3
                 //Send verification mail
                 var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
                 if (!dataResponse.Success)
-                    return dataResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.GetUserData);
+                    return dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData);
 
                 bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
                 if (emailVerificationRequired)
                 {
                     var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
                     if (!sendVerificationEmailResponse.Success)
-                        return sendVerificationEmailResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.SendVerificationEmail);
+                        return sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail);
                 }
 
                 return new AccountCreated { EmailVerificationRequired = emailVerificationRequired };
             }
             else
             {
-                return signupResponse.FirebaseError().GetFirebaseErrorActionResult(FirebaseMethods.PasswordSignup);
+                return signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup);
             }
         }
 
@@ -124,10 +123,8 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>WARNING: This will permanently delete the account and ALL data. This is not recoverable!</remarks>
         [HttpDelete]
         [Authorize]
-        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Delete()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Delete()
         {
             var (account, profile) = await User.VerifyAsync();
 
@@ -174,7 +171,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             catch { }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -182,15 +179,14 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         /// <remarks>Change the password for the account</remarks>
+        /// <param name="newPassword"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [Authorize]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        [SwaggerResponse((int)HttpStatusCode.Forbidden)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> ChangePassword(StringValue newPassword)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<ActionResult<Result>> ChangePassword([FromBody]string newPassword)
         {
-            if (string.IsNullOrWhiteSpace(newPassword.Value))
+            if (string.IsNullOrWhiteSpace(newPassword))
                 return CommonResponses.RequiredValueMissing(nameof(newPassword));
 
             var (account, profile) = await User.VerifyAsync();
@@ -210,14 +206,14 @@ namespace DustyPig.Server.Controllers.v3
                 DisplayName = fbUser.DisplayName,
                 Email = fbUser.Email,
                 EmailVerified = fbUser.EmailVerified,
-                Password = newPassword.Value,
+                Password = newPassword,
                 PhoneNumber = fbUser.PhoneNumber,
                 PhotoUrl = fbUser.PhotoUrl,
                 Uid = fbUser.Uid
             });
 
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 

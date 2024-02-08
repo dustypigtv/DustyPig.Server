@@ -1,27 +1,23 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using DustyPig.API.v3.Models;
+using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
     public class CommonResponses
     {
-        public static BadRequestObjectResult RequiredValueMissing(string name) => new BadRequestObjectResult($"Validation failed: {name} must be specified");
+        public static Result RequiredValueMissing(string name) => Result.BuildError($"Validation failed: {name} must be specified");
 
-        public static BadRequestObjectResult ValueNotFound(string name) => new BadRequestObjectResult($"{name} not found");
+        public static Result ValueNotFound(string name) => Result.BuildError($"{name} not found");
 
-        public static BadRequestObjectResult InvalidValue(string name) => new BadRequestObjectResult($"Invalid {name}");
+        public static Result InvalidValue(string name) => Result.BuildError($"Validation failed: Invalid {name}");
 
+        public static Result RequireMainProfile() => Result.BuildError("You must be logged in with the main profile to perform this action");
 
-        public static ForbidResult RequireMainProfile() => Forbid("You must be logged in with the main profile to perform this action");
+        public static Result ProhibitTestUser() => Result.BuildError("Test account is not authorized to to perform this action");
 
-        public static ForbidResult ProhibitTestUser() => Forbid("Test account is not authorized to to perform this action");
+        public static Result ProfileIsLocked() => Result.BuildError("Your profile is locked");
 
-        public static ForbidResult ProfileIsLocked() => Forbid("Your profile is locked");
-
-        public static ForbidResult Forbid(string msg) => new ForbidResult(msg);
-
-        public static ForbidResult Forbid() => new ForbidResult();
-
-        public static StatusCodeResult InternalServerError() => new StatusCodeResult((int)HttpStatusCode.InternalServerError);
+        public static Result Forbid() => Result.BuildError("You are forbidden from performing this action");
     }
 }

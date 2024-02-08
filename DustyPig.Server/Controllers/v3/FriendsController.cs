@@ -6,6 +6,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using FirebaseAdmin.Auth;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -29,8 +30,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(List<BasicFriend>))]
-        public async Task<ActionResult<List<BasicFriend>>> List()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicFriend>>))]
+        public async Task<Result<List<BasicFriend>>> List()
         {
             var friends = await DB.Friendships
                 .AsNoTracking()
@@ -56,9 +57,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedFriend))]
-        public async Task<ActionResult<DetailedFriend>> Details(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedFriend>))]
+        public async Task<Result<DetailedFriend>> Details(int id)
         {
             var friend = await DB.Friendships
                 .AsNoTracking()
@@ -112,27 +112,27 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         /// <remarks>Invite another user to be friends</remarks>
+        /// <param name="email"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Invite(StringValue email)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Invite([FromBody]string email)
         {
-            if (string.IsNullOrWhiteSpace(email.Value))
+            if (string.IsNullOrWhiteSpace(email))
                 return CommonResponses.InvalidValue(nameof(email));
 
-            email.Value = email.Value.Trim();
+            email = email.Trim();
 
 
             UserRecord fbRec = null;
             try
             {
-                fbRec = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email.Value);
+                fbRec = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
             }
             catch (FirebaseAuthException ex)
             {
                 if (ex.Message.StartsWith("Failed to get user with email:"))
-                    return BadRequest("Account does not exist");
+                    return "Account does not exist";
                 throw;
             }
 
@@ -144,10 +144,10 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (friendAccount == null)
-                return BadRequest("Account does not exist");
+                return "Account does not exist";
 
             if (friendAccount.Id == UserAccount.Id)
-                return BadRequest("Cannot friend yourself");
+                return "Cannot friend yourself";
 
             string uniqueFriendId = Utils.UniqueFriendId(UserAccount.Id, friendAccount.Id);
             var friendship = await DB.Friendships
@@ -158,14 +158,14 @@ namespace DustyPig.Server.Controllers.v3
             {
                 if (friendship.Accepted)
                 {
-                    return BadRequest("You are already friends");
+                    return "You are already friends";
                 }
                 else
                 {
                     if (friendship.Account1Id == UserAccount.Id)
-                        return BadRequest("You already sent a friendship request to this account");
+                        return "You already sent a friendship request to this account";
                     else
-                        return BadRequest("This account already sent you a friendship request, and is waiting for you to accept it");
+                        return "This account already sent you a friendship request, and is waiting for you to accept it";
                 }
             }
 
@@ -190,7 +190,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -201,12 +201,11 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Use this to accept friend requests and update display names</remarks>
         [HttpPost]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Update(UpdateFriend info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Update(UpdateFriend info)
         {
             try { info.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
 
             var friendship = await DB.Friendships
@@ -225,11 +224,11 @@ namespace DustyPig.Server.Controllers.v3
 
             //Cannot accept on behalf of other person
             if (friendship.Account1Id == UserAccount.Id && !friendship.Accepted && info.Accepted)
-                return BadRequest("Cannot accept friend request on behalf of another person");
+                return "Cannot accept friend request on behalf of another person";
 
             //Cannot go from Accepted to Invited
             if (friendship.Accepted && !info.Accepted)
-                return BadRequest("Cannot go from Accepted to Invited. Please use the delete method");
+                return "Cannot go from Accepted to Invited. Please use the delete method";
 
 
             if (info.Accepted && !friendship.Accepted)
@@ -257,7 +256,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -266,8 +265,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 3
         /// </summary>
         [HttpDelete("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> Unfriend(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Unfriend(int id)
         {
             var friend = await DB.Friendships
                 .Where(item => item.Id == id)
@@ -292,7 +291,7 @@ namespace DustyPig.Server.Controllers.v3
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -302,9 +301,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        public Task<IActionResult> ShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> ShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
 
 
@@ -313,8 +311,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public Task<IActionResult> UnShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> UnShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
     }
 }

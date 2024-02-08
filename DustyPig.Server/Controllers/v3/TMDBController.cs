@@ -8,6 +8,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.TMDB;
 using DustyPig.TMDB.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -22,8 +23,6 @@ namespace DustyPig.Server.Controllers.v3
     [ApiController]
     [ProhibitTestUser]
     [ExceptionLogger(typeof(TMDBController))]
-    [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-    [SwaggerResponse((int)HttpStatusCode.Forbidden)]
     public class TMDBController : _BaseProfileController
     {
         private readonly TMDBClient _client;
@@ -37,21 +36,15 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedTMDB))]
-        public async Task<ActionResult<DetailedTMDB>> GetMovie(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedTMDB>))]
+        public async Task<Result<DetailedTMDB>> GetMovie(int id)
         {
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
                 return CommonResponses.Forbid();
 
             var movie = await _client.GetMovieAsync(id);
             if (!movie.Success)
-            {
-                if (movie.Error.InnerException is System.Net.Http.HttpRequestException httpEx)
-                    if (httpEx.StatusCode == HttpStatusCode.NotFound)
-                        return NotFound(movie.Error.GetErrorResponse().StatusMessage);
-                return BadRequest(movie.Error.GetErrorResponse().StatusMessage);
-            }
+                return movie.Error.GetErrorResponse().StatusMessage;
 
             var ret = new DetailedTMDB
             {
@@ -142,21 +135,15 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet("{id}")]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(DetailedTMDB))]
-        public async Task<ActionResult<DetailedTMDB>> GetSeries(int id)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedTMDB>))]
+        public async Task<Result<DetailedTMDB>> GetSeries(int id)
         {
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
                 return CommonResponses.Forbid();
 
             var series = await _client.GetSeriesAsync(id);
             if (!series.Success)
-            {
-                if (series.Error.InnerException is System.Net.Http.HttpRequestException httpEx)
-                    if (httpEx.StatusCode == HttpStatusCode.NotFound)
-                        return NotFound(series.Error.GetErrorResponse().StatusMessage);
-                return BadRequest(series.Error.GetErrorResponse().StatusMessage);
-            }
+                return series.Error.GetErrorResponse().StatusMessage;
 
             // Response
             var ret = new DetailedTMDB
@@ -235,24 +222,24 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpGet]
-        [SwaggerResponse((int)HttpStatusCode.OK, Type = typeof(TitleRequestPermissionsValue))]
-        public async Task<ActionResult<TitleRequestPermissionsValue>> GetRequestTitlePermission()
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<TitleRequestPermissions>))]
+        public async Task<Result<TitleRequestPermissions>> GetRequestTitlePermission()
         {
             var ret = await CalculateTitleRequestPermissionsAsync();
-            return new TitleRequestPermissionsValue(ret);
+            return ret;
         }
+
 
         /// <summary>
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> RequestTitle(TitleRequest data)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> RequestTitle(TitleRequest data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             //Check for existing request
             var existingSubscription = await DB.GetRequestSubscriptions
@@ -264,7 +251,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingSubscription)
-                return BadRequest("You have already requested this title");
+                return "You have already requested this title";
 
 
 
@@ -273,7 +260,7 @@ namespace DustyPig.Server.Controllers.v3
             if (UserProfile.IsMain)
             {
                 if (data.FriendId == null)
-                    return BadRequest("You cannot request a title from yourself");
+                    return "You cannot request a title from yourself";
 
                 if (data.FriendId.Value <= 0)
                     return CommonResponses.InvalidValue(nameof(data.FriendId));
@@ -297,7 +284,7 @@ namespace DustyPig.Server.Controllers.v3
             else
             {
                 if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                    return Forbid("You are not authorized to request titles");
+                    return "You are not authorized to request titles";
 
                 if (UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
                 {
@@ -431,7 +418,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            return Ok();
+            return Result.BuildSuccess();
         }
 
 
@@ -439,13 +426,12 @@ namespace DustyPig.Server.Controllers.v3
         /// Level 2
         /// </summary>
         [HttpPost]
-        [SwaggerResponse((int)HttpStatusCode.BadRequest)]
-        [SwaggerResponse((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> CancelTitleRequest(TitleRequest data)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> CancelTitleRequest(TitleRequest data)
         {
             //Validate
             try { data.Validate(); }
-            catch (ModelValidationException ex) { return ex.ValidationFailed(); }
+            catch (ModelValidationException ex) { return ex; }
 
             var req = await DB.GetRequestSubscriptions
                 .AsNoTracking()
@@ -461,8 +447,11 @@ namespace DustyPig.Server.Controllers.v3
                 await DB.SaveChangesAsync();
             }
 
-            return Ok();
+            return Result.BuildSuccess();
         }
+
+
+
 
 
 

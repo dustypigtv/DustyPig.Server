@@ -131,7 +131,7 @@ namespace DustyPig.Server.Pages.FirebaseActions
         {
             try
             {
-                return response.FirebaseError().GetFirebaseErrorInfo(method).Text;
+                return response.FirebaseError().TranslateFirebaseError(method);
             }
             catch
             {

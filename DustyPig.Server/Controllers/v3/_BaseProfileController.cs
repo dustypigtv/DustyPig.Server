@@ -1,6 +1,7 @@
 ﻿using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
@@ -36,7 +37,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (profile.Locked)
             {
-                context.Result = CommonResponses.ProfileIsLocked();
+                context.Result = new OkObjectResult(CommonResponses.ProfileIsLocked());
                 return;
             }
 
