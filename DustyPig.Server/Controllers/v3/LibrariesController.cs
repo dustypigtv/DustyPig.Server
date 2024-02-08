@@ -6,14 +6,12 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -136,7 +134,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<BasicLibrary>))]
         public async Task<Result<BasicLibrary>> GetBasic(int id)
         {
-            
+
             //Libs owned by the account
             var lib = await DB.Libraries
                 .AsNoTracking()

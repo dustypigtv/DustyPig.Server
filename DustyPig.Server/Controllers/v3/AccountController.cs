@@ -35,7 +35,7 @@ namespace DustyPig.Server.Controllers.v3
             _jwtProvider = jwtProvider;
         }
 
-        
+
         /// <summary>
         /// Level 0
         /// </summary>
@@ -184,7 +184,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<ActionResult<Result>> ChangePassword([FromBody]string newPassword)
+        public async Task<ActionResult<Result>> ChangePassword([FromBody] string newPassword)
         {
             if (string.IsNullOrWhiteSpace(newPassword))
                 return CommonResponses.RequiredValueMissing(nameof(newPassword));

@@ -13,7 +13,6 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -116,7 +115,7 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> Invite([FromBody]string email)
+        public async Task<Result> Invite([FromBody] string email)
         {
             if (string.IsNullOrWhiteSpace(email))
                 return CommonResponses.InvalidValue(nameof(email));

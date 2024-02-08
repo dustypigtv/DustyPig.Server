@@ -1,21 +1,18 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.Services;
-using Microsoft.AspNetCore.Razor.Language.Intermediate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.IO.Compression;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DustyPig.Server.HostedServices
 {
@@ -24,7 +21,7 @@ namespace DustyPig.Server.HostedServices
         private const int MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
         private const int SUCCESS_RUN_AGAIN = MILLISECONDS_PER_HOUR * 24; //Run again in a day
         private const int FAILURE_RUN_AGAIN = MILLISECONDS_PER_HOUR * 4;  //Run again in 4 hours
-        
+
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
         private readonly ILogger<PopularityUpdater> _logger;
@@ -84,7 +81,7 @@ namespace DustyPig.Server.HostedServices
             await UpdateForEntityAsync(MediaTypes.Series);
         }
 
-        
+
 
         async Task UpdateForEntityAsync(MediaTypes mediaType)
         {

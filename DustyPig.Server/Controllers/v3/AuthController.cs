@@ -39,7 +39,7 @@ namespace DustyPig.Server.Controllers.v3
         /// <param name="token"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
-        public async Task<Result<LoginResponse>> LoginWithFirebaseToken([FromBody]string token)
+        public async Task<Result<LoginResponse>> LoginWithFirebaseToken([FromBody] string token)
         {
             //For mobile clients that login using the Firebase lib, this will convert the Firebase token to a DustyPig token
 
@@ -173,7 +173,7 @@ namespace DustyPig.Server.Controllers.v3
         /// <param name="email"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> SendPasswordResetEmail([FromBody]string email)
+        public async Task<Result> SendPasswordResetEmail([FromBody] string email)
         {
             if (string.IsNullOrWhiteSpace(email))
                 return CommonResponses.RequiredValueMissing(nameof(email));
@@ -234,7 +234,7 @@ namespace DustyPig.Server.Controllers.v3
         /// <param name="code"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DeviceCodeStatus>))]
-        public async Task<Result<DeviceCodeStatus>> VerifyDeviceLoginCode([FromBody]string code)
+        public async Task<Result<DeviceCodeStatus>> VerifyDeviceLoginCode([FromBody] string code)
         {
             if (string.IsNullOrWhiteSpace(code))
                 return CommonResponses.RequiredValueMissing(nameof(code));
@@ -287,7 +287,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<ActionResult<Result>> LoginDeviceWithCode([FromBody]string code)
+        public async Task<ActionResult<Result>> LoginDeviceWithCode([FromBody] string code)
         {
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
@@ -472,7 +472,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
-        public async Task<ActionResult<Result<LoginResponse>>> UpdateAuthToken([FromBody]string fcmToken)
+        public async Task<ActionResult<Result<LoginResponse>>> UpdateAuthToken([FromBody] string fcmToken)
         {
             var (account, profile) = await User.VerifyAsync();
 
@@ -518,7 +518,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-        public async Task<ActionResult<Result<string>>> UpdateFCMToken([FromBody]string newFCMToken)
+        public async Task<ActionResult<Result<string>>> UpdateFCMToken([FromBody] string newFCMToken)
         {
             var (account, profile) = await User.VerifyAsync();
 

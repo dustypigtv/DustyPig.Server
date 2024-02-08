@@ -2,11 +2,9 @@
 using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Data;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Collections.Generic;
 
 namespace DustyPig.Server.Controllers.v3
 {

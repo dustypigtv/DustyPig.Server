@@ -59,7 +59,7 @@ namespace DustyPig.Server
 
             //*** JWT Encryption Key ***
             JWTProvider.Configure(Configuration["jwt-key"]);
-            
+
 
             //*** S3 credentials for artwork ***
             S3.Configure(Configuration["s3-url"], Configuration["s3-key"], Configuration["s3-secret"]);
@@ -357,7 +357,7 @@ namespace DustyPig.Server
             });
 
             app.UseRouting();
-            
+
             app.UseCors();
 
             app.UseAuthentication();

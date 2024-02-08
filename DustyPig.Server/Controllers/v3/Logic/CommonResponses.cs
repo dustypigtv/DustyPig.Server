@@ -1,6 +1,4 @@
 ﻿using DustyPig.API.v3.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
