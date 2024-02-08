@@ -207,7 +207,7 @@ namespace DustyPig.Server
                     Title = "Dusty Pig API - BETA",
                     Description = "API for the Dusty Pig. Each method is marked with a level:<br /><p>" +
                     "Level 0: No authentication needed<br />" +
-                    "Level 1: User must present an account token from either auth/oauthlogin or auth/passwordlogin<br />" +
+                    "Level 1: User must present an account token from either Auth/LoginWithFirebaseToken or Auth/PasswordLogin<br />" +
                     "Level 2: User must present a profile token from auth/profilelogin<br />" +
                     "Level 3: User must be the main profile on the account</p><br /><br /><p>" +
                     $"Server: v{Program.ServerVersion}<br />" +
@@ -224,21 +224,6 @@ namespace DustyPig.Server
                     Description = "JWT Token"
                 });
 
-                //options.AddSecurityRequirement(new OpenApiSecurityRequirement()
-                //{
-                //    {
-                //        new OpenApiSecurityScheme
-                //        {
-                //            Reference = new OpenApiReference
-                //            {
-                //                Type = ReferenceType.SecurityScheme,
-                //                Id = "bearerAuth"
-                //            },
-                //            In = ParameterLocation.Header,
-                //        },
-                //        Array.Empty<string>()
-                //    }
-                //});
                 options.OperationFilter<AuthorizeCheckOperationFilter>();
 
 
@@ -320,7 +305,6 @@ namespace DustyPig.Server
                     return versions?.Any(v => $"v{v}" == version) == true && (!maps.Any() || maps.Any(v => $"v{v}" == version));
                 });
             });
-            //services.AddSwaggerGenNewtonsoftSupport();
 
 
 
