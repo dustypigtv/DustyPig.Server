@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace DustyPig.Server.HostedServices
 {
-    public class PopularityUpdater : IHostedService, IDisposable
+    public class TMDB_Updater : IHostedService, IDisposable
     {
         private const int MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
         private const int SUCCESS_RUN_AGAIN = MILLISECONDS_PER_HOUR * 24; //Run again in a day
@@ -24,9 +24,9 @@ namespace DustyPig.Server.HostedServices
 
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
-        private readonly ILogger<PopularityUpdater> _logger;
+        private readonly ILogger<TMDB_Updater> _logger;
 
-        public PopularityUpdater(ILogger<PopularityUpdater> logger)
+        public TMDB_Updater(ILogger<TMDB_Updater> logger)
         {
             _logger = logger;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
@@ -42,7 +42,7 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            _timer.Change(10_000, Timeout.Infinite);
+            //_timer.Change(10_000, Timeout.Infinite);
             return Task.CompletedTask;
         }
 
@@ -57,9 +57,7 @@ namespace DustyPig.Server.HostedServices
             bool success = false;
             try
             {
-#if !DEBUG
                 await DoUpdate();
-#endif
                 success = true;
             }
             catch (Exception ex)

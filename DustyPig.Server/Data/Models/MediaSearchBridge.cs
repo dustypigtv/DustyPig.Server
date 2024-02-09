@@ -4,6 +4,7 @@ namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(MediaEntryId), IsUnique = false)]
     [Index(nameof(SearchTermId), IsUnique = false)]
+    [PrimaryKey(nameof(MediaEntryId), nameof(SearchTermId))]
     public class MediaSearchBridge
     {
         public int MediaEntryId { get; set; }

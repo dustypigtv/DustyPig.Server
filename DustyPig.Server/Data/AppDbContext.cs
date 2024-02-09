@@ -1,4 +1,5 @@
-﻿using DustyPig.Server.Data.Models;
+﻿using Amazon.S3.Model;
+using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -46,6 +47,10 @@ namespace DustyPig.Server.Data
         public DbSet<TitleOverride> TitleOverrides { get; set; }
         public DbSet<WatchlistItem> WatchListItems { get; set; }
 
+        public DbSet<TMDB_Entry> TMDB_Entries { get; set; }
+        public DbSet<TMDB_Person> TMDB_People { get; set; }
+        public DbSet<TMDB_EntryPersonBridge> TMDB_EntryPeopleBridges { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);
@@ -70,21 +75,7 @@ namespace DustyPig.Server.Data
         {
             base.OnModelCreating(modelBuilder);
 
-
-
-            //Composite Keys
-            modelBuilder.Entity<AutoPlaylistSeries>().HasKey(e => new { e.PlaylistId, e.MediaEntryId });
-            modelBuilder.Entity<FriendLibraryShare>().HasKey(e => new { e.FriendshipId, e.LibraryId });
-            modelBuilder.Entity<GetRequestSubscription>().HasKey(e => new { e.GetRequestId, e.ProfileId });
-            modelBuilder.Entity<MediaPersonBridge>().HasKey(e => new { e.MediaEntryId, e.PersonId, e.Role });
-            modelBuilder.Entity<MediaSearchBridge>().HasKey(e => new { e.MediaEntryId, e.SearchTermId });
-            modelBuilder.Entity<ProfileLibraryShare>().HasKey(e => new { e.ProfileId, e.LibraryId });
-            modelBuilder.Entity<ProfileMediaProgress>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
-            modelBuilder.Entity<Subscription>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
-            modelBuilder.Entity<WatchlistItem>().HasKey(e => new { e.ProfileId, e.MediaEntryId });
-
-
-            //Manually set OnDelete = Cascade for tables with optional links
+            //Manually set OnDelete = Cascade for tables with optional one-to-many links
             modelBuilder.Entity<ActivationCode>().HasOne(p => p.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<MediaEntry>().HasOne(p => p.LinkedTo).WithMany().OnDelete(DeleteBehavior.Cascade);
 
@@ -96,6 +87,7 @@ namespace DustyPig.Server.Data
                 e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(p => p.TitleOverride).WithMany().OnDelete(DeleteBehavior.SetNull);
             });
+           
         }
 
 

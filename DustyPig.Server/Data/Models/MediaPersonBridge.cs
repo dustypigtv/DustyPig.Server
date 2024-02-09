@@ -4,16 +4,17 @@ using System.Collections.Generic;
 
 namespace DustyPig.Server.Data.Models
 {
-    public enum Roles : int
-    {
-        Cast = 1,
-        Director = 2,
-        Producer = 3,
-        Writer = 4
-    }
+    //public enum Roles : int
+    //{
+    //    Cast = 1,
+    //    Director = 2,
+    //    Producer = 3,
+    //    Writer = 4
+    //}
 
     [Index(nameof(MediaEntryId), IsUnique = false)]
     [Index(nameof(PersonId), IsUnique = false)]
+    [PrimaryKey(nameof(MediaEntryId), nameof(PersonId), nameof(Role))]
     public class MediaPersonBridge : IEquatable<MediaPersonBridge>
     {
         public int MediaEntryId { get; set; }
