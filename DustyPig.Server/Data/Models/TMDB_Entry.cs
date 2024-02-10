@@ -31,12 +31,11 @@ namespace DustyPig.Server.Data.Models
         public TVRatings? TVRating { get; set; }
 
         public DateTime? Date { get; set; }
-
-        [MaxLength(Constants.MAX_URL_LENGTH)]
-        public string PosterUrl { get; set; }
-
+                
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BackdropUrl { get; set; }
+
+        public ulong BackdropSize { get; set; }
 
         public double Popularity { get; set; }
 

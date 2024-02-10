@@ -16,7 +16,7 @@ namespace DustyPig.Server.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.15")
+                .HasAnnotation("ProductVersion", "7.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Account", b =>
@@ -35,7 +35,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("FirebaseId")
                         .IsUnique();
 
-                    b.ToTable("Accounts");
+                    b.ToTable("Accounts", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.AccountToken", b =>
@@ -51,7 +51,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("AccountTokens");
+                    b.ToTable("AccountTokens", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.ActivationCode", b =>
@@ -67,7 +67,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("AccountId");
 
-                    b.ToTable("ActivationCodes");
+                    b.ToTable("ActivationCodes", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.AutoPlaylistSeries", b =>
@@ -84,7 +84,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("PlaylistId");
 
-                    b.ToTable("AutoPlaylistSeries");
+                    b.ToTable("AutoPlaylistSeries", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.FCMToken", b =>
@@ -116,7 +116,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("FCMTokens");
+                    b.ToTable("FCMTokens", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.FriendLibraryShare", b =>
@@ -135,7 +135,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("LibraryId");
 
-                    b.ToTable("FriendLibraryShares");
+                    b.ToTable("FriendLibraryShares", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Friendship", b =>
@@ -175,7 +175,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("Hash")
                         .IsUnique();
 
-                    b.ToTable("Friendships");
+                    b.ToTable("Friendships", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.GetRequest", b =>
@@ -206,7 +206,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("AccountId", "EntryType", "TMDB_Id")
                         .IsUnique();
 
-                    b.ToTable("GetRequests");
+                    b.ToTable("GetRequests", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.GetRequestSubscription", b =>
@@ -221,7 +221,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("GetRequestSubscriptions");
+                    b.ToTable("GetRequestSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Library", b =>
@@ -246,7 +246,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("AccountId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Libraries");
+                    b.ToTable("Libraries", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.LogEntry", b =>
@@ -279,7 +279,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Logs");
+                    b.ToTable("Logs", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaEntry", b =>
@@ -482,9 +482,6 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<int?>("TMDB_EntryId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("TMDB_Id")
                         .HasColumnType("int");
 
@@ -590,8 +587,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("MovieRating");
 
-                    b.HasIndex("TMDB_EntryId");
-
                     b.HasIndex("TMDB_Id");
 
                     b.HasIndex("TVRating");
@@ -599,7 +594,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("LibraryId", "EntryType", "TMDB_Id", "Hash")
                         .IsUnique();
 
-                    b.ToTable("MediaEntries");
+                    b.ToTable("MediaEntries", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaPersonBridge", b =>
@@ -622,7 +617,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.ToTable("MediaPersonBridges");
+                    b.ToTable("MediaPersonBridges", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaSearchBridge", b =>
@@ -639,7 +634,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("SearchTermId");
 
-                    b.ToTable("MediaSearchBridges");
+                    b.ToTable("MediaSearchBridges", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Notification", b =>
@@ -695,7 +690,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("TitleOverrideId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Person", b =>
@@ -719,7 +714,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("Hash")
                         .IsUnique();
 
-                    b.ToTable("People");
+                    b.ToTable("People", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Playlist", b =>
@@ -760,7 +755,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("ProfileId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Playlists");
+                    b.ToTable("Playlists", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.PlaylistItem", b =>
@@ -784,7 +779,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("PlaylistId");
 
-                    b.ToTable("PlaylistItems");
+                    b.ToTable("PlaylistItems", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Profile", b =>
@@ -830,7 +825,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("AccountId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Profiles");
+                    b.ToTable("Profiles", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.ProfileLibraryShare", b =>
@@ -847,7 +842,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("ProfileLibraryShares");
+                    b.ToTable("ProfileLibraryShares", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.ProfileMediaProgress", b =>
@@ -873,7 +868,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("ProfileMediaProgresses");
+                    b.ToTable("ProfileMediaProgresses", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.S3ArtFileToDelete", b =>
@@ -889,7 +884,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("S3ArtFilesToDelete");
+                    b.ToTable("S3ArtFilesToDelete", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.SearchTerm", b =>
@@ -915,7 +910,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("Term");
 
-                    b.ToTable("SearchTerms");
+                    b.ToTable("SearchTerms", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Subscription", b =>
@@ -932,7 +927,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("Subscriptions");
+                    b.ToTable("Subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Subtitle", b =>
@@ -964,106 +959,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("MediaEntryId", "Name")
                         .IsUnique();
 
-                    b.ToTable("Subtitles");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Entry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("BackdropUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<DateTime?>("Date")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(10000)
-                        .HasColumnType("varchar(10000)");
-
-                    b.Property<DateTime>("LastUpdated")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("MediaType")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MovieRating")
-                        .HasColumnType("int");
-
-                    b.Property<double>("Popularity")
-                        .HasColumnType("double");
-
-                    b.Property<string>("PosterUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<int>("TMDB_Id")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TVRating")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MediaType");
-
-                    b.HasIndex("TMDB_Id");
-
-                    b.HasIndex("TMDB_Id", "MediaType")
-                        .IsUnique();
-
-                    b.ToTable("TMDB_Entries");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_EntryPersonBridge", b =>
-                {
-                    b.Property<int>("TMDB_EntryId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TMDB_PersonId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("TMDB_EntryId", "TMDB_PersonId", "Role");
-
-                    b.HasIndex("TMDB_EntryId");
-
-                    b.HasIndex("TMDB_PersonId");
-
-                    b.ToTable("TMDB_EntryPeopleBridges");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Person", b =>
-                {
-                    b.Property<int>("TMDB_Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("AvatarUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.HasKey("TMDB_Id");
-
-                    b.ToTable("TMDB_People");
+                    b.ToTable("Subtitles", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.TitleOverride", b =>
@@ -1093,7 +989,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("ProfileId", "MediaEntryId")
                         .IsUnique();
 
-                    b.ToTable("TitleOverrides");
+                    b.ToTable("TitleOverrides", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.WatchlistItem", b =>
@@ -1113,7 +1009,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("ProfileId");
 
-                    b.ToTable("WatchListItems");
+                    b.ToTable("WatchListItems", (string)null);
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.AccountToken", b =>
@@ -1263,16 +1159,9 @@ namespace DustyPig.Server.Data.Migrations
                         .HasForeignKey("LinkedToId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("DustyPig.Server.Data.Models.TMDB_Entry", "TMDB_Entry")
-                        .WithMany("MediaEntries")
-                        .HasForeignKey("TMDB_EntryId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Library");
 
                     b.Navigation("LinkedTo");
-
-                    b.Navigation("TMDB_Entry");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaPersonBridge", b =>
@@ -1461,25 +1350,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Navigation("MediaEntry");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_EntryPersonBridge", b =>
-                {
-                    b.HasOne("DustyPig.Server.Data.Models.TMDB_Entry", "TMDB_Entry")
-                        .WithMany("People")
-                        .HasForeignKey("TMDB_EntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DustyPig.Server.Data.Models.TMDB_Person", "TMDB_Person")
-                        .WithMany("TMDB_EntryBridges")
-                        .HasForeignKey("TMDB_PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TMDB_Entry");
-
-                    b.Navigation("TMDB_Person");
-                });
-
             modelBuilder.Entity("DustyPig.Server.Data.Models.TitleOverride", b =>
                 {
                     b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
@@ -1601,18 +1471,6 @@ namespace DustyPig.Server.Data.Migrations
             modelBuilder.Entity("DustyPig.Server.Data.Models.SearchTerm", b =>
                 {
                     b.Navigation("SearchTermBridges");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Entry", b =>
-                {
-                    b.Navigation("MediaEntries");
-
-                    b.Navigation("People");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Person", b =>
-                {
-                    b.Navigation("TMDB_EntryBridges");
                 });
 #pragma warning restore 612, 618
         }

@@ -168,21 +168,15 @@ namespace DustyPig.Server.HostedServices
                         //Backdrop Url
                         if (entryData.MissingBackdropCount > 0 && !string.IsNullOrWhiteSpace(info.BackdropUrl))
                         {
-                            try
-                            {
-                                var size = await SimpleDownloader.GetDownloadSizeAsync(info.BackdropUrl, null, _cancellationToken);
-
-                                await Task.Delay(100, _cancellationToken);
-                                cmd = conn.CreateCommand();
-                                cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.BackdropUrl)}=@p1, {nameof(MediaEntry.BackdropSize)}=@p2 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND ({nameof(MediaEntry.BackdropUrl)}=@p5 OR {nameof(MediaEntry.BackdropUrl)} IS NULL)";
-                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.BackdropUrl));
-                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", size));
-                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryData.TMDB_Id));
-                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", (int)mediaType));
-                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p5", ""));
-                                await cmd.ExecuteNonQueryAsync(_cancellationToken);
-                            }
-                            catch { }
+                            await Task.Delay(100, _cancellationToken);
+                            cmd = conn.CreateCommand();
+                            cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.BackdropUrl)}=@p1, {nameof(MediaEntry.BackdropSize)}=@p2 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND ({nameof(MediaEntry.BackdropUrl)}=@p5 OR {nameof(MediaEntry.BackdropUrl)} IS NULL)";
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.BackdropUrl));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", (ulong)info.BackdropSize));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryData.TMDB_Id));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", (int)mediaType));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p5", ""));
+                            await cmd.ExecuteNonQueryAsync(_cancellationToken);
                         }
 
                         //Link
@@ -238,7 +232,6 @@ namespace DustyPig.Server.HostedServices
 
             //Make sure movie exists
             var backdropUrl = TMDB.Utils.GetFullBackdropPath(movie.BackdropPath, false);
-            var posterUrl = TMDB.Utils.GetFullPosterPath(movie.PosterPath, false);
 
 
             bool changed = false;
@@ -256,8 +249,14 @@ namespace DustyPig.Server.HostedServices
 
             if (entry.BackdropUrl != backdropUrl)
             {
-                entry.BackdropUrl = backdropUrl;
-                changed = true;
+                try
+                {
+                    var size = await SimpleDownloader.GetDownloadSizeAsync(entry.BackdropUrl, cancellationToken);
+                    entry.BackdropUrl = backdropUrl;
+                    entry.BackdropSize = (ulong)size;
+                    changed = true;
+                }
+                catch { }
             }
             if (entry.Date != movie.ReleaseDate)
             {
@@ -272,11 +271,6 @@ namespace DustyPig.Server.HostedServices
             if (entry.Popularity != movie.Popularity)
             {
                 entry.Popularity = movie.Popularity;
-                changed = true;
-            }
-            if (entry.PosterUrl != posterUrl)
-            {
-                entry.PosterUrl = posterUrl;
                 changed = true;
             }
             if (entry.Title != movie.Title)
@@ -345,7 +339,6 @@ namespace DustyPig.Server.HostedServices
 
             //Make sure entity exists
             var backdropUrl = TMDB.Utils.GetFullBackdropPath(series.BackdropPath, false);
-            var posterUrl = TMDB.Utils.GetFullPosterPath(series.PosterPath, false);
 
 
             bool changed = false;
@@ -363,8 +356,14 @@ namespace DustyPig.Server.HostedServices
 
             if (entry.BackdropUrl != backdropUrl)
             {
-                entry.BackdropUrl = backdropUrl;
-                changed = true;
+                try
+                {
+                    var size = await SimpleDownloader.GetDownloadSizeAsync(entry.BackdropUrl, cancellationToken);
+                    entry.BackdropUrl = backdropUrl;
+                    entry.BackdropSize = (ulong)size;
+                    changed = true;
+                }
+                catch { }
             }
             if (entry.Date != series.FirstAirDate)
             {
@@ -380,11 +379,6 @@ namespace DustyPig.Server.HostedServices
             {
                 entry.Popularity = series.Popularity;
                 changed = true;
-            }
-            if (entry.PosterUrl != posterUrl)
-            {
-                entry.PosterUrl = posterUrl;
-                db.TMDB_Entries.Update(entry);
             }
             if (entry.Title != series.Title)
             {
@@ -737,10 +731,9 @@ namespace DustyPig.Server.HostedServices
             /// DB Id, not TMDB_ID
             /// </summary>
             public int Id { get; set; }
-
-
             public double Popularity { get; set; }
             public string BackdropUrl { get; set; }
+            public ulong BackdropSize { get; set; }
             public MovieRatings? MovieRating { get; set; }
             public TVRatings? TVRating { get; set; }
             public string Overview { get; set; }
@@ -751,6 +744,7 @@ namespace DustyPig.Server.HostedServices
                 {
                     Id = entry.Id,
                     BackdropUrl = entry.BackdropUrl,
+                    BackdropSize = entry.BackdropSize,
                     MovieRating = entry.MovieRating,
                     Overview = entry.Description,
                     Popularity = entry.Popularity,
