@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data.Models;
+using System;
 using System.Linq;
 
 namespace DustyPig.Server.Controllers.v3.Logic
@@ -15,12 +16,17 @@ namespace DustyPig.Server.Controllers.v3.Logic
         ///     .Include(item => item.Account2)
         ///     .ThenInclude(item => item.Profiles)
         /// </summary>
-        public static BasicFriend ToBasicFriendInfo(this Friendship self, int accountId) => new BasicFriend
+        public static BasicFriend ToBasicFriendInfo(this Friendship self, int accountId)
         {
-            Id = self.Id,
-            DisplayName = self.GetFriendDisplayNameForAccount(accountId),
-            AvatarUrl = self.GetFriendAvatar(accountId)
-        };
+            var displayName = self.GetFriendDisplayNameForAccount(accountId);
+            return new BasicFriend
+            {
+                Id = self.Id,
+                DisplayName = displayName,
+                Initials = displayName.GetInitials(),
+                AvatarUrl = self.GetFriendAvatar(accountId)
+            };
+        }
 
 
 

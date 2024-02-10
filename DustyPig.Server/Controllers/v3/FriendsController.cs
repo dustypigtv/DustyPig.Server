@@ -85,6 +85,8 @@ namespace DustyPig.Server.Controllers.v3
                 DisplayName = friend.GetFriendDisplayNameForAccount(UserAccount.Id),
                 AvatarUrl = friend.GetFriendAvatar(UserAccount.Id)
             };
+            ret.Initials = ret.DisplayName.GetInitials();
+
 
             foreach (var share in friend.FriendLibraryShares)
             {

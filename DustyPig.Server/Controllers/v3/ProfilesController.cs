@@ -83,6 +83,7 @@ namespace DustyPig.Server.Controllers.v3
                 MaxMovieRating = profile.MaxMovieRating,
                 MaxTVRating = profile.MaxTVRating,
                 Name = profile.Name,
+                Initials = profile.Name.GetInitials(),
                 HasPin = profile.PinNumber != null,
                 TitleRequestPermissions = profile.TitleRequestPermission
             };

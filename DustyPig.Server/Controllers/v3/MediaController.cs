@@ -326,13 +326,64 @@ namespace DustyPig.Server.Controllers.v3
              ****************************************/
             ret.OtherTitlesAllowed = UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled;
 
-            if (request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed)
+            var searchOtherTitles = request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed;
+            if (request.SearchPeople || searchOtherTitles)
             {
                 var response = await _tmdbClient.SearchAsync(request.Query, cancellationToken);
                 if (response.Success && response.Data.Count > 0)
                 {
-                    ret.OtherTitles ??= new();
-                    ret.OtherTitles.AddRange(response.Data.Select(item => item.ToBasicTMDBInfo()).Take(DEFAULT_LIST_SIZE));
+                    if (searchOtherTitles)
+                    {
+                        ret.OtherTitles ??= [];
+                        ret.OtherTitles.AddRange
+                            (
+                                response.Data
+                                    .Where(item => item.SearchResultType != TMDB.Models.SearchResultTypes.Person)
+                                    .Select(item => item.ToBasicTMDBInfo())
+                                    .Take(DEFAULT_LIST_SIZE)
+                            );
+                    }
+
+                    if (request.SearchPeople)
+                    {
+                        var apiPeopleIds = response.Data
+                            .Where(item => item.SearchResultType == TMDB.Models.SearchResultTypes.Person)
+                            .Select(item => item.Id)
+                            .ToList();
+
+                        var dbPeopleIds = await DB.TMDB_People
+                            .AsNoTracking()
+                            .Where(item => apiPeopleIds.Contains(item.TMDB_Id))
+                            .Select(item => item.TMDB_Id)
+                            .ToListAsync();
+
+                        if(dbPeopleIds.Count > 0)
+                        {
+                            //Keep the sort order of the api request
+                            ret.AvailablePeople ??= [];
+                            ret.AvailablePeople.AddRange
+                                (
+                                    response.Data
+                                        .Where(item => item.SearchResultType == TMDB.Models.SearchResultTypes.Person)
+                                        .Where(item => dbPeopleIds.Contains(item.Id))
+                                        .Select(item => item.ToTMDBPerson())
+                                        .Take(DEFAULT_LIST_SIZE)
+                                ); ;
+                        }
+
+
+                        if (searchOtherTitles)
+                        {
+                            ret.OtherPeople ??= [];
+                            ret.OtherPeople.AddRange
+                                (
+                                    response.Data
+                                        .Where(item => item.SearchResultType == TMDB.Models.SearchResultTypes.Person)
+                                        .Select(item => item.ToTMDBPerson())
+                                        .Take(DEFAULT_LIST_SIZE)
+                                );
+                        }
+                    }
                 }
             }
 
