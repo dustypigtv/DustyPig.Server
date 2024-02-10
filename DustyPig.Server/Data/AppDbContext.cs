@@ -30,10 +30,8 @@ namespace DustyPig.Server.Data
         public DbSet<Library> Libraries { get; set; }
         public DbSet<LogEntry> Logs { get; set; }
         public DbSet<MediaEntry> MediaEntries { get; set; }
-        public DbSet<MediaPersonBridge> MediaPersonBridges { get; set; }
         public DbSet<MediaSearchBridge> MediaSearchBridges { get; set; }
         public DbSet<Notification> Notifications { get; set; }
-        public DbSet<Person> People { get; set; }
         public DbSet<Playlist> Playlists { get; set; }
         public DbSet<PlaylistItem> PlaylistItems { get; set; }
         public DbSet<Profile> Profiles { get; set; }

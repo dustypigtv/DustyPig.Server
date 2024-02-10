@@ -273,12 +273,7 @@ namespace DustyPig.Server.HostedServices
                 entry.Popularity = movie.Popularity;
                 changed = true;
             }
-            if (entry.Title != movie.Title)
-            {
-                entry.Title = movie.Title;
-                changed = true;
-            }
-
+           
             //Ratings
             var ratingStr = TryMapMovieRatings(movie.Releases);
             MovieRatings? movieRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToMovieRatings();
@@ -380,12 +375,7 @@ namespace DustyPig.Server.HostedServices
                 entry.Popularity = series.Popularity;
                 changed = true;
             }
-            if (entry.Title != series.Title)
-            {
-                entry.Title = series.Title;
-                changed = true;
-            }
-
+            
             //Ratings
             var ratingStr = TryMapTVRatings(series.ContentRatings);
             TVRatings? tvRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToTVRatings();

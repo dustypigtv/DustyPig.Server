@@ -67,9 +67,6 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
 
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
-
                 .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
 
                 .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))

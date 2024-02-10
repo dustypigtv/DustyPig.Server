@@ -12,6 +12,12 @@ namespace DustyPig.Server.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "MediaPersonBridges");
+
+            migrationBuilder.DropTable(
+                name: "People");
+
             migrationBuilder.AddColumn<int>(
                 name: "TMDB_EntryId",
                 table: "MediaEntries",
@@ -26,8 +32,6 @@ namespace DustyPig.Server.Data.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     TMDB_Id = table.Column<int>(type: "int", nullable: false),
                     MediaType = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "varchar(10000)", maxLength: 10000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MovieRating = table.Column<int>(type: "int", nullable: true),
@@ -88,6 +92,16 @@ namespace DustyPig.Server.Data.Migrations
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaEntries_Added",
+                table: "MediaEntries",
+                column: "Added");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaEntries_EntryType",
+                table: "MediaEntries",
+                column: "EntryType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaEntries_Popularity",
@@ -156,6 +170,14 @@ namespace DustyPig.Server.Data.Migrations
                 name: "TMDB_People");
 
             migrationBuilder.DropIndex(
+                name: "IX_MediaEntries_Added",
+                table: "MediaEntries");
+
+            migrationBuilder.DropIndex(
+                name: "IX_MediaEntries_EntryType",
+                table: "MediaEntries");
+
+            migrationBuilder.DropIndex(
                 name: "IX_MediaEntries_Popularity",
                 table: "MediaEntries");
 
@@ -170,6 +192,66 @@ namespace DustyPig.Server.Data.Migrations
             migrationBuilder.DropColumn(
                 name: "TMDB_EntryId",
                 table: "MediaEntries");
+
+            migrationBuilder.CreateTable(
+                name: "People",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_People", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "MediaPersonBridges",
+                columns: table => new
+                {
+                    MediaEntryId = table.Column<int>(type: "int", nullable: false),
+                    PersonId = table.Column<int>(type: "int", nullable: false),
+                    Role = table.Column<int>(type: "int", nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_MediaPersonBridges", x => new { x.MediaEntryId, x.PersonId, x.Role });
+                    table.ForeignKey(
+                        name: "FK_MediaPersonBridges_MediaEntries_MediaEntryId",
+                        column: x => x.MediaEntryId,
+                        principalTable: "MediaEntries",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MediaPersonBridges_People_PersonId",
+                        column: x => x.PersonId,
+                        principalTable: "People",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaPersonBridges_MediaEntryId",
+                table: "MediaPersonBridges",
+                column: "MediaEntryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaPersonBridges_PersonId",
+                table: "MediaPersonBridges",
+                column: "PersonId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_People_Hash",
+                table: "People",
+                column: "Hash",
+                unique: true);
         }
     }
 }

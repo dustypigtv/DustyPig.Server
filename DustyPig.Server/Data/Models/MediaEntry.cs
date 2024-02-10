@@ -10,14 +10,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(LibraryId), nameof(EntryType), nameof(TMDB_Id), nameof(Hash), IsUnique = true)]
-    [Index(nameof(LibraryId), IsUnique = false)]
-    [Index(nameof(TMDB_Id), IsUnique = false)]
+    [Index(nameof(LibraryId))]
+    [Index(nameof(TMDB_Id))]
     [Index(nameof(MovieRating))]
     [Index(nameof(TVRating))]
     [Index(nameof(LinkedToId))]
-    [Index(nameof(Popularity), IsUnique = false)]
-    [Index(nameof(PopularityUpdated), IsUnique = false)]
-    [Index(nameof(TMDB_EntryId), IsUnique = false)]
+    [Index(nameof(Popularity))]
+    [Index(nameof(PopularityUpdated))]
+    [Index(nameof(TMDB_EntryId))]
+    [Index(nameof(EntryType))]
+    [Index(nameof(Added))]
     [Index(nameof(Genre_Action))]
     [Index(nameof(Genre_Adventure))]
     [Index(nameof(Genre_Animation))]
@@ -158,9 +160,6 @@ namespace DustyPig.Server.Data.Models
         /// Size in Bytes
         /// </summary>
         public ulong BifSize { get; set; }
-
-
-        public List<MediaPersonBridge> People { get; set; }
 
         public DateTime? Added { get; set; }
 
