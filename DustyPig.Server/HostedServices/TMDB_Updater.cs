@@ -72,14 +72,15 @@ namespace DustyPig.Server.HostedServices
         private async Task DoUpdate()
         {
             using var db = new AppDbContext();
-            
+
             var entryDatQuery =
                 from me in db.MediaEntries
                     .Where(item => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(item.EntryType))
                     .Where(item => item.PopularityUpdated == null || item.PopularityUpdated <= DateTime.UtcNow.AddDays(-1))
                     .Where(item => item.TMDB_Id.HasValue)
                     .Where(item => item.TMDB_Id > 0)
-                group me by new { me.TMDB_Id, me.EntryType } into g                
+
+                group me by new { me.TMDB_Id, me.EntryType } into g
                 select new
                 {
                     TMDB_Id = g.Key.TMDB_Id.Value,
@@ -221,7 +222,7 @@ namespace DustyPig.Server.HostedServices
             await Task.Delay(100, cancellationToken);
             var entry = await db.TMDB_Entries
                 .AsNoTracking()
-                .Where(item => item.TMDB_Id == movie.Id)
+                .Where(item => item.TMDB_Id == tmdbId)
                 .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -246,14 +247,14 @@ namespace DustyPig.Server.HostedServices
             {
                 entry = new TMDB_Entry
                 {
-                    TMDB_Id = movie.Id,
+                    TMDB_Id = tmdbId,
                     MediaType = TMDB_MediaTypes.Movie
                 };
                 changed = true;
                 newEntry = true;
             }
 
-            if (entry.BackdropUrl != backdropUrl)
+            if (entry.BackdropUrl != backdropUrl && !string.IsNullOrWhiteSpace(backdropUrl))
             {
                 try
                 {
@@ -279,7 +280,7 @@ namespace DustyPig.Server.HostedServices
                 entry.Popularity = movie.Popularity;
                 changed = true;
             }
-           
+
             //Ratings
             var ratingStr = TryMapMovieRatings(movie.Releases);
             MovieRatings? movieRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToMovieRatings();
@@ -304,7 +305,7 @@ namespace DustyPig.Server.HostedServices
                 await db.SaveChangesAsync(cancellationToken);
             }
 
-            await BridgeEntryAndPeopleAsync(entry.TMDB_Id, TMDB_MediaTypes.Movie, movie.Credits, cancellationToken);
+            await BridgeEntryAndPeopleAsync(tmdbId, TMDB_MediaTypes.Movie, movie.Credits, cancellationToken);
 
             return TMDBInfo.FromEntry(entry);
         }
@@ -324,7 +325,7 @@ namespace DustyPig.Server.HostedServices
             await Task.Delay(100, cancellationToken);
             var entry = await db.TMDB_Entries
                 .AsNoTracking()
-                .Where(item => item.TMDB_Id == series.Id)
+                .Where(item => item.TMDB_Id == tmdbId)
                 .Where(item => item.MediaType == TMDB_MediaTypes.Series)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -349,14 +350,14 @@ namespace DustyPig.Server.HostedServices
             {
                 entry = new TMDB_Entry
                 {
-                    TMDB_Id = series.Id,
+                    TMDB_Id = tmdbId,
                     MediaType = TMDB_MediaTypes.Series
                 };
                 changed = true;
                 newEntry = true;
             }
 
-            if (entry.BackdropUrl != backdropUrl)
+            if (entry.BackdropUrl != backdropUrl && !string.IsNullOrWhiteSpace(backdropUrl))
             {
                 try
                 {
@@ -382,7 +383,7 @@ namespace DustyPig.Server.HostedServices
                 entry.Popularity = series.Popularity;
                 changed = true;
             }
-            
+
             //Ratings
             var ratingStr = TryMapTVRatings(series.ContentRatings);
             TVRatings? tvRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToTVRatings();
@@ -406,7 +407,7 @@ namespace DustyPig.Server.HostedServices
                 await db.SaveChangesAsync();
             }
 
-            await BridgeEntryAndPeopleAsync(entry.TMDB_Id, TMDB_MediaTypes.Series, series.Credits, cancellationToken);
+            await BridgeEntryAndPeopleAsync(tmdbId, TMDB_MediaTypes.Series, series.Credits, cancellationToken);
 
             return TMDBInfo.FromEntry(entry);
         }
@@ -571,14 +572,19 @@ namespace DustyPig.Server.HostedServices
                 await Task.Delay(100, cancellationToken);
                 await db.SaveChangesAsync(cancellationToken);
 
+                var alreadySet = new List<int>();
                 foreach (var item in credits.Cast)
-                    db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
+                    if (!alreadySet.Contains(item.Id))
                     {
-                        TMDB_EntryId = entry.Id,
-                        TMDB_PersonId = item.Id,
-                        Role = Roles.Cast,
-                        SortOrder = item.Order
-                    });
+                        db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
+                        {
+                            TMDB_EntryId = entry.Id,
+                            TMDB_PersonId = item.Id,
+                            Role = Roles.Cast,
+                            SortOrder = item.Order
+                        });
+                        alreadySet.Add(item.Id);
+                    }
 
                 await Task.Delay(100, cancellationToken);
                 await db.SaveChangesAsync(cancellationToken);
@@ -632,13 +638,19 @@ namespace DustyPig.Server.HostedServices
                 bridges.ForEach(item => db.TMDB_EntryPeopleBridges.Remove(item));
                 await Task.Delay(100, cancellationToken);
                 await db.SaveChangesAsync(cancellationToken);
+
+                var alreadySet = new List<int>();
                 foreach (var item in crew)
-                    db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
+                    if (!alreadySet.Contains(item.Id))
                     {
-                        TMDB_EntryId = entry.Id,
-                        TMDB_PersonId = item.Id,
-                        Role = role
-                    });
+                        db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
+                        {
+                            TMDB_EntryId = entry.Id,
+                            TMDB_PersonId = item.Id,
+                            Role = role
+                        });
+                        alreadySet.Add(item.Id);
+                    }
                 await Task.Delay(100, cancellationToken);
                 await db.SaveChangesAsync(cancellationToken);
                 return;
@@ -753,6 +765,5 @@ namespace DustyPig.Server.HostedServices
                 };
             }
         }
-
     }
 }
