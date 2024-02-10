@@ -28,8 +28,6 @@ namespace DustyPig.Server.HostedServices
 
         public TMDB_Updater(ILogger<TMDB_Updater> logger)
         {
-            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
-
             _logger = logger;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
         }
