@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240209184203_TMDB")]
+    [Migration("20240210012055_TMDB")]
     partial class TMDB
     {
         /// <inheritdoc />
@@ -972,7 +972,7 @@ namespace DustyPig.Server.Data.Migrations
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Entry", b =>
                 {
-                    b.Property<int>("TMDB_Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
@@ -990,15 +990,21 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<DateTime>("LastUpdated")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
                     b.Property<int?>("MovieRating")
                         .HasColumnType("int");
 
-                    b.Property<double?>("Popularity")
+                    b.Property<double>("Popularity")
                         .HasColumnType("double");
 
                     b.Property<string>("PosterUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("TMDB_Id")
+                        .HasColumnType("int");
 
                     b.Property<int?>("TVRating")
                         .HasColumnType("int");
@@ -1008,7 +1014,14 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.HasKey("TMDB_Id");
+                    b.HasKey("Id");
+
+                    b.HasIndex("MediaType");
+
+                    b.HasIndex("TMDB_Id");
+
+                    b.HasIndex("TMDB_Id", "MediaType")
+                        .IsUnique();
 
                     b.ToTable("TMDB_Entries");
                 });
@@ -1027,7 +1040,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
-                    b.HasKey("TMDB_EntryId", "TMDB_PersonId");
+                    b.HasKey("TMDB_EntryId", "TMDB_PersonId", "Role");
 
                     b.HasIndex("TMDB_EntryId");
 
@@ -1045,9 +1058,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
-
-                    b.Property<DateTime>("LastUpdated")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<string>("Name")
                         .IsRequired()

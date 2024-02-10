@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
 {
@@ -17,7 +16,7 @@ namespace DustyPig.Server.Data.Models
 
     [Index(nameof(TMDB_EntryId), IsUnique = false)]
     [Index(nameof(TMDB_PersonId), IsUnique = false)]
-    [PrimaryKey(nameof(TMDB_EntryId), nameof(TMDB_PersonId))]
+    [PrimaryKey(nameof(TMDB_EntryId), nameof(TMDB_PersonId), nameof(Role))]
     public class TMDB_EntryPersonBridge : IEquatable<TMDB_EntryPersonBridge>
     {
         public int TMDB_EntryId { get; set; }

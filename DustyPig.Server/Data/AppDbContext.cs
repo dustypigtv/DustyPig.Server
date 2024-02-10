@@ -1,5 +1,4 @@
-﻿using Amazon.S3.Model;
-using DustyPig.Server.Data.Models;
+﻿using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -87,7 +86,7 @@ namespace DustyPig.Server.Data
                 e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.SetNull);
                 e.HasOne(p => p.TitleOverride).WithMany().OnDelete(DeleteBehavior.SetNull);
             });
-           
+
         }
 
 

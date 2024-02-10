@@ -1,6 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
@@ -22,8 +22,10 @@ namespace DustyPig.Server.Data.Migrations
                 name: "TMDB_Entries",
                 columns: table => new
                 {
-                    TMDB_Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    TMDB_Id = table.Column<int>(type: "int", nullable: false),
+                    MediaType = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "varchar(10000)", maxLength: 10000, nullable: true)
@@ -35,12 +37,12 @@ namespace DustyPig.Server.Data.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     BackdropUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Popularity = table.Column<double>(type: "double", nullable: true),
+                    Popularity = table.Column<double>(type: "double", nullable: false),
                     LastUpdated = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TMDB_Entries", x => x.TMDB_Id);
+                    table.PrimaryKey("PK_TMDB_Entries", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -53,8 +55,7 @@ namespace DustyPig.Server.Data.Migrations
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     AvatarUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    LastUpdated = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -73,12 +74,12 @@ namespace DustyPig.Server.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TMDB_EntryPeopleBridges", x => new { x.TMDB_EntryId, x.TMDB_PersonId });
+                    table.PrimaryKey("PK_TMDB_EntryPeopleBridges", x => new { x.TMDB_EntryId, x.TMDB_PersonId, x.Role });
                     table.ForeignKey(
                         name: "FK_TMDB_EntryPeopleBridges_TMDB_Entries_TMDB_EntryId",
                         column: x => x.TMDB_EntryId,
                         principalTable: "TMDB_Entries",
-                        principalColumn: "TMDB_Id",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_TMDB_EntryPeopleBridges_TMDB_People_TMDB_PersonId",
@@ -95,6 +96,22 @@ namespace DustyPig.Server.Data.Migrations
                 column: "TMDB_EntryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TMDB_Entries_MediaType",
+                table: "TMDB_Entries",
+                column: "MediaType");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TMDB_Entries_TMDB_Id",
+                table: "TMDB_Entries",
+                column: "TMDB_Id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TMDB_Entries_TMDB_Id_MediaType",
+                table: "TMDB_Entries",
+                columns: new[] { "TMDB_Id", "MediaType" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TMDB_EntryPeopleBridges_TMDB_EntryId",
                 table: "TMDB_EntryPeopleBridges",
                 column: "TMDB_EntryId");
@@ -109,7 +126,7 @@ namespace DustyPig.Server.Data.Migrations
                 table: "MediaEntries",
                 column: "TMDB_EntryId",
                 principalTable: "TMDB_Entries",
-                principalColumn: "TMDB_Id",
+                principalColumn: "Id",
                 onDelete: ReferentialAction.SetNull);
         }
 

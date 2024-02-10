@@ -38,7 +38,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 ? friend.Account2.Profiles.Where(item => item.IsMain).First().Name
                 : friend.Account1.Profiles.Where(item => item.IsMain).First().Name;
 
-            return Utils.Coalesce(displayName, acctName);
+            return LogicUtils.Coalesce(displayName, acctName);
         }
 
         /// <summary>

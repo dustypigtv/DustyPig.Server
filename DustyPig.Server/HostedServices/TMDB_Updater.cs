@@ -1,16 +1,17 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Services;
+using DustyPig.TMDB.Models;
+using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Net.Http;
-using System.Text.Json;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,15 +20,16 @@ namespace DustyPig.Server.HostedServices
     public class TMDB_Updater : IHostedService, IDisposable
     {
         private const int MILLISECONDS_PER_HOUR = 1000 * 60 * 60;
-        private const int SUCCESS_RUN_AGAIN = MILLISECONDS_PER_HOUR * 24; //Run again in a day
-        private const int FAILURE_RUN_AGAIN = MILLISECONDS_PER_HOUR * 4;  //Run again in 4 hours
 
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
         private readonly ILogger<TMDB_Updater> _logger;
+        private static readonly TMDBClient _client = new();
 
         public TMDB_Updater(ILogger<TMDB_Updater> logger)
         {
+            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
+
             _logger = logger;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
         }
@@ -42,7 +44,7 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-            //_timer.Change(10_000, Timeout.Infinite);
+            _timer.Change(0, Timeout.Infinite);
             return Task.CompletedTask;
         }
 
@@ -54,11 +56,9 @@ namespace DustyPig.Server.HostedServices
 
         private async void DoWork(object state)
         {
-            bool success = false;
             try
             {
                 await DoUpdate();
-                success = true;
             }
             catch (Exception ex)
             {
@@ -66,107 +66,700 @@ namespace DustyPig.Server.HostedServices
             }
 
             if (!_cancellationToken.IsCancellationRequested)
-            {
-                var nextRun = success ? SUCCESS_RUN_AGAIN : FAILURE_RUN_AGAIN;
-                _timer.Change(nextRun, Timeout.Infinite);
-            }
+                _timer.Change(MILLISECONDS_PER_HOUR, Timeout.Infinite);
         }
 
 
         private async Task DoUpdate()
         {
-            await UpdateForEntityAsync(MediaTypes.Movie);
-            await UpdateForEntityAsync(MediaTypes.Series);
+            await UpdateEntriesAsync(MediaTypes.Movie);
+            await UpdateEntriesAsync(MediaTypes.Series);
         }
 
 
-
-        async Task UpdateForEntityAsync(MediaTypes mediaType)
+        async Task UpdateEntriesAsync(MediaTypes mediaType)
         {
             using var db = new AppDbContext();
 
-            var popInfoList = await LoadFromServerAsync(mediaType == MediaTypes.Movie);
+            var entryDatQuery =
+                from me in db.MediaEntries
+                    .Where(item => item.EntryType == mediaType)
+                    .Where(item => item.PopularityUpdated <= DateTime.UtcNow.AddDays(-1))
+                    .Where(item => item.TMDB_Id.HasValue)
+                    .Where(item => item.TMDB_Id > 0)
+                group me by me.TMDB_Id into g
+                select new
+                {
+                    TMDB_Id = g.Key.Value,
+                    MissingDescriptionCount = g.Sum(item => item.Description == null || item.Description == "" ? 1 : 0),
+                    MissingBackdropCount = g.Sum(item => item.BackdropUrl == null || item.BackdropUrl == "" ? 1 : 0),
+                    MissingLinkCount = g.Sum(item => item.TMDB_EntryId == null ? 1 : 0),
+                    MissingRatingCount = g.Sum(item =>
+                        mediaType == MediaTypes.Movie ?
+                            item.MovieRating == null || item.MovieRating == MovieRatings.None ? 1 : 0 :
+                            item.TVRating == null || item.TVRating == TVRatings.None ? 1 : 0
+                    )
+                };
 
-            var ids = await db.MediaEntries
+
+
+
+            await Task.Delay(100, _cancellationToken);
+            var entryDataList = await entryDatQuery
                 .AsNoTracking()
-                .Where(item => item.EntryType == mediaType)
-                .Where(item => item.TMDB_Id.HasValue)
-                .Where(item => item.TMDB_Id > 0)
-                .Where(item => item.PopularityUpdated <= DateTime.UtcNow.AddDays(-1))
-                .Select(item => item.TMDB_Id.Value)
-                .Distinct()
                 .ToListAsync(_cancellationToken);
 
-            foreach (var id in ids)
-            {
-                string ts = DateTime.UtcNow.ToString("yyyy-MM-dd H:mm:ss");
-                var popInfo = popInfoList.FirstOrDefault(item => item.Id == id);
-                string query = popInfo == null ?
-                    $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Popularity)}=NULL, {nameof(MediaEntry.PopularityUpdated)}='{ts}' WHERE {nameof(MediaEntry.TMDB_Id)}={id} AND {nameof(MediaEntry.EntryType)}={(int)mediaType}" :
-                    $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Popularity)}={popInfo.Popularity}, {nameof(MediaEntry.PopularityUpdated)}='{ts}' WHERE {nameof(MediaEntry.TMDB_Id)}={id} AND {nameof(MediaEntry.EntryType)}={(int)mediaType}";
-
-                await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
-            }
-        }
-
-
-
-
-        class PopularityInfo
-        {
-            public int Id { get; set; }
-            public double Popularity { get; set; }
-        }
-
-        async Task<List<PopularityInfo>> LoadFromServerAsync(bool movies)
-        {
-            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-            Exception err = new();
-
-            //Start with the current date and try up to 2 previous days (3 total)
-            var startDate = DateTime.Today;
-            for (int i = 0; i < 3; i++)
+            foreach (var entryData in entryDataList)
             {
                 try
                 {
-                    var date = startDate.AddDays(-1 * i);
-                    var url = movies ? TMDB.Utils.GetExportedMoviesUrl(date) : TMDB.Utils.GetExportedSeriesUrl(date);
-                    var ret = new List<PopularityInfo>();
+                    var info = mediaType == MediaTypes.Movie ?
+                        await AddOrUpdateTMDBMovieAsync(entryData.TMDB_Id, _cancellationToken) :
+                        await AddOrUpdateTMDBSeriesAsync(entryData.TMDB_Id, _cancellationToken);
 
-                    using var client = new HttpClient();
-                    using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, _cancellationToken);
-                    response.EnsureSuccessStatusCode();
-                    using var responseStream = await response.Content.ReadAsStreamAsync(_cancellationToken);
-                    using var decompressor = new GZipStream(responseStream, CompressionMode.Decompress);
-                    using var textReader = new StreamReader(decompressor);
 
-                    //The file isn't valid json but each line is
-                    string jsonLine;
-                    while ((jsonLine = await textReader.ReadLineAsync(_cancellationToken)) != null)
+                    if (info != null)
                     {
-                        try { ret.Add(JsonSerializer.Deserialize<PopularityInfo>(jsonLine, options)); }
-                        catch { }
+                        var conn = db.Database.GetDbConnection();
+                        if (conn.State != System.Data.ConnectionState.Open)
+                            await conn.OpenAsync(_cancellationToken);
+
+                        //Popularity
+                        await Task.Delay(100, _cancellationToken);
+                        var cmd = conn.CreateCommand();
+                        cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Popularity)}=@p1, {nameof(MediaEntry.PopularityUpdated)}=@p2 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4";
+                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Popularity));
+                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", DateTime.UtcNow));
+                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryData.TMDB_Id));
+                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", (int)mediaType));
+                        await cmd.ExecuteNonQueryAsync(_cancellationToken);
+
+
+
+                        //Rating
+                        if (entryData.MissingRatingCount > 0)
+                        {
+                            var infoRating = mediaType == MediaTypes.Movie ? (int?)info.MovieRating : (int?)info.TVRating;
+                            if (infoRating > 0)
+                            {
+                                string ratingName = mediaType == MediaTypes.Movie ? nameof(MediaEntry.MovieRating) : nameof(MediaEntry.TVRating);
+
+                                await Task.Delay(100, _cancellationToken);
+                                cmd = conn.CreateCommand();
+                                cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {ratingName}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {ratingName} IS NULL";
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", infoRating.Value));
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", entryData.TMDB_Id));
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", (int)mediaType));
+                                await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                            }
+                        }
+
+                        //Description
+                        if (entryData.MissingDescriptionCount > 0 && !string.IsNullOrWhiteSpace(info.Overview))
+                        {
+                            await Task.Delay(100, _cancellationToken);
+                            cmd = conn.CreateCommand();
+                            cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Description)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND ({nameof(MediaEntry.Description)}=@p4 OR {nameof(MediaEntry.Description)} IS NULL)";
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Overview));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", entryData.TMDB_Id));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", (int)mediaType));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", ""));
+                            await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                        }
+
+                        //Backdrop Url
+                        if (entryData.MissingBackdropCount > 0 && !string.IsNullOrWhiteSpace(info.BackdropUrl))
+                        {
+                            try
+                            {
+                                var size = await SimpleDownloader.GetDownloadSizeAsync(info.BackdropUrl, null, _cancellationToken);
+
+                                await Task.Delay(100, _cancellationToken);
+                                cmd = conn.CreateCommand();
+                                cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.BackdropUrl)}=@p1, {nameof(MediaEntry.BackdropSize)}=@p2 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND ({nameof(MediaEntry.BackdropUrl)}=@p5 OR {nameof(MediaEntry.BackdropUrl)} IS NULL)";
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.BackdropUrl));
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", size));
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryData.TMDB_Id));
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", (int)mediaType));
+                                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p5", ""));
+                                await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                            }
+                            catch { }
+                        }
+
+                        //Link
+                        if (entryData.MissingLinkCount > 0)
+                        {
+                            await Task.Delay(100, _cancellationToken);
+                            cmd = conn.CreateCommand();
+                            cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.TMDB_EntryId)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TMDB_EntryId)} IS NULL";
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Id));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", entryData.TMDB_Id));
+                            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", (int)mediaType));
+                            await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                        }
                     }
-
-                    if (ret.Count == 0)
-                        throw new Exception("No entries in the file: " + (movies ? "movies" : "series"));
-
-                    return ret;
-                }
-                catch (OperationCanceledException ex)
-                {
-                    err = ex;
-                    break;
                 }
                 catch (Exception ex)
                 {
-                    err = ex;
-                    await Task.Delay(10_000, _cancellationToken);
+                    _logger.LogError(ex, ex.Message);
+                }
+            }
+        }
+
+
+
+        public static async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId, CancellationToken cancellationToken = default)
+        {
+            var response = await _client.GetMovieAsync(tmdbId, cancellationToken);
+            if (!response.Success)
+                return null;
+            var movie = response.Data;
+            if (movie == null)
+                return null;
+
+            using var db = new AppDbContext();
+
+            await Task.Delay(100, cancellationToken);
+            var entry = await db.TMDB_Entries
+                .AsNoTracking()
+                .Where(item => item.TMDB_Id == movie.Id)
+                .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (entry != null)
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
+                    return TMDBInfo.FromEntry(entry); ;
+
+
+            //Make sure all the people exist
+            movie.Credits ??= new();
+            movie.Credits.Cast ??= [];
+            movie.Credits.Crew ??= [];
+            await EnsurePeopleExistAsync(movie.Credits, cancellationToken);
+
+            //Make sure movie exists
+            var backdropUrl = TMDB.Utils.GetFullBackdropPath(movie.BackdropPath, false);
+            var posterUrl = TMDB.Utils.GetFullPosterPath(movie.PosterPath, false);
+
+
+            bool changed = false;
+            bool newEntry = false;
+            if (entry == null)
+            {
+                entry = new TMDB_Entry
+                {
+                    TMDB_Id = movie.Id,
+                    MediaType = TMDB_MediaTypes.Movie
+                };
+                changed = true;
+                newEntry = true;
+            }
+
+            if (entry.BackdropUrl != backdropUrl)
+            {
+                entry.BackdropUrl = backdropUrl;
+                changed = true;
+            }
+            if (entry.Date != movie.ReleaseDate)
+            {
+                entry.Date = movie.ReleaseDate;
+                changed = true;
+            }
+            if (entry.Description != movie.Overview)
+            {
+                entry.Description = movie.Overview;
+                changed = true;
+            }
+            if (entry.Popularity != movie.Popularity)
+            {
+                entry.Popularity = movie.Popularity;
+                changed = true;
+            }
+            if (entry.PosterUrl != posterUrl)
+            {
+                entry.PosterUrl = posterUrl;
+                changed = true;
+            }
+            if (entry.Title != movie.Title)
+            {
+                entry.Title = movie.Title;
+                changed = true;
+            }
+
+            //Ratings
+            var ratingStr = TryMapMovieRatings(movie.Releases);
+            MovieRatings? movieRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToMovieRatings();
+            if (movieRating == MovieRatings.None)
+                movieRating = null;
+
+            if (entry.MovieRating != movieRating && movieRating != null)
+            {
+                entry.MovieRating = movieRating;
+                changed = true;
+            }
+
+
+            if (changed)
+            {
+                entry.LastUpdated = DateTime.UtcNow;
+                if (newEntry)
+                    db.TMDB_Entries.Add(entry);
+                else
+                    db.TMDB_Entries.Update(entry);
+                await Task.Delay(100, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            await BridgeEntryAndPeopleAsync(entry.TMDB_Id, TMDB_MediaTypes.Movie, movie.Credits, cancellationToken);
+
+            return TMDBInfo.FromEntry(entry);
+        }
+
+        public static async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId, CancellationToken cancellationToken = default)
+        {
+            var response = await _client.GetSeriesAsync(tmdbId, cancellationToken);
+            if (!response.Success)
+                return null;
+            var series = response.Data;
+            if (series == null)
+                return null;
+
+            using var db = new AppDbContext();
+
+            await Task.Delay(100, cancellationToken);
+            var entry = await db.TMDB_Entries
+                .AsNoTracking()
+                .Where(item => item.TMDB_Id == series.Id)
+                .Where(item => item.MediaType == TMDB_MediaTypes.Series)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (entry != null)
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
+                    return TMDBInfo.FromEntry(entry);
+
+
+            //Make sure all the people exist
+            series.Credits ??= new();
+            series.Credits.Cast ??= [];
+            series.Credits.Crew ??= [];
+            await EnsurePeopleExistAsync(series.Credits, cancellationToken);
+
+            //Make sure entity exists
+            var backdropUrl = TMDB.Utils.GetFullBackdropPath(series.BackdropPath, false);
+            var posterUrl = TMDB.Utils.GetFullPosterPath(series.PosterPath, false);
+
+
+            bool changed = false;
+            bool newEntry = false;
+            if (entry == null)
+            {
+                entry = new TMDB_Entry
+                {
+                    TMDB_Id = series.Id,
+                    MediaType = TMDB_MediaTypes.Series
+                };
+                changed = true;
+                newEntry = true;
+            }
+
+            if (entry.BackdropUrl != backdropUrl)
+            {
+                entry.BackdropUrl = backdropUrl;
+                changed = true;
+            }
+            if (entry.Date != series.FirstAirDate)
+            {
+                entry.Date = series.FirstAirDate;
+                changed = true;
+            }
+            if (entry.Description != series.Overview)
+            {
+                entry.Description = series.Overview;
+                changed = true;
+            }
+            if (entry.Popularity != series.Popularity)
+            {
+                entry.Popularity = series.Popularity;
+                changed = true;
+            }
+            if (entry.PosterUrl != posterUrl)
+            {
+                entry.PosterUrl = posterUrl;
+                db.TMDB_Entries.Update(entry);
+            }
+            if (entry.Title != series.Title)
+            {
+                entry.Title = series.Title;
+                changed = true;
+            }
+
+            //Ratings
+            var ratingStr = TryMapTVRatings(series.ContentRatings);
+            TVRatings? tvRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToTVRatings();
+            if (tvRating == TVRatings.None)
+                tvRating = null;
+
+            if (entry.TVRating != tvRating && tvRating != null)
+            {
+                entry.TVRating = tvRating;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                entry.LastUpdated = DateTime.UtcNow;
+                if (newEntry)
+                    db.TMDB_Entries.Add(entry);
+                else
+                    db.TMDB_Entries.Update(entry);
+                await Task.Delay(100, cancellationToken);
+                await db.SaveChangesAsync();
+            }
+
+            await BridgeEntryAndPeopleAsync(entry.TMDB_Id, TMDB_MediaTypes.Series, series.Credits, cancellationToken);
+
+            return TMDBInfo.FromEntry(entry);
+        }
+
+
+
+
+        private static async Task EnsurePeopleExistAsync(Credits credits, CancellationToken cancellationToken)
+        {
+            var alreadyProcessed = new List<int>();
+
+            credits.Cast = credits.Cast
+                .OrderBy(item => item.Order)
+                .Take(25)
+                .ToList();
+
+            foreach (var apiPerson in credits.Cast.Where(item => !alreadyProcessed.Contains(item.Id)))
+            {
+                int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                alreadyProcessed.Add(tmdbId);
+            }
+
+            bool foundProducers = false;
+            bool foundWriters = false;
+            foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
+            {
+                if (apiPerson.Job == "Director")
+                {
+                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                    alreadyProcessed.Add(tmdbId);
+                }
+
+                if (apiPerson.Job == "Producer")
+                {
+                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                    alreadyProcessed.Add(tmdbId);
+                    foundProducers = true;
+                }
+
+                if (apiPerson.Job == "Writer")
+                {
+                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                    alreadyProcessed.Add(tmdbId);
+                    foundWriters = true;
                 }
             }
 
-            throw err;
+            if (!foundProducers)
+                foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
+                {
+                    if (apiPerson.Job == "Executive Producer")
+                    {
+                        int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                        alreadyProcessed.Add(tmdbId);
+                    }
+                }
+
+            if (!foundWriters)
+                foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
+                {
+                    if (apiPerson.Job == "Screenplay")
+                    {
+                        int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                        alreadyProcessed.Add(tmdbId);
+                        foundWriters = true;
+                    }
+                }
+
+            if (!foundWriters)
+                foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
+                {
+                    if (apiPerson.Job == "Story")
+                    {
+                        int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                        alreadyProcessed.Add(tmdbId);
+                    }
+                }
         }
+
+        private static Task<int> AddOrUpdatePersonAsync(Cast cast, CancellationToken cancellationToken) => AddOrUpdatePersonAsync(cast.Id, cast.Name, cast.ProfilePath, cancellationToken);
+
+        private static Task<int> AddOrUpdatePersonAsync(Crew crew, CancellationToken cancellationToken) => AddOrUpdatePersonAsync(crew.Id, crew.Name, crew.ProfilePath, cancellationToken);
+
+        private static async Task<int> AddOrUpdatePersonAsync(int tmdbId, string name, string profilePath, CancellationToken cancellationToken)
+        {
+            using var db = new AppDbContext();
+
+            await Task.Delay(100, cancellationToken);
+            var dbPerson = await db.TMDB_People
+                .AsNoTracking()
+                .Where(item => item.TMDB_Id == tmdbId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (dbPerson == null)
+            {
+                dbPerson = db.TMDB_People.Add(new TMDB_Person
+                {
+                    TMDB_Id = tmdbId,
+                    Name = name,
+                    AvatarUrl = TMDB.Utils.GetFullPosterPath(profilePath, false)
+                }).Entity;
+            }
+            else
+            {
+                string avatarUrl = TMDB.Utils.GetFullPosterPath(profilePath, false);
+
+                if (dbPerson.Name != name || dbPerson.AvatarUrl != avatarUrl)
+                {
+                    dbPerson.Name = name;
+                    dbPerson.AvatarUrl = avatarUrl;
+                    db.TMDB_People.Update(dbPerson);
+                }
+            }
+
+            await Task.Delay(100, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+            return dbPerson.TMDB_Id;
+        }
+
+
+
+
+
+        private static async Task BridgeEntryAndPeopleAsync(int tmdbId, TMDB_MediaTypes mediaType, Credits credits, CancellationToken cancellationToken)
+        {
+            using var db = new AppDbContext();
+
+            await Task.Delay(100, cancellationToken);
+            var entry = await db.TMDB_Entries
+                .AsNoTracking()
+                .Include(item => item.People)
+                .Where(item => item.TMDB_Id == tmdbId)
+                .Where(item => item.MediaType == mediaType)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (entry == null)
+                return;
+
+            //Cast
+            var bridges = entry.People
+                .Where(item => item.Role == Roles.Cast)
+                .OrderBy(item => item.SortOrder)
+                .ToList();
+
+            var bridgeIds = bridges
+                .Select(item => item.TMDB_PersonId)
+                .ToList();
+
+            var apiCast = credits.Cast
+                .OrderBy(item => item.Order)
+                .ToList();
+
+            var apiCastIds = apiCast.Select(item => item.Id).ToList();
+
+            if (!bridgeIds.SequenceEqual(apiCastIds))
+            {
+                bridges.ForEach(item => db.TMDB_EntryPeopleBridges.Remove(item));
+                await Task.Delay(100, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+
+                foreach (var item in credits.Cast)
+                    db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
+                    {
+                        TMDB_EntryId = entry.Id,
+                        TMDB_PersonId = item.Id,
+                        Role = Roles.Cast,
+                        SortOrder = item.Order
+                    });
+
+                await Task.Delay(100, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+
+
+            //Directors
+            await SetCrew(entry, Roles.Director, credits, "Director", null, null, cancellationToken);
+            await SetCrew(entry, Roles.Producer, credits, "Producer", "Executive Producer", null, cancellationToken);
+            await SetCrew(entry, Roles.Writer, credits, "Writer", "Screenplay", "Story", cancellationToken);
+
+        }
+
+        private static async Task SetCrew(TMDB_Entry entry, Roles role, Credits credits, string job1, string job2, string job3, CancellationToken cancellationToken)
+        {
+            using var db = new AppDbContext();
+
+            var bridges = entry.People
+                .Where(item => item.Role == role)
+                .ToList();
+
+            var bridgeIds = bridges
+                .Select(item => item.TMDB_PersonId)
+                .Distinct()
+                .OrderBy(item => item)
+                .ToList();
+
+            var crew = credits.Crew
+                .Where(item => item.Job == job1)
+                .ToList();
+
+            if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job2))
+                crew = credits.Crew
+                    .Where(item => item.Job == job2)
+                    .ToList();
+
+            if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job3))
+                crew = credits.Crew
+                    .Where(item => item.Job == job3)
+                    .ToList();
+
+            var apiCastIds = crew
+                .Select(item => item.Id)
+                .Distinct()
+                .OrderBy(item => item)
+                .ToList();
+
+            if (!bridgeIds.SequenceEqual(apiCastIds))
+            {
+                bridges.ForEach(item => db.TMDB_EntryPeopleBridges.Remove(item));
+                await Task.Delay(100, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                foreach (var item in crew)
+                    db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
+                    {
+                        TMDB_EntryId = entry.Id,
+                        TMDB_PersonId = item.Id,
+                        Role = role
+                    });
+                await Task.Delay(100, cancellationToken);
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+
+            return;
+
+        }
+
+
+
+
+        public static string TryMapMovieRatings(Releases releases)
+        {
+            if (releases == null)
+                return null;
+
+            if (releases.Countries == null)
+                return null;
+
+            foreach (var country in releases.Countries.Where(item => item.Name.ICEquals("US")))
+                if (TryMapMovieRatings(country.Name, country.Certification, out string ret))
+                    return ret;
+
+            foreach (var country in releases.Countries)
+                if (TryMapTVRatings(country.Name, country.Certification, out string ret))
+                    return ret;
+
+            return null;
+        }
+
+        public static string TryMapTVRatings(ContentRatings contentRatings)
+        {
+            if (contentRatings == null)
+                return null;
+
+            if (contentRatings.Results == null)
+                return null;
+
+            foreach (var contentRating in contentRatings.Results.Where(item => item.Country.ICEquals("US")))
+                if (TryMapTVRatings(contentRating.Country, contentRating.Rating, out string ret))
+                    return ret;
+
+            foreach (var contentRating in contentRatings.Results)
+                if (TryMapMovieRatings(contentRating.Country, contentRating.Rating, out string ret))
+                    return ret;
+
+            return null;
+        }
+
+        private static bool TryMapMovieRatings(string country, string rating, out string rated)
+        {
+            rated = null;
+
+            if (string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(rating))
+                return false;
+
+            rated = RatingsUtils.MapMovieRatings(country, rating);
+            if (!string.IsNullOrWhiteSpace(rated))
+                return true;
+
+            rated = RatingsUtils.MapTVRatings(country, rating);
+            if (!string.IsNullOrWhiteSpace(rated))
+                return true;
+
+            return false;
+        }
+
+        private static bool TryMapTVRatings(string country, string rating, out string rated)
+        {
+            rated = null;
+
+            if (string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(rating))
+                return false;
+
+            rated = RatingsUtils.MapTVRatings(country, rating);
+            if (!string.IsNullOrWhiteSpace(rated))
+                return true;
+
+            rated = RatingsUtils.MapMovieRatings(country, rating);
+            if (!string.IsNullOrWhiteSpace(rated))
+                return true;
+
+            return false;
+        }
+
+
+        public class TMDBInfo
+        {
+            /// <summary>
+            /// DB Id, not TMDB_ID
+            /// </summary>
+            public int Id { get; set; }
+
+
+            public double Popularity { get; set; }
+            public string BackdropUrl { get; set; }
+            public MovieRatings? MovieRating { get; set; }
+            public TVRatings? TVRating { get; set; }
+            public string Overview { get; set; }
+
+            public static TMDBInfo FromEntry(TMDB_Entry entry)
+            {
+                return new TMDBInfo
+                {
+                    Id = entry.Id,
+                    BackdropUrl = entry.BackdropUrl,
+                    MovieRating = entry.MovieRating,
+                    Overview = entry.Description,
+                    Popularity = entry.Popularity,
+                    TVRating = entry.TVRating
+                };
+            }
+        }
+
     }
 }

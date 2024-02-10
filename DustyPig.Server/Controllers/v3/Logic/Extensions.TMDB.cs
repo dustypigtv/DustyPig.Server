@@ -9,7 +9,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             TMDB_ID = self.Id,
             ArtworkUrl = TMDB.Utils.GetFullPosterPath(self.PosterPath, false),
             BackdropUrl = TMDB.Utils.GetFullBackdropPath(self.BackdropPath, false),
-            MediaType = self.IsMovie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
+            MediaType = self.SearchResultType == TMDB.Models.SearchResultTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
             Title = self.Title
         };
     }

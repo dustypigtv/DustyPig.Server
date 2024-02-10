@@ -169,7 +169,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-            profile.AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl);
+            profile.AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl);
 
 
             if (info.Pin == null)
@@ -185,7 +185,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            info.Name = Utils.EnsureNotNull(info.Name);
+            info.Name = LogicUtils.EnsureNotNull(info.Name);
             bool nameExists = UserAccount.Profiles
                 .Where(item => item.Id != info.Id)
                 .Where(item => item.Name.ICEquals(info.Name))
@@ -335,7 +335,7 @@ namespace DustyPig.Server.Controllers.v3
             var profile = new Profile
             {
                 AccountId = UserAccount.Id,
-                AvatarUrl = Utils.EnsureProfilePic(info.AvatarUrl),
+                AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl),
                 MaxMovieRating = info.MaxMovieRating,
                 MaxTVRating = info.MaxTVRating,
                 Locked = info.Locked,
