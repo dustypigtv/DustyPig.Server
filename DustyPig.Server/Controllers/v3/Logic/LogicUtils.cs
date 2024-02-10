@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
-    public static class Utils
+    public static class LogicUtils
     {
         public static string EnsureNotNull(string s) => (s + string.Empty).Trim();
 

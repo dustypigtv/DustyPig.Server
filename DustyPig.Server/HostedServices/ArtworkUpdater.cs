@@ -2,6 +2,7 @@
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
 using DustyPig.Server.Services;
+using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -207,7 +208,7 @@ namespace DustyPig.Server.HostedServices
                     {
                         var dataLst = new List<byte[]>();
                         foreach (var key in art.Keys)
-                            dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], _cancellationToken));
+                            dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], null, _cancellationToken));
 
                         /*
                             tl  tr

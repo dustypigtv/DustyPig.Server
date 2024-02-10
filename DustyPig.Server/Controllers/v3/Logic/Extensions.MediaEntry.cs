@@ -3,6 +3,7 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
 using System.Collections.Generic;
 using System.Linq;
+using APIPerson = DustyPig.API.v3.Models.Person;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {
@@ -109,16 +110,30 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return ret;
         }
 
-        public static List<string> GetPeople(this MediaEntry self, Roles role)
+        public static List<APIPerson> GetPeople(this MediaEntry self, Roles role)
         {
-            if (self?.People == null)
+            if (self?.TMDB_Entry?.People == null)
                 return null;
 
-            return self.People
+            if (self.TMDB_Entry.People.Count == 0)
+                return null;
+
+            var lst = self.TMDB_Entry.People
                 .Where(item => item.Role == role)
                 .OrderBy(item => item.SortOrder)
-                .ThenBy(item => item.Person.Name)
-                .Select(item => item.Person.Name)
+                .ThenBy(item => item.TMDB_Person.Name)
+                .ToList();
+
+            if (lst.Count == 0)
+                return null;
+
+            return lst
+                .Select(item => new APIPerson
+                {
+                    TMDB_Id = item.TMDB_PersonId,
+                    Name = item.TMDB_Person.Name,
+                    AvatarUrl = item.TMDB_Person.AvatarUrl
+                })
                 .ToList();
         }
     }

@@ -51,7 +51,7 @@ namespace DustyPig.Server.Controllers.v3
                 BackdropUrl = TMDB.Utils.GetFullBackdropPath(movie.Data.BackdropPath, true),
                 Description = movie.Data.Overview,
                 MediaType = TMDB_MediaTypes.Movie,
-                Rated = MapRatings(movie.Data.Releases),
+                Rated = HostedServices.TMDB_Updater.TryMapMovieRatings(movie.Data.Releases),
                 Title = movie.Data.Title,
                 TMDB_ID = movie.Data.Id
             };
@@ -151,7 +151,7 @@ namespace DustyPig.Server.Controllers.v3
                 BackdropUrl = TMDB.Utils.GetFullBackdropPath(series.Data.BackdropPath, true),
                 Description = series.Data.Overview,
                 MediaType = TMDB_MediaTypes.Series,
-                Rated = MapRatings(series.Data.ContentRatings),
+                Rated = HostedServices.TMDB_Updater.TryMapTVRatings(series.Data.ContentRatings),
                 Title = series.Data.Title,
                 TMDB_ID = series.Data.Id
             };
@@ -522,113 +522,70 @@ namespace DustyPig.Server.Controllers.v3
                 if (credits.Cast != null && credits.Cast.Count > 0)
                 {
                     ret.Cast ??= new();
-                    foreach (var cast in credits.Cast.OrderBy(item => item.Order).Take(10))
-                        if (!ret.Cast.Contains(cast.Name))
-                            ret.Cast.Add(cast.Name);
+                    foreach (var apiCast in credits.Cast.OrderBy(item => item.Order).Take(25))
+                        if (!ret.Cast.Any(item => item.TMDB_Id == apiCast.Id))
+                            ret.Cast.Add(new API.v3.Models.Person
+                            {
+                                TMDB_Id = apiCast.Id,
+                                Name = apiCast.Name,
+                                AvatarUrl = TMDB.Utils.GetFullPosterPath(apiCast.ProfilePath, false)
+                            });
                 }
 
                 if (credits.Crew != null)
                 {
-                    foreach (var director in credits.Crew.Where(item => item.Job.ICEquals("Director")).Take(2))
+                    foreach (var director in credits.Crew.Where(item => item.Job.ICEquals("Director")).Take(25))
                     {
                         ret.Directors ??= new();
-                        if (!ret.Directors.Contains(director.Name))
-                            ret.Directors.Add(director.Name);
+                        if (!ret.Directors.Any(item => item.TMDB_Id == director.Id))
+                            ret.Directors.Add(new API.v3.Models.Person
+                            {
+                                TMDB_Id = director.Id,
+                                Name = director.Name,
+                                AvatarUrl = TMDB.Utils.GetFullPosterPath(director.ProfilePath, false)
+                            });
                     }
 
-                    foreach (var producer in credits.Crew.Where(item => item.Job.ICEquals("Producer")).Take(2))
+
+                    foreach (string producerJob in new string[] { "Producer", "Executive Producer" })
                     {
-                        ret.Producers ??= new();
-                        if (!ret.Producers.Contains(producer.Name))
-                            ret.Producers.Add(producer.Name);
+                        if (ret.Producers == null || ret.Producers.Count == 0)
+                            foreach (var producer in credits.Crew.Where(item => item.Job.ICEquals(producerJob)).Take(25))
+                            {
+                                ret.Producers ??= new();
+                                if (!ret.Producers.Any(item => item.TMDB_Id == producer.Id))
+                                    ret.Producers.Add(new API.v3.Models.Person
+                                    {
+                                        TMDB_Id = producer.Id,
+                                        Name = producer.Name,
+                                        AvatarUrl = TMDB.Utils.GetFullPosterPath(producer.ProfilePath, false)
+                                    });
+                            }
                     }
 
-                    foreach (var writer in credits.Crew.Where(item => item.Job.ICEquals("Screenplay")).Take(2))
+
+
+
+                    foreach (string writerJob in new string[] { "Writer", "Screenplay", "Story" })
                     {
-                        ret.Writers ??= new();
-                        if (!ret.Writers.Contains(writer.Name))
-                            ret.Writers.Add(writer.Name);
+                        if (ret.Writers == null || ret.Writers.Count == 0)
+                            foreach (var writer in credits.Crew.Where(item => item.Job.ICEquals("Screenplay")).Take(25))
+                            {
+                                ret.Writers ??= new();
+                                if (!ret.Writers.Any(item => item.TMDB_Id == writer.Id))
+                                    ret.Writers.Add(new API.v3.Models.Person
+                                    {
+                                        TMDB_Id = writer.Id,
+                                        Name = writer.Name,
+                                        AvatarUrl = TMDB.Utils.GetFullPosterPath(writer.ProfilePath, false)
+                                    });
+                            }
                     }
+
                 }
             }
         }
-
-
-
-
-        private static string MapRatings(Releases releases)
-        {
-            if (releases == null)
-                return null;
-
-            if (releases.Countries == null)
-                return null;
-
-            foreach (var country in releases.Countries.Where(item => item.Name.ICEquals("US")))
-                if (TryMapMovieRatings(country.Name, country.Certification, out string ret))
-                    return ret;
-
-            foreach (var country in releases.Countries)
-                if (TryMapTVRatings(country.Name, country.Certification, out string ret))
-                    return ret;
-
-            return null;
-        }
-
-        private static string MapRatings(ContentRatings contentRatings)
-        {
-            if (contentRatings == null)
-                return null;
-
-            if (contentRatings.Results == null)
-                return null;
-
-            foreach (var contentRating in contentRatings.Results.Where(item => item.Country.ICEquals("US")))
-                if (TryMapTVRatings(contentRating.Country, contentRating.Rating, out string ret))
-                    return ret;
-
-            foreach (var contentRating in contentRatings.Results)
-                if (TryMapMovieRatings(contentRating.Country, contentRating.Rating, out string ret))
-                    return ret;
-
-            return null;
-        }
-
-        public static bool TryMapMovieRatings(string country, string rating, out string rated)
-        {
-            rated = null;
-
-            if (string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(rating))
-                return false;
-
-            rated = RatingsUtils.MapMovieRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            rated = RatingsUtils.MapTVRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            return false;
-        }
-
-        public static bool TryMapTVRatings(string country, string rating, out string rated)
-        {
-            rated = null;
-
-            if (string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(rating))
-                return false;
-
-            rated = RatingsUtils.MapTVRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            rated = RatingsUtils.MapMovieRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            return false;
-        }
+               
 
     }
 }

@@ -148,7 +148,7 @@ namespace DustyPig.Server.Controllers.v3
             if (friendAccount.Id == UserAccount.Id)
                 return "Cannot friend yourself";
 
-            string uniqueFriendId = Utils.UniqueFriendId(UserAccount.Id, friendAccount.Id);
+            string uniqueFriendId = LogicUtils.UniqueFriendId(UserAccount.Id, friendAccount.Id);
             var friendship = await DB.Friendships
                 .Where(item => item.Hash == uniqueFriendId)
                 .SingleOrDefaultAsync();

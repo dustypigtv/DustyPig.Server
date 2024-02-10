@@ -9,6 +9,7 @@ using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
@@ -117,8 +118,10 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
 
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+
 
                 .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
 
@@ -221,8 +224,15 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(Item => Item.Library)
                 .Include(item => item.MediaSearchBridges)
                 .ThenInclude(item => item.SearchTerm)
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
+                
+                //.Include(item => item.People)
+                //.ThenInclude(item => item.Person)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+
+                
+                
                 .Include(item => item.Subtitles)
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
@@ -311,17 +321,40 @@ namespace DustyPig.Server.Controllers.v3
 
             if (existingItem)
                 return $"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
-
-            //Get popularity
-            await UpdatePopularity(newItem);
-
+            
             //Add the new item
             DB.MediaEntries.Add(newItem);
 
             await DB.SaveChangesAsync();
 
-            //People
-            await MediaEntryLogic.UpdatePeople(true, newItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
+            //TMDB
+            if (newItem.TMDB_Id.HasValue)
+            {
+                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBMovieAsync(newItem.TMDB_Id.Value);
+                if(info != null)
+                {
+                    newItem.TMDB_EntryId = info.Id;
+                    newItem.Popularity = info.Popularity;
+                    newItem.PopularityUpdated = DateTime.UtcNow;
+
+                    //backdrop
+                    if (newItem.MovieRating == null || newItem.MovieRating == MovieRatings.None)
+                        newItem.MovieRating = info.MovieRating;
+
+                    if (string.IsNullOrWhiteSpace(newItem.Description))
+                        newItem.Description = info.Overview;
+
+                    if(string.IsNullOrWhiteSpace(newItem.BackdropUrl))
+                    {
+                        newItem.BackdropUrl = info.BackdropUrl;
+                        newItem.BackdropSize = info.BackdropSize;
+                    }
+
+                    DB.MediaEntries.Update(newItem);
+                    await DB.SaveChangesAsync();
+                }
+            }
+
 
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, movieInfo.ExtraSearchTerms));
@@ -420,11 +453,9 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Update info
-            bool tmdb_changed = existingItem.TMDB_Id != movieInfo.TMDB_Id;
             bool artwork_changed = existingItem.ArtworkUrl != movieInfo.ArtworkUrl;
 
             //Don't update Added
-
             existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
             existingItem.ArtworkSize = movieInfo.ArtworkSize;
             existingItem.BackdropUrl = movieInfo.BackdropUrl;
@@ -461,10 +492,7 @@ namespace DustyPig.Server.Controllers.v3
             if (dup)
                 return $"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
 
-            //Get popularity
-            if (tmdb_changed)
-                await UpdatePopularity(existingItem);
-
+            
             List<int> playlistIds = null;
             if (artwork_changed)
             {
@@ -478,8 +506,34 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            //People
-            await MediaEntryLogic.UpdatePeople(false, existingItem, movieInfo.Cast, movieInfo.Directors, movieInfo.Producers, movieInfo.Writers);
+            //TMDB
+            if (existingItem.TMDB_Id.HasValue)
+            {
+                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBMovieAsync(existingItem.TMDB_Id.Value);
+                if (info != null)
+                {
+                    existingItem.TMDB_EntryId = info.Id;
+                    existingItem.Popularity = info.Popularity;
+                    existingItem.PopularityUpdated = DateTime.UtcNow;
+
+                    //backdrop
+                    if (existingItem.MovieRating == null || existingItem.MovieRating == MovieRatings.None)
+                        existingItem.MovieRating = info.MovieRating;
+
+                    if (string.IsNullOrWhiteSpace(existingItem.Description))
+                        existingItem.Description = info.Overview;
+
+                    if (string.IsNullOrWhiteSpace(existingItem.BackdropUrl))
+                    {
+                        existingItem.BackdropUrl = info.BackdropUrl;
+                        existingItem.BackdropSize = info.BackdropSize;
+                    }
+
+                    DB.MediaEntries.Update(existingItem);
+                    await DB.SaveChangesAsync();
+                }
+            }
+
 
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));

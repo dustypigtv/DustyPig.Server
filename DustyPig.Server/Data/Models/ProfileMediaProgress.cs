@@ -5,6 +5,7 @@ namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(ProfileId), IsUnique = false)]
     [Index(nameof(MediaEntryId), IsUnique = false)]
+    [PrimaryKey(nameof(ProfileId), nameof(MediaEntryId))]
     public class ProfileMediaProgress
     {
         public int ProfileId { get; set; }

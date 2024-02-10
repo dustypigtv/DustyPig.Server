@@ -39,8 +39,7 @@ namespace DustyPig.Server
 
             //*** Database Connection ***
 #if DEBUG
-            // debug-conn-str
-            AppDbContext.Configure(Configuration["mysql-server-v3"]);
+            AppDbContext.Configure(Configuration["mysql-server-v3-dev"]);
 #else
             AppDbContext.Configure(Configuration["mysql-server-v3"]);
 #endif
@@ -318,7 +317,7 @@ namespace DustyPig.Server
             services.AddScoped<TMDBClient>();
             services.AddScoped<FirebaseAuthClient>();
             services.AddScoped<JWTProvider>();
-            services.AddHostedService<PopularityUpdater>();
+            services.AddHostedService<TMDB_Updater>();
             services.AddHostedService<FirebaseNotificationsManager>();
             services.AddHostedService<LogCleaner>();
             services.AddHostedService<ArtworkUpdater>();

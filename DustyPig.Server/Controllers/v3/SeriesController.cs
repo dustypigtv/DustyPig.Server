@@ -115,8 +115,9 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
 
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
 
                 .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
 
@@ -310,8 +311,9 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(Item => Item.Library)
                 .Include(item => item.MediaSearchBridges)
                 .ThenInclude(item => item.SearchTerm)
-                .Include(item => item.People)
-                .ThenInclude(item => item.Person)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .Where(item => item.EntryType == MediaTypes.Series)
@@ -441,16 +443,37 @@ namespace DustyPig.Server.Controllers.v3
             if (existingItem)
                 return $"An series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}";
 
-            //Get popularity
-            await UpdatePopularity(newItem);
-
-
             //Add the new item
             DB.MediaEntries.Add(newItem);
             await DB.SaveChangesAsync();
 
-            //People
-            await MediaEntryLogic.UpdatePeople(true, newItem, seriesInfo.Cast, seriesInfo.Directors, seriesInfo.Producers, seriesInfo.Writers);
+            //TMDB
+            if (newItem.TMDB_Id.HasValue)
+            {
+                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(newItem.TMDB_Id.Value);
+                if (info != null)
+                {
+                    newItem.TMDB_EntryId = info.Id;
+                    newItem.Popularity = info.Popularity;
+                    newItem.PopularityUpdated = DateTime.UtcNow;
+
+                    //backdrop
+                    if (newItem.TVRating == null || newItem.TVRating == TVRatings.None)
+                        newItem.TVRating = info.TVRating;
+
+                    if (string.IsNullOrWhiteSpace(newItem.Description))
+                        newItem.Description = info.Overview;
+
+                    if (string.IsNullOrWhiteSpace(newItem.BackdropUrl))
+                    {
+                        newItem.BackdropUrl = info.BackdropUrl;
+                        newItem.BackdropSize = info.BackdropSize;
+                    }
+
+                    DB.MediaEntries.Update(newItem);
+                    await DB.SaveChangesAsync();
+                }
+            }
 
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, seriesInfo.ExtraSearchTerms));
@@ -496,7 +519,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Update info
-            bool tmdb_changed = existingItem.TMDB_Id != seriesInfo.TMDB_Id;
             bool library_changed = existingItem.LibraryId != seriesInfo.LibraryId;
             bool rated_changed = existingItem.TVRating != seriesInfo.Rated;
             bool artwork_changed = existingItem.ArtworkUrl != seriesInfo.ArtworkUrl;
@@ -526,10 +548,7 @@ namespace DustyPig.Server.Controllers.v3
             if (dup)
                 return $"A series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}";
 
-            //Get popularity
-            if (tmdb_changed)
-                await UpdatePopularity(existingItem);
-
+            
             //Update library/rated for episodes
             List<int> playlistIds = null;
             if (library_changed || rated_changed || artwork_changed)
@@ -558,8 +577,33 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            //People
-            await MediaEntryLogic.UpdatePeople(false, existingItem, seriesInfo.Cast, seriesInfo.Directors, seriesInfo.Producers, seriesInfo.Writers);
+            //TMDB
+            if (existingItem.TMDB_Id.HasValue)
+            {
+                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(existingItem.TMDB_Id.Value);
+                if (info != null)
+                {
+                    existingItem.TMDB_EntryId = info.Id;
+                    existingItem.Popularity = info.Popularity;
+                    existingItem.PopularityUpdated = DateTime.UtcNow;
+
+                    //backdrop
+                    if (existingItem.TVRating == null || existingItem.TVRating == TVRatings.None)
+                        existingItem.TVRating = info.TVRating;
+
+                    if (string.IsNullOrWhiteSpace(existingItem.Description))
+                        existingItem.Description = info.Overview;
+
+                    if (string.IsNullOrWhiteSpace(existingItem.BackdropUrl))
+                    {
+                        existingItem.BackdropUrl = info.BackdropUrl;
+                        existingItem.BackdropSize = info.BackdropSize;
+                    }
+
+                    DB.MediaEntries.Update(existingItem);
+                    await DB.SaveChangesAsync();
+                }
+            }
 
             //Search Terms
             await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, seriesInfo.ExtraSearchTerms));

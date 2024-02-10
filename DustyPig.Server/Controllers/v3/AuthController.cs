@@ -644,9 +644,9 @@ namespace DustyPig.Server.Controllers.v3
                     Account = account,
                     MaxMovieRating = MovieRatings.Unrated,
                     MaxTVRating = TVRatings.NotRated,
-                    AvatarUrl = Utils.EnsureProfilePic(photoUrl),
+                    AvatarUrl = LogicUtils.EnsureProfilePic(photoUrl),
                     IsMain = true,
-                    Name = Utils.Coalesce(name, email[..email.IndexOf("@")]),
+                    Name = LogicUtils.Coalesce(name, email[..email.IndexOf("@")]),
                     TitleRequestPermission = TitleRequestPermissions.Enabled
                 });
 

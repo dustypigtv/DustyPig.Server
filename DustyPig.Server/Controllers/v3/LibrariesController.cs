@@ -227,7 +227,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     Id = id,
                     IsTV = share.Library.IsTV,
-                    Name = Utils.Coalesce(share.LibraryDisplayName, share.Library.Name),
+                    Name = LogicUtils.Coalesce(share.LibraryDisplayName, share.Library.Name),
                     Owner = share.Friendship.GetFriendDisplayNameForAccount(UserAccount.Id)
                 };
 
