@@ -437,21 +437,21 @@ namespace DustyPig.Server.HostedServices
             int writerCount = 0;
             foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
-                if (apiPerson.Job == "Director" && directorCount < 25)
+                if (apiPerson.Job.ICEquals("Director") && directorCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
                     directorCount++;
                 }
 
-                if (apiPerson.Job == "Producer" && producerCount < 25)
+                if (apiPerson.Job.ICEquals("Producer"_ && producerCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
                     producerCount++;
                 }
 
-                if (apiPerson.Job == "Writer" && writerCount < 25)
+                if (apiPerson.Job.ICEquals("Writer") && writerCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
@@ -462,7 +462,7 @@ namespace DustyPig.Server.HostedServices
             if (producerCount == 0)
                 foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
                 {
-                    if (apiPerson.Job == "Executive Producer" && producerCount < 25)
+                    if (apiPerson.Job.ICEquals("Executive Producer") && producerCount < 25)
                     {
                         int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                         alreadyProcessed.Add(tmdbId);
@@ -473,7 +473,7 @@ namespace DustyPig.Server.HostedServices
             if (writerCount == 0)
                 foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
                 {
-                    if (apiPerson.Job == "Screenplay" && writerCount < 25)
+                    if (apiPerson.Job.ICEquals("Screenplay") && writerCount < 25)
                     {
                         int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                         alreadyProcessed.Add(tmdbId);
@@ -484,7 +484,7 @@ namespace DustyPig.Server.HostedServices
             if (writerCount == 0)
                 foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
                 {
-                    if (apiPerson.Job == "Story" && writerCount < 25)
+                    if (apiPerson.Job.ICEquals("Story") && writerCount < 25)
                     {
                         int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                         alreadyProcessed.Add(tmdbId);
@@ -611,17 +611,17 @@ namespace DustyPig.Server.HostedServices
                 .ToList();
 
             var crew = credits.Crew
-                .Where(item => item.Job == job1)
+                .Where(item => item.Job.ICEquals(job1))
                 .ToList();
 
             if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job2))
                 crew = credits.Crew
-                    .Where(item => item.Job == job2)
+                    .Where(item => item.Job.ICEquals(job2))
                     .ToList();
 
             if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job3))
                 crew = credits.Crew
-                    .Where(item => item.Job == job3)
+                    .Where(item => item.Job.ICEquals(job3))
                     .ToList();
 
             var apiCastIds = crew
