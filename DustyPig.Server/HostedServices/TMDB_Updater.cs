@@ -209,7 +209,7 @@ namespace DustyPig.Server.HostedServices
 
         public static async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId, CancellationToken cancellationToken = default)
         {
-            await Task.Delay(1000, cancellationToken);
+            await Task.Delay(250, cancellationToken);
             var response = await _client.GetMovieAsync(tmdbId, cancellationToken);
             if (!response.Success)
                 return null;
@@ -312,7 +312,7 @@ namespace DustyPig.Server.HostedServices
 
         public static async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId, CancellationToken cancellationToken = default)
         {
-            await Task.Delay(1000, cancellationToken);
+            await Task.Delay(250, cancellationToken);
             var response = await _client.GetSeriesAsync(tmdbId, cancellationToken);
             if (!response.Success)
                 return null;
