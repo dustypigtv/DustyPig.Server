@@ -444,7 +444,7 @@ namespace DustyPig.Server.HostedServices
                     directorCount++;
                 }
 
-                if (apiPerson.Job.ICEquals("Producer"_ && producerCount < 25)
+                if (apiPerson.Job.ICEquals("Producer") && producerCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
