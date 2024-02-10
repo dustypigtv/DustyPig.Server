@@ -56,7 +56,7 @@ namespace DustyPig.Server.HostedServices
         {
             try
             {
-                await DoUpdate();
+                //await DoUpdate();
             }
             catch (Exception ex)
             {

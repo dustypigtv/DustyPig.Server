@@ -22,7 +22,6 @@
     <PackageReference Include="Asp.Versioning.Mvc" Version="7.1.1" />
     <PackageReference Include="AsyncAwaitBestPractices" Version="7.0.0" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.305.24" />
-    <PackageReference Include="DustyPig.API" Version="3.6.0.193" />
     <PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.13" />
     <PackageReference Include="DustyPig.SimpleDownloader" Version="3.2.0.10" />
     <PackageReference Include="DustyPig.TMDB" Version="3.2.0.17" />
@@ -45,5 +44,10 @@
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
+
+
+<ItemGroup>
+  <ProjectReference Include="..\..\DustyPig.API\DustyPig.API\DustyPig.API.csproj" />
+</ItemGroup>
 
 </Project>
