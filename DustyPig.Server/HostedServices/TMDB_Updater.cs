@@ -432,59 +432,63 @@ namespace DustyPig.Server.HostedServices
                 alreadyProcessed.Add(tmdbId);
             }
 
-            bool foundProducers = false;
-            bool foundWriters = false;
+            int directorCount = 0;
+            int producerCount = 0;
+            int writerCount = 0;
             foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
-                if (apiPerson.Job == "Director")
+                if (apiPerson.Job == "Director" && directorCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
+                    directorCount++;
                 }
 
-                if (apiPerson.Job == "Producer")
+                if (apiPerson.Job == "Producer" && producerCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
-                    foundProducers = true;
+                    producerCount++;
                 }
 
-                if (apiPerson.Job == "Writer")
+                if (apiPerson.Job == "Writer" && writerCount < 25)
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
-                    foundWriters = true;
+                    writerCount++;
                 }
             }
 
-            if (!foundProducers)
+            if (producerCount == 0)
                 foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
                 {
-                    if (apiPerson.Job == "Executive Producer")
+                    if (apiPerson.Job == "Executive Producer" && producerCount < 25)
                     {
                         int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                         alreadyProcessed.Add(tmdbId);
+                        producerCount++;
                     }
                 }
 
-            if (!foundWriters)
+            if (writerCount == 0)
                 foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
                 {
-                    if (apiPerson.Job == "Screenplay")
+                    if (apiPerson.Job == "Screenplay" && writerCount < 25)
                     {
                         int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                         alreadyProcessed.Add(tmdbId);
-                        foundWriters = true;
+                        writerCount++;
                     }
                 }
 
-            if (!foundWriters)
+            if (writerCount == 0)
                 foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
                 {
-                    if (apiPerson.Job == "Story")
+                    if (apiPerson.Job == "Story" && writerCount < 25)
                     {
                         int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                         alreadyProcessed.Add(tmdbId);
+                        writerCount++;
                     }
                 }
         }
