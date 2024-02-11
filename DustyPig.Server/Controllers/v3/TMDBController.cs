@@ -8,6 +8,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.TMDB;
 using DustyPig.TMDB.Models;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -521,71 +522,68 @@ namespace DustyPig.Server.Controllers.v3
             {
                 if (credits.Cast != null && credits.Cast.Count > 0)
                 {
-                    ret.Cast ??= new();
-                    foreach (var apiCast in credits.Cast.OrderBy(item => item.Order).Take(25))
-                        if (!ret.Cast.Any(item => item.TMDB_Id == apiCast.Id))
-                            ret.Cast.Add(new API.v3.Models.Person
-                            {
-                                TMDB_Id = apiCast.Id,
-                                Name = apiCast.Name,
-                                AvatarUrl = TMDB.Utils.GetFullPosterPath(apiCast.ProfilePath, false)
-                            });
+                    ret.Credits ??= new();
+                    foreach (var castMember in credits.Cast.OrderBy(item => item.Order))
+                        AddPersonToCredits(ret.Credits, castMember);
                 }
 
                 if (credits.Crew != null)
                 {
-                    foreach (var director in credits.Crew.Where(item => item.Job.ICEquals("Director")).Take(25))
+                    foreach (var director in credits.Crew.Where(item => item.Job.ICEquals("Director")))
                     {
-                        ret.Directors ??= new();
-                        if (!ret.Directors.Any(item => item.TMDB_Id == director.Id))
-                            ret.Directors.Add(new API.v3.Models.Person
-                            {
-                                TMDB_Id = director.Id,
-                                Name = director.Name,
-                                AvatarUrl = TMDB.Utils.GetFullPosterPath(director.ProfilePath, false)
-                            });
+                        ret.Credits ??= new();
+                        AddPersonToCredits(ret.Credits, director, CreditRoles.Director);
                     }
 
-
-                    foreach (string producerJob in new string[] { "Producer", "Executive Producer" })
+                    foreach (var producer in credits.Crew.Where(item => item.Job.ICEquals("Producer")))
                     {
-                        if (ret.Producers == null || ret.Producers.Count == 0)
-                            foreach (var producer in credits.Crew.Where(item => item.Job.ICEquals(producerJob)).Take(25))
-                            {
-                                ret.Producers ??= new();
-                                if (!ret.Producers.Any(item => item.TMDB_Id == producer.Id))
-                                    ret.Producers.Add(new API.v3.Models.Person
-                                    {
-                                        TMDB_Id = producer.Id,
-                                        Name = producer.Name,
-                                        AvatarUrl = TMDB.Utils.GetFullPosterPath(producer.ProfilePath, false)
-                                    });
-                            }
+                        ret.Credits ??= new();
+                        AddPersonToCredits(ret.Credits, producer, CreditRoles.Producer);
                     }
 
-
-
-
-                    foreach (string writerJob in new string[] { "Writer", "Screenplay", "Story" })
+                    foreach (var executiveProducer in credits.Crew.Where(item => item.Job.ICEquals("Executive Producer")))
                     {
-                        if (ret.Writers == null || ret.Writers.Count == 0)
-                            foreach (var writer in credits.Crew.Where(item => item.Job.ICEquals("Screenplay")).Take(25))
-                            {
-                                ret.Writers ??= new();
-                                if (!ret.Writers.Any(item => item.TMDB_Id == writer.Id))
-                                    ret.Writers.Add(new API.v3.Models.Person
-                                    {
-                                        TMDB_Id = writer.Id,
-                                        Name = writer.Name,
-                                        AvatarUrl = TMDB.Utils.GetFullPosterPath(writer.ProfilePath, false)
-                                    });
-                            }
+                        ret.Credits ??= new();
+                        AddPersonToCredits(ret.Credits, executiveProducer, CreditRoles.ExecutiveProducer);
                     }
 
+                    foreach(string writerJob in new string[] { "Writer", "Screenplay" })
+                        foreach (var writer in credits.Crew.Where(item => item.Job.ICEquals(writerJob)))
+                        {
+                            ret.Credits ??= new();
+                            AddPersonToCredits(ret.Credits, writer, CreditRoles.Writer);
+                        }
                 }
             }
         }
-               
 
+
+        private static void AddPersonToCredits(List<Person> credits, Cast castMember)
+        {
+            if (!credits.Any(item => item.TMDB_Id == castMember.Id && item.Role == CreditRoles.Cast))
+                credits.Add(new Person
+                {
+                    TMDB_Id = castMember.Id,
+                    AvatarUrl = TMDB.Utils.GetFullBackdropPath(castMember.ProfilePath, false),
+                    Name = castMember.Name,
+                    Initials = castMember.Name.GetInitials(),
+                    Role = CreditRoles.Cast,
+                    Order = credits.Count(item => item.Role == CreditRoles.Cast)
+                });
+        }
+
+        private static void AddPersonToCredits(List<Person> credits, Crew crewMember, CreditRoles role)
+        {
+            if (!credits.Any(item => item.TMDB_Id == crewMember.Id && item.Role == role))
+                credits.Add(new Person
+                {
+                    TMDB_Id = crewMember.Id,
+                    AvatarUrl = TMDB.Utils.GetFullBackdropPath(crewMember.ProfilePath, false),
+                    Name = crewMember.Name,
+                    Initials = crewMember.Name.GetInitials(),
+                    Role = role,
+                    Order = credits.Count(item => item.Role == role)
+                });
+        }
     }
 }

@@ -508,7 +508,7 @@ namespace DustyPig.Server.HostedServices
 
             //Cast
             var bridges = entry.People
-                .Where(item => item.Role == Roles.Cast)
+                .Where(item => item.Role == CreditRoles.Cast)
                 .OrderBy(item => item.SortOrder)
                 .ToList();
 
@@ -536,7 +536,7 @@ namespace DustyPig.Server.HostedServices
                         {
                             TMDB_EntryId = entry.Id,
                             TMDB_PersonId = item.Id,
-                            Role = Roles.Cast,
+                            Role = CreditRoles.Cast,
                             SortOrder = item.Order
                         });
                         alreadySet.Add(item.Id);
@@ -549,25 +549,24 @@ namespace DustyPig.Server.HostedServices
 
 
             //Directors
-            await SetCrew(entry, Roles.Director, credits, "Director", null, cancellationToken);
-            await SetCrew(entry, Roles.Producer, credits, "Producer", null, cancellationToken);
-            await SetCrew(entry, Roles.ExecutiveProducer, credits, "Executive Producer", null, cancellationToken);
-            await SetCrew(entry, Roles.Writer, credits, "Writer", "Screenplay", cancellationToken);
+            await SetCrew(entry, CreditRoles.Director, credits, "Director", null, cancellationToken);
+            await SetCrew(entry, CreditRoles.Producer, credits, "Producer", null, cancellationToken);
+            await SetCrew(entry, CreditRoles.ExecutiveProducer, credits, "Executive Producer", null, cancellationToken);
+            await SetCrew(entry, CreditRoles.Writer, credits, "Writer", "Screenplay", cancellationToken);
 
         }
 
-        private static async Task SetCrew(TMDB_Entry entry, Roles role, Credits credits, string job1, string job2, CancellationToken cancellationToken)
+        private static async Task SetCrew(TMDB_Entry entry, CreditRoles role, Credits credits, string job1, string job2, CancellationToken cancellationToken)
         {
             using var db = new AppDbContext();
 
             var bridges = entry.People
                 .Where(item => item.Role == role)
+                .OrderBy(item => item.SortOrder)
                 .ToList();
 
             var bridgeIds = bridges
                 .Select(item => item.TMDB_PersonId)
-                .Distinct()
-                .OrderBy(item => item)
                 .ToList();
 
             var crew = credits.Crew
@@ -579,11 +578,12 @@ namespace DustyPig.Server.HostedServices
                     .Where(item => item.Job.ICEquals(job2))
                     .ToList();
 
-            var apiCastIds = crew
-                .Select(item => item.Id)
-                .Distinct()
-                .OrderBy(item => item)
-                .ToList();
+            //Preserve sort order from tmdb api
+            var apiCastIds = new List<int>();
+            foreach (var crewMember in crew)
+                if (!apiCastIds.Contains(crewMember.Id))
+                    apiCastIds.Add(crewMember.Id);
+            
 
             if (!bridgeIds.SequenceEqual(apiCastIds))
             {
@@ -592,16 +592,17 @@ namespace DustyPig.Server.HostedServices
                 await db.SaveChangesAsync(cancellationToken);
 
                 var alreadySet = new List<int>();
-                foreach (var item in crew)
-                    if (!alreadySet.Contains(item.Id))
+                foreach (var crewMember in crew)
+                    if (!alreadySet.Contains(crewMember.Id))
                     {
                         db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
                         {
                             TMDB_EntryId = entry.Id,
-                            TMDB_PersonId = item.Id,
-                            Role = role
+                            TMDB_PersonId = crewMember.Id,
+                            Role = role,
+                            SortOrder = alreadySet.Count
                         });
-                        alreadySet.Add(item.Id);
+                        alreadySet.Add(crewMember.Id);
                     }
                 await Task.Delay(100, cancellationToken);
                 await db.SaveChangesAsync(cancellationToken);

@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using APIPerson = DustyPig.API.v3.Models.Person;
@@ -82,11 +83,10 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 BackdropSize = self.BackdropSize,
                 BifUrl = playable ? self.BifUrl : null,
                 BifSize = self.BifSize,
-                Cast = self.GetPeople(Roles.Cast),
+                Credits = self.GetPeople(),
                 CreditsStartTime = self.CreditsStartTime,
                 Date = self.Date.Value,
                 Description = self.Description,
-                Directors = self.GetPeople(Roles.Director),
                 Genres = self.ToGenres(),
                 Id = self.Id,
                 IntroEndTime = self.IntroEndTime,
@@ -94,13 +94,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 Length = self.Length.Value,
                 LibraryId = self.LibraryId,
                 CanPlay = playable,
-                Producers = self.GetPeople(Roles.Producer),
                 Rated = self.MovieRating ?? MovieRatings.None,
                 Title = self.Title,
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = playable ? self.VideoUrl : null,
                 VideoSize = self.VideoSize,
-                Writers = self.GetPeople(Roles.Writer)
             };
 
             //Subs
@@ -110,7 +108,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return ret;
         }
 
-        public static List<APIPerson> GetPeople(this MediaEntry self, Roles role)
+        public static List<APIPerson> GetPeople(this MediaEntry self)
         {
             if (self?.TMDB_Entry?.People == null)
                 return null;
@@ -118,23 +116,31 @@ namespace DustyPig.Server.Controllers.v3.Logic
             if (self.TMDB_Entry.People.Count == 0)
                 return null;
 
-            var lst = self.TMDB_Entry.People
-                .Where(item => item.Role == role)
-                .OrderBy(item => item.SortOrder)
-                .ThenBy(item => item.TMDB_Person.Name)
-                .ToList();
+            List<APIPerson> ret = null;
+            
+            foreach(CreditRoles role in Enum.GetValues(typeof(CreditRoles)))
+            {
+                var bridges = self.TMDB_Entry.People
+                    .Where(item => item.Role == role)
+                    .OrderBy(item => item.SortOrder)
+                    .ToList();
 
-            if (lst.Count == 0)
-                return null;
-
-            return lst
-                .Select(item => new APIPerson
+                foreach(var bridge in bridges)
                 {
-                    TMDB_Id = item.TMDB_PersonId,
-                    Name = item.TMDB_Person.Name,
-                    AvatarUrl = item.TMDB_Person.AvatarUrl
-                })
-                .ToList();
+                    ret ??= [];
+                    ret.Add(new APIPerson
+                    {
+                        AvatarUrl = bridge.TMDB_Person.AvatarUrl,
+                        Initials = bridge.TMDB_Person.Name.GetInitials(),
+                        Name = bridge.TMDB_Person.Name,
+                        Order = bridge.SortOrder,
+                        Role = role,
+                        TMDB_Id = bridge.TMDB_PersonId
+                    });
+                }
+            }
+
+            return ret;
         }
     }
 }

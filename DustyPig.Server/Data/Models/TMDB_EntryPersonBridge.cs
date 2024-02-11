@@ -1,20 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DustyPig.API.v3.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 
 namespace DustyPig.Server.Data.Models
 {
-    public enum Roles : int
-    {
-        Cast = 1,
-        Director = 2,
-        Producer = 3,
-        Writer = 4,
-        ExecutiveProducer = 5
-    }
-
-
-
     [Index(nameof(TMDB_EntryId), IsUnique = false)]
     [Index(nameof(TMDB_PersonId), IsUnique = false)]
     [PrimaryKey(nameof(TMDB_EntryId), nameof(TMDB_PersonId), nameof(Role))]
@@ -26,7 +16,7 @@ namespace DustyPig.Server.Data.Models
         public int TMDB_PersonId { get; set; }
         public TMDB_Person TMDB_Person { get; set; }
 
-        public Roles Role { get; set; }
+        public CreditRoles Role { get; set; }
 
         public int SortOrder { get; set; }
 

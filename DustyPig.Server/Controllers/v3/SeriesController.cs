@@ -162,17 +162,14 @@ namespace DustyPig.Server.Controllers.v3
                 BackdropUrl = media.BackdropUrl,
                 BackdropSize = media.BackdropSize,
                 CanPlay = playable,
-                Cast = media.GetPeople(Roles.Cast),
+                Credits = media.GetPeople(),
                 Description = media.Description,
-                Directors = media.GetPeople(Roles.Director),
                 Genres = media.ToGenres(),
                 LibraryId = media.LibraryId,
-                Producers = media.GetPeople(Roles.Producer),
                 Rated = media.TVRating ?? TVRatings.None,
                 Title = media.Title,
                 TitleRequestPermission = TitleRequestLogic.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any()),
                 TMDB_Id = media.TMDB_Id,
-                Writers = media.GetPeople(Roles.Writer),
                 Subscribed = media.Subscriptions.Any(),
             };
 
@@ -327,17 +324,14 @@ namespace DustyPig.Server.Controllers.v3
             {
                 ArtworkUrl = mediaEntry.ArtworkUrl,
                 BackdropUrl = mediaEntry.BackdropUrl,
-                Cast = mediaEntry.GetPeople(Roles.Cast),
+                Credits = mediaEntry.GetPeople(),
                 Description = mediaEntry.Description,
-                Directors = mediaEntry.GetPeople(Roles.Director),
                 Genres = mediaEntry.ToGenres(),
                 Id = id,
                 LibraryId = mediaEntry.LibraryId,
-                Producers = mediaEntry.GetPeople(Roles.Producer),
                 Rated = mediaEntry.TVRating ?? TVRatings.None,
                 Title = mediaEntry.Title,
                 TMDB_Id = mediaEntry.TMDB_Id,
-                Writers = mediaEntry.GetPeople(Roles.Writer)
             };
 
 
