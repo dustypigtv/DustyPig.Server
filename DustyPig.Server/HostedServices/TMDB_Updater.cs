@@ -419,76 +419,32 @@ namespace DustyPig.Server.HostedServices
         {
             var alreadyProcessed = new List<int>();
 
-            credits.Cast = credits.Cast
-                .OrderBy(item => item.Order)
-                .Take(25)
-                .ToList();
-
             foreach (var apiPerson in credits.Cast.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
                 int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                 alreadyProcessed.Add(tmdbId);
             }
 
-            int directorCount = 0;
-            int producerCount = 0;
-            int writerCount = 0;
             foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
-                if (apiPerson.Job.ICEquals("Director") && directorCount < 25)
+                if (apiPerson.Job.ICEquals("Director"))
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
-                    directorCount++;
                 }
 
-                if (apiPerson.Job.ICEquals("Producer") && producerCount < 25)
+                if (apiPerson.Job.ICEquals("Producer") || apiPerson.Job.ICEquals("Executive Producer"))
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
-                    producerCount++;
                 }
 
-                if (apiPerson.Job.ICEquals("Writer") && writerCount < 25)
+                if (apiPerson.Job.ICEquals("Writer") || apiPerson.Job.ICEquals("Screenplay") || apiPerson.Job.ICEquals("Story"))
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
-                    writerCount++;
                 }
-            }
-
-            if (producerCount == 0)
-                foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
-                {
-                    if (apiPerson.Job.ICEquals("Executive Producer") && producerCount < 25)
-                    {
-                        int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
-                        alreadyProcessed.Add(tmdbId);
-                        producerCount++;
-                    }
-                }
-
-            if (writerCount == 0)
-                foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
-                {
-                    if (apiPerson.Job.ICEquals("Screenplay") && writerCount < 25)
-                    {
-                        int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
-                        alreadyProcessed.Add(tmdbId);
-                        writerCount++;
-                    }
-                }
-
-            if (writerCount == 0)
-                foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
-                {
-                    if (apiPerson.Job.ICEquals("Story") && writerCount < 25)
-                    {
-                        int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
-                        alreadyProcessed.Add(tmdbId);
-                        writerCount++;
-                    }
-                }
+            }            
         }
 
         private static Task<int> AddOrUpdatePersonAsync(Cast cast, CancellationToken cancellationToken) => AddOrUpdatePersonAsync(cast.Id, cast.Name, cast.ProfilePath, cancellationToken);
