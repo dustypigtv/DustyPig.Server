@@ -9,7 +9,8 @@ namespace DustyPig.Server.Data.Models
         Cast = 1,
         Director = 2,
         Producer = 3,
-        Writer = 4
+        Writer = 4,
+        ExecutiveProducer = 5
     }
 
 

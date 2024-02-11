@@ -439,7 +439,7 @@ namespace DustyPig.Server.HostedServices
                     alreadyProcessed.Add(tmdbId);
                 }
 
-                if (apiPerson.Job.ICEquals("Writer") || apiPerson.Job.ICEquals("Screenplay") || apiPerson.Job.ICEquals("Story"))
+                if (apiPerson.Job.ICEquals("Writer") || apiPerson.Job.ICEquals("Screenplay"))
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
@@ -549,13 +549,14 @@ namespace DustyPig.Server.HostedServices
 
 
             //Directors
-            await SetCrew(entry, Roles.Director, credits, "Director", null, null, cancellationToken);
-            await SetCrew(entry, Roles.Producer, credits, "Producer", "Executive Producer", null, cancellationToken);
-            await SetCrew(entry, Roles.Writer, credits, "Writer", "Screenplay", "Story", cancellationToken);
+            await SetCrew(entry, Roles.Director, credits, "Director", null, cancellationToken);
+            await SetCrew(entry, Roles.Producer, credits, "Producer", null, cancellationToken);
+            await SetCrew(entry, Roles.ExecutiveProducer, credits, "Executive Producer", null, cancellationToken);
+            await SetCrew(entry, Roles.Writer, credits, "Writer", "Screenplay", cancellationToken);
 
         }
 
-        private static async Task SetCrew(TMDB_Entry entry, Roles role, Credits credits, string job1, string job2, string job3, CancellationToken cancellationToken)
+        private static async Task SetCrew(TMDB_Entry entry, Roles role, Credits credits, string job1, string job2, CancellationToken cancellationToken)
         {
             using var db = new AppDbContext();
 
@@ -576,11 +577,6 @@ namespace DustyPig.Server.HostedServices
             if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job2))
                 crew = credits.Crew
                     .Where(item => item.Job.ICEquals(job2))
-                    .ToList();
-
-            if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job3))
-                crew = credits.Crew
-                    .Where(item => item.Job.ICEquals(job3))
                     .ToList();
 
             var apiCastIds = crew
