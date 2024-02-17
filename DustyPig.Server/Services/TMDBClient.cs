@@ -230,7 +230,7 @@ namespace DustyPig.Server.Services
                     Id = crewObject.Id,
                     Job = crewObject.Job,
                     Name = crewObject.Name,
-                    FullImagePath = TMDB.Utils.GetFullImageUrl(crewObject.ProfilePath, "w185")
+                    FullImagePath = GetPosterPath(crewObject.ProfilePath)
                 };
             }
 
@@ -241,7 +241,7 @@ namespace DustyPig.Server.Services
                     Id = crewObject.Id,
                     Job = crewObject.Job,
                     Name = crewObject.Name,
-                    FullImagePath = TMDB.Utils.GetFullImageUrl(crewObject.ProfilePath, "w185")
+                    FullImagePath = GetPosterPath(crewObject.ProfilePath)
                 };
             }
         }
@@ -260,7 +260,7 @@ namespace DustyPig.Server.Services
                     Id = castObject.Id,
                     Name = castObject.Name,
                     Order = castObject.Order,
-                    FullImagePath = TMDB.Utils.GetFullImageUrl(castObject.ProfilePath, "w185")
+                    FullImagePath = GetPosterPath(castObject.ProfilePath)
                 };
             }
 
@@ -271,7 +271,7 @@ namespace DustyPig.Server.Services
                     Id = castObject.Id,
                     Name = castObject.Name,
                     Order = castObject.Order,
-                    FullImagePath = TMDB.Utils.GetFullImageUrl(castObject.ProfilePath, "w185")
+                    FullImagePath = GetPosterPath(castObject.ProfilePath)
                 };
             }
         }

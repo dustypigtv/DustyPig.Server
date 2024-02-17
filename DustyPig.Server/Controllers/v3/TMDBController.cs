@@ -19,7 +19,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static DustyPig.Server.Services.TMDBClient;
-using static DustyPig.TMDB.Utils;
 
 namespace DustyPig.Server.Controllers.v3
 {
@@ -54,8 +53,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = new DetailedTMDB
             {
-                ArtworkUrl = GetFullImageUrl(movie.PosterPath, "w185"),
-                BackdropUrl = GetFullImageUrl(movie.BackdropPath, "w300"),
+                ArtworkUrl = GetPosterPath(movie.PosterPath),
+                BackdropUrl = GetBackdropPath(movie.BackdropPath),
                 Description = movie.Overview,
                 MediaType = TMDB_MediaTypes.Movie,
                 Rated = TryMapMovieRatings(movie.ReleaseDates),
@@ -140,8 +139,8 @@ namespace DustyPig.Server.Controllers.v3
             // Response
             var ret = new DetailedTMDB
             {
-                ArtworkUrl = GetFullImageUrl(series.PosterPath, "w185"),
-                BackdropUrl = GetFullImageUrl(series.BackdropPath, "w300"),
+                ArtworkUrl = GetPosterPath(series.PosterPath),
+                BackdropUrl = GetBackdropPath(series.BackdropPath),
                 Description = series.Overview,
                 MediaType = TMDB_MediaTypes.Series,
                 Rated = TryMapTVRatings(series.ContentRatings),

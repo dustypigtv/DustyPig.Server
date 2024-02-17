@@ -259,8 +259,8 @@ namespace DustyPig.Server.HostedServices
                     return TMDBInfo.FromEntry(entry);
 
             await EnsurePeopleExistAsync(credits, cancellationToken);
-
-            var backdropUrl = TMDB.Utils.GetFullImageUrl(backdropPath, "w300");
+            
+            var backdropUrl = TMDBClient.GetPosterPath(backdropPath);
 
             bool changed = false;
             bool newEntry = false;
@@ -381,7 +381,7 @@ namespace DustyPig.Server.HostedServices
             }
         }
 
-        private static async Task<int> AddOrUpdatePersonAsync(int tmdbId, string name, string profilePath, CancellationToken cancellationToken)
+        private static async Task<int> AddOrUpdatePersonAsync(int tmdbId, string name, string fullImageUrl, CancellationToken cancellationToken)
         {
             using var db = new AppDbContext();
 
@@ -397,17 +397,15 @@ namespace DustyPig.Server.HostedServices
                 {
                     TMDB_Id = tmdbId,
                     Name = name,
-                    AvatarUrl = TMDB.Utils.GetFullImageUrl(profilePath, "w185")
+                    AvatarUrl = fullImageUrl
                 }).Entity;
             }
             else
             {
-                string avatarUrl = TMDB.Utils.GetFullImageUrl(profilePath, "w185");
-
-                if (dbPerson.Name != name || dbPerson.AvatarUrl != avatarUrl)
+                if (dbPerson.Name != name || dbPerson.AvatarUrl != fullImageUrl)
                 {
                     dbPerson.Name = name;
-                    dbPerson.AvatarUrl = avatarUrl;
+                    dbPerson.AvatarUrl = fullImageUrl;
                     db.TMDB_People.Update(dbPerson);
                 }
             }
