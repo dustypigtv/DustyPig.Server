@@ -15,12 +15,12 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with: 
-          dotnet-version: 7
+          dotnet-version: 8
 
       - name: Build Server
         run: |
             sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
-            dotnet publish -c release -p:PublishProfile=FolderProfile -o publish
+            dotnet publish "DustyPig.Server/DustyPig.Server.csproj" -c release -p:PublishProfile=FolderProfile -o publish
             rm -rf "publish/wwwroot/.well-known"
             cp -r "DustyPig.Server/wwwroot/.well-known" "publish/wwwroot"
             cd publish
