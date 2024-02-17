@@ -24,7 +24,7 @@ namespace DustyPig.Server.Controllers.v3
     public class MediaController : _MediaControllerBase
     {
 
-        public MediaController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
+        public MediaController(AppDbContext db) : base(db)
         {
         }
 
@@ -329,16 +329,16 @@ namespace DustyPig.Server.Controllers.v3
             var searchOtherTitles = request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed;
             if (request.SearchPeople || searchOtherTitles)
             {
-                var response = await _tmdbClient.SearchAsync(request.Query, cancellationToken);
-                if (response.Success && response.Data.Count > 0)
+                var response = await _tmdbClient.Endpoints.Search.GetMultiAsync(request.Query, cancellationToken: cancellationToken);
+                if (response.Success && response.Data.Results.Count > 0)
                 {
                     if (searchOtherTitles)
                     {
                         ret.OtherTitles ??= [];
                         ret.OtherTitles.AddRange
                             (
-                                response.Data
-                                    .Where(item => item.SearchResultType != TMDB.Models.SearchResultTypes.Person)
+                                response.Data.Results
+                                    .Where(item => item.MediaType != "person")
                                     .Select(item => item.ToBasicTMDBInfo())
                                     .Take(DEFAULT_LIST_SIZE)
                             );
@@ -346,8 +346,8 @@ namespace DustyPig.Server.Controllers.v3
 
                     if (request.SearchPeople)
                     {
-                        var apiPeopleIds = response.Data
-                            .Where(item => item.SearchResultType == TMDB.Models.SearchResultTypes.Person)
+                        var apiPeopleIds = response.Data.Results
+                            .Where(item => item.MediaType == "person")
                             .Select(item => item.Id)
                             .ToList();
 
@@ -363,12 +363,12 @@ namespace DustyPig.Server.Controllers.v3
                             ret.AvailablePeople ??= [];
                             ret.AvailablePeople.AddRange
                                 (
-                                    response.Data
-                                        .Where(item => item.SearchResultType == TMDB.Models.SearchResultTypes.Person)
+                                    response.Data.Results
+                                        .Where(item => item.MediaType == "person")
                                         .Where(item => dbPeopleIds.Contains(item.Id))
                                         .Select(item => item.ToTMDBPerson())
                                         .Take(DEFAULT_LIST_SIZE)
-                                ); ;
+                                );
                         }
 
 
@@ -377,8 +377,8 @@ namespace DustyPig.Server.Controllers.v3
                             ret.OtherPeople ??= [];
                             ret.OtherPeople.AddRange
                                 (
-                                    response.Data
-                                        .Where(item => item.SearchResultType == TMDB.Models.SearchResultTypes.Person)
+                                    response.Data.Results
+                                        .Where(item => item.MediaType == "person")
                                         .Select(item => item.ToTMDBPerson())
                                         .Take(DEFAULT_LIST_SIZE)
                                 );

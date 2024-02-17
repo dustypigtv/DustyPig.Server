@@ -12,8 +12,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using static DustyPig.Server.Services.TMDBClient;
 
 namespace DustyPig.Server.HostedServices
 {
@@ -24,7 +26,11 @@ namespace DustyPig.Server.HostedServices
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
         private readonly ILogger<TMDB_Updater> _logger;
-        private static readonly TMDBClient _client = new();
+        private static readonly TMDBClient _client = new()
+        {
+            RetryCount = 100,
+            RetryDelay = 250
+        };
 
         public TMDB_Updater(ILogger<TMDB_Updater> logger)
         {
@@ -217,97 +223,7 @@ namespace DustyPig.Server.HostedServices
             if (movie == null)
                 return null;
 
-            using var db = new AppDbContext();
-
-            await Task.Delay(100, cancellationToken);
-            var entry = await db.TMDB_Entries
-                .AsNoTracking()
-                .Where(item => item.TMDB_Id == tmdbId)
-                .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (entry != null)
-                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
-                    return TMDBInfo.FromEntry(entry); ;
-
-
-            //Make sure all the people exist
-            movie.Credits ??= new();
-            movie.Credits.Cast ??= [];
-            movie.Credits.Crew ??= [];
-            await EnsurePeopleExistAsync(movie.Credits, cancellationToken);
-
-            //Make sure movie exists
-            var backdropUrl = TMDB.Utils.GetFullBackdropPath(movie.BackdropPath, false);
-
-
-            bool changed = false;
-            bool newEntry = false;
-            if (entry == null)
-            {
-                entry = new TMDB_Entry
-                {
-                    TMDB_Id = tmdbId,
-                    MediaType = TMDB_MediaTypes.Movie
-                };
-                changed = true;
-                newEntry = true;
-            }
-
-            if (entry.BackdropUrl != backdropUrl && !string.IsNullOrWhiteSpace(backdropUrl))
-            {
-                try
-                {
-                    var size = await SimpleDownloader.GetDownloadSizeAsync(backdropUrl, cancellationToken);
-                    entry.BackdropUrl = backdropUrl;
-                    entry.BackdropSize = (ulong)size;
-                    changed = true;
-                }
-                catch { }
-            }
-            if (entry.Date != movie.ReleaseDate)
-            {
-                entry.Date = movie.ReleaseDate;
-                changed = true;
-            }
-            if (entry.Description != movie.Overview)
-            {
-                entry.Description = movie.Overview;
-                changed = true;
-            }
-            if (entry.Popularity != movie.Popularity)
-            {
-                entry.Popularity = movie.Popularity;
-                changed = true;
-            }
-
-            //Ratings
-            var ratingStr = TryMapMovieRatings(movie.Releases);
-            MovieRatings? movieRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToMovieRatings();
-            if (movieRating == MovieRatings.None)
-                movieRating = null;
-
-            if (entry.MovieRating != movieRating && movieRating != null)
-            {
-                entry.MovieRating = movieRating;
-                changed = true;
-            }
-
-
-            if (changed)
-            {
-                entry.LastUpdated = DateTime.UtcNow;
-                if (newEntry)
-                    db.TMDB_Entries.Add(entry);
-                else
-                    db.TMDB_Entries.Update(entry);
-                await Task.Delay(100, cancellationToken);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-
-            await BridgeEntryAndPeopleAsync(tmdbId, TMDB_MediaTypes.Movie, movie.Credits, cancellationToken);
-
-            return TMDBInfo.FromEntry(entry);
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie.Credits), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie.ReleaseDates), cancellationToken);
         }
 
         public static async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId, CancellationToken cancellationToken = default)
@@ -320,29 +236,31 @@ namespace DustyPig.Server.HostedServices
             if (series == null)
                 return null;
 
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBClient.GetCommonCredits(series.Credits), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBClient.TryMapTVRatings(series.ContentRatings), cancellationToken);
+        }
+
+
+
+
+
+        private static async Task<TMDBInfo> AddOrUpdateTMDBEntryAsync(int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
+        {
             using var db = new AppDbContext();
 
             await Task.Delay(100, cancellationToken);
             var entry = await db.TMDB_Entries
                 .AsNoTracking()
                 .Where(item => item.TMDB_Id == tmdbId)
-                .Where(item => item.MediaType == TMDB_MediaTypes.Series)
+                .Where(item => item.MediaType == mediaType)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entry != null)
                 if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
                     return TMDBInfo.FromEntry(entry);
 
+            await EnsurePeopleExistAsync(credits, cancellationToken);
 
-            //Make sure all the people exist
-            series.Credits ??= new();
-            series.Credits.Cast ??= [];
-            series.Credits.Crew ??= [];
-            await EnsurePeopleExistAsync(series.Credits, cancellationToken);
-
-            //Make sure entity exists
-            var backdropUrl = TMDB.Utils.GetFullBackdropPath(series.BackdropPath, false);
-
+            var backdropUrl = TMDB.Utils.GetFullImageUrl(backdropPath, "w300");
 
             bool changed = false;
             bool newEntry = false;
@@ -351,7 +269,7 @@ namespace DustyPig.Server.HostedServices
                 entry = new TMDB_Entry
                 {
                     TMDB_Id = tmdbId,
-                    MediaType = TMDB_MediaTypes.Series
+                    MediaType = mediaType
                 };
                 changed = true;
                 newEntry = true;
@@ -368,34 +286,53 @@ namespace DustyPig.Server.HostedServices
                 }
                 catch { }
             }
-            if (entry.Date != series.FirstAirDate)
+
+            DateTime? movieDate = TMDBClient.ConvertToDateTime(date);
+            if (entry.Date != movieDate)
             {
-                entry.Date = series.FirstAirDate;
+                entry.Date = movieDate;
                 changed = true;
             }
-            if (entry.Description != series.Overview)
+            if (entry.Description != overview)
             {
-                entry.Description = series.Overview;
+                entry.Description = overview;
                 changed = true;
             }
-            if (entry.Popularity != series.Popularity)
+            if (entry.Popularity != popularity)
             {
-                entry.Popularity = series.Popularity;
+                entry.Popularity = popularity;
                 changed = true;
             }
 
-            //Ratings
-            var ratingStr = TryMapTVRatings(series.ContentRatings);
-            TVRatings? tvRating = string.IsNullOrWhiteSpace(ratingStr) ? null : ratingStr.ToTVRatings();
-            if (tvRating == TVRatings.None)
-                tvRating = null;
 
-            if (entry.TVRating != tvRating && tvRating != null)
+            //Rated
+            if (mediaType == TMDB_MediaTypes.Movie)
             {
-                entry.TVRating = tvRating;
-                changed = true;
+                MovieRatings? movieRating = string.IsNullOrWhiteSpace(rated) ? null : rated.ToMovieRatings();
+                if (movieRating == MovieRatings.None)
+                    movieRating = null;
+
+                if (entry.MovieRating != movieRating && movieRating != null)
+                {
+                    entry.MovieRating = movieRating;
+                    changed = true;
+                }
+            }
+            else
+            {
+                TVRatings? tvRating = string.IsNullOrWhiteSpace(rated) ? null : rated.ToTVRatings();
+                if (tvRating == TVRatings.None)
+                    tvRating = null;
+
+                if (entry.TVRating != tvRating && tvRating != null)
+                {
+                    entry.TVRating = tvRating;
+                    changed = true;
+                }
             }
 
+
+            //Save changes
             if (changed)
             {
                 entry.LastUpdated = DateTime.UtcNow;
@@ -404,52 +341,45 @@ namespace DustyPig.Server.HostedServices
                 else
                     db.TMDB_Entries.Update(entry);
                 await Task.Delay(100, cancellationToken);
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(cancellationToken);
             }
 
-            await BridgeEntryAndPeopleAsync(tmdbId, TMDB_MediaTypes.Series, series.Credits, cancellationToken);
+            await BridgeEntryAndPeopleAsync(tmdbId, mediaType, credits, cancellationToken);
 
             return TMDBInfo.FromEntry(entry);
         }
 
-
-
-
-        private static async Task EnsurePeopleExistAsync(Credits credits, CancellationToken cancellationToken)
+        private static async Task EnsurePeopleExistAsync(CreditsDTO credits, CancellationToken cancellationToken)
         {
             var alreadyProcessed = new List<int>();
 
-            foreach (var apiPerson in credits.Cast.Where(item => !alreadyProcessed.Contains(item.Id)))
+            foreach (var apiPerson in credits.CastMembers.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
-                int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
                 alreadyProcessed.Add(tmdbId);
             }
 
-            foreach (var apiPerson in credits.Crew.Where(item => !alreadyProcessed.Contains(item.Id)))
+            foreach (var apiPerson in credits.CrewMembers.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
                 if (apiPerson.Job.ICEquals("Director"))
                 {
-                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
                 }
 
                 if (apiPerson.Job.ICEquals("Producer") || apiPerson.Job.ICEquals("Executive Producer"))
                 {
-                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
                 }
 
                 if (apiPerson.Job.ICEquals("Writer") || apiPerson.Job.ICEquals("Screenplay"))
                 {
-                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson, cancellationToken);
+                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
                 }
-            }            
+            }
         }
-
-        private static Task<int> AddOrUpdatePersonAsync(Cast cast, CancellationToken cancellationToken) => AddOrUpdatePersonAsync(cast.Id, cast.Name, cast.ProfilePath, cancellationToken);
-
-        private static Task<int> AddOrUpdatePersonAsync(Crew crew, CancellationToken cancellationToken) => AddOrUpdatePersonAsync(crew.Id, crew.Name, crew.ProfilePath, cancellationToken);
 
         private static async Task<int> AddOrUpdatePersonAsync(int tmdbId, string name, string profilePath, CancellationToken cancellationToken)
         {
@@ -467,12 +397,12 @@ namespace DustyPig.Server.HostedServices
                 {
                     TMDB_Id = tmdbId,
                     Name = name,
-                    AvatarUrl = TMDB.Utils.GetFullPosterPath(profilePath, false)
+                    AvatarUrl = TMDB.Utils.GetFullImageUrl(profilePath, "w185")
                 }).Entity;
             }
             else
             {
-                string avatarUrl = TMDB.Utils.GetFullPosterPath(profilePath, false);
+                string avatarUrl = TMDB.Utils.GetFullImageUrl(profilePath, "w185");
 
                 if (dbPerson.Name != name || dbPerson.AvatarUrl != avatarUrl)
                 {
@@ -487,11 +417,7 @@ namespace DustyPig.Server.HostedServices
             return dbPerson.TMDB_Id;
         }
 
-
-
-
-
-        private static async Task BridgeEntryAndPeopleAsync(int tmdbId, TMDB_MediaTypes mediaType, Credits credits, CancellationToken cancellationToken)
+        private static async Task BridgeEntryAndPeopleAsync(int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, CancellationToken cancellationToken)
         {
             using var db = new AppDbContext();
 
@@ -516,7 +442,7 @@ namespace DustyPig.Server.HostedServices
                 .Select(item => item.TMDB_PersonId)
                 .ToList();
 
-            var apiCast = credits.Cast
+            var apiCast = credits.CastMembers
                 .OrderBy(item => item.Order)
                 .ToList();
 
@@ -529,7 +455,7 @@ namespace DustyPig.Server.HostedServices
                 await db.SaveChangesAsync(cancellationToken);
 
                 var alreadySet = new List<int>();
-                foreach (var item in credits.Cast)
+                foreach (var item in credits.CastMembers)
                     if (!alreadySet.Contains(item.Id))
                     {
                         db.TMDB_EntryPeopleBridges.Add(new TMDB_EntryPersonBridge
@@ -548,7 +474,6 @@ namespace DustyPig.Server.HostedServices
 
 
 
-            //Directors
             await SetCrew(entry, CreditRoles.Director, credits, "Director", null, cancellationToken);
             await SetCrew(entry, CreditRoles.Producer, credits, "Producer", null, cancellationToken);
             await SetCrew(entry, CreditRoles.ExecutiveProducer, credits, "Executive Producer", null, cancellationToken);
@@ -556,7 +481,7 @@ namespace DustyPig.Server.HostedServices
 
         }
 
-        private static async Task SetCrew(TMDB_Entry entry, CreditRoles role, Credits credits, string job1, string job2, CancellationToken cancellationToken)
+        private static async Task SetCrew(TMDB_Entry entry, CreditRoles role, CreditsDTO credits, string job1, string job2, CancellationToken cancellationToken)
         {
             using var db = new AppDbContext();
 
@@ -569,12 +494,12 @@ namespace DustyPig.Server.HostedServices
                 .Select(item => item.TMDB_PersonId)
                 .ToList();
 
-            var crew = credits.Crew
+            var crew = credits.CrewMembers
                 .Where(item => item.Job.ICEquals(job1))
                 .ToList();
 
             if (crew.Count == 0 && !string.IsNullOrWhiteSpace(job2))
-                crew = credits.Crew
+                crew = credits.CrewMembers
                     .Where(item => item.Job.ICEquals(job2))
                     .ToList();
 
@@ -583,7 +508,7 @@ namespace DustyPig.Server.HostedServices
             foreach (var crewMember in crew)
                 if (!apiCastIds.Contains(crewMember.Id))
                     apiCastIds.Add(crewMember.Id);
-            
+
 
             if (!bridgeIds.SequenceEqual(apiCastIds))
             {
@@ -613,110 +538,6 @@ namespace DustyPig.Server.HostedServices
 
         }
 
-
-
-
-        public static string TryMapMovieRatings(Releases releases)
-        {
-            if (releases == null)
-                return null;
-
-            if (releases.Countries == null)
-                return null;
-
-            foreach (var country in releases.Countries.Where(item => item.Name.ICEquals("US")))
-                if (TryMapMovieRatings(country.Name, country.Certification, out string ret))
-                    return ret;
-
-            foreach (var country in releases.Countries)
-                if (TryMapTVRatings(country.Name, country.Certification, out string ret))
-                    return ret;
-
-            return null;
-        }
-
-        public static string TryMapTVRatings(ContentRatings contentRatings)
-        {
-            if (contentRatings == null)
-                return null;
-
-            if (contentRatings.Results == null)
-                return null;
-
-            foreach (var contentRating in contentRatings.Results.Where(item => item.Country.ICEquals("US")))
-                if (TryMapTVRatings(contentRating.Country, contentRating.Rating, out string ret))
-                    return ret;
-
-            foreach (var contentRating in contentRatings.Results)
-                if (TryMapMovieRatings(contentRating.Country, contentRating.Rating, out string ret))
-                    return ret;
-
-            return null;
-        }
-
-        private static bool TryMapMovieRatings(string country, string rating, out string rated)
-        {
-            rated = null;
-
-            if (string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(rating))
-                return false;
-
-            rated = RatingsUtils.MapMovieRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            rated = RatingsUtils.MapTVRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            return false;
-        }
-
-        private static bool TryMapTVRatings(string country, string rating, out string rated)
-        {
-            rated = null;
-
-            if (string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(rating))
-                return false;
-
-            rated = RatingsUtils.MapTVRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            rated = RatingsUtils.MapMovieRatings(country, rating);
-            if (!string.IsNullOrWhiteSpace(rated))
-                return true;
-
-            return false;
-        }
-
-
-        public class TMDBInfo
-        {
-            /// <summary>
-            /// DB Id, not TMDB_ID
-            /// </summary>
-            public int Id { get; set; }
-            public double Popularity { get; set; }
-            public string BackdropUrl { get; set; }
-            public ulong BackdropSize { get; set; }
-            public MovieRatings? MovieRating { get; set; }
-            public TVRatings? TVRating { get; set; }
-            public string Overview { get; set; }
-
-            public static TMDBInfo FromEntry(TMDB_Entry entry)
-            {
-                return new TMDBInfo
-                {
-                    Id = entry.Id,
-                    BackdropUrl = entry.BackdropUrl,
-                    BackdropSize = entry.BackdropSize,
-                    MovieRating = entry.MovieRating,
-                    Overview = entry.Description,
-                    Popularity = entry.Popularity,
-                    TVRating = entry.TVRating
-                };
-            }
-        }
+       
     }
 }

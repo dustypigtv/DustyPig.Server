@@ -26,7 +26,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(PlaylistsController))]
     public class PlaylistsController : _MediaControllerBase
     {
-        public PlaylistsController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient) { }
+        public PlaylistsController(AppDbContext db) : base(db) { }
 
 
         /// <summary>

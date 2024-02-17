@@ -314,7 +314,6 @@ namespace DustyPig.Server
 
 
             //*** Dependency Injection ***
-            services.AddScoped<TMDBClient>();
             services.AddScoped<FirebaseAuthClient>();
             services.AddScoped<JWTProvider>();
             services.AddHostedService<TMDB_Updater>();

@@ -23,7 +23,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(SeriesController))]
     public class SeriesController : _MediaControllerBase
     {
-        public SeriesController(AppDbContext db, TMDBClient tmdbClient) : base(db, tmdbClient)
+        public SeriesController(AppDbContext db) : base(db)
         {
         }
 

@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using DustyPig.TMDB;
 using DustyPig.TMDB.Models;
@@ -17,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static DustyPig.Server.Services.TMDBClient;
+using static DustyPig.TMDB.Utils;
 
 namespace DustyPig.Server.Controllers.v3
 {
@@ -25,12 +28,13 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(TMDBController))]
     public class TMDBController : _BaseProfileController
     {
-        private readonly TMDBClient _client;
-
-        public TMDBController(AppDbContext db, TMDBClient client) : base(db)
+        private readonly TMDBClient _client = new()
         {
-            _client = client;
-        }
+            RetryCount = 1,
+            RetryDelay = 100
+        };
+
+        public TMDBController(AppDbContext db) : base(db) { }
 
         /// <summary>
         /// Level 2
@@ -42,42 +46,29 @@ namespace DustyPig.Server.Controllers.v3
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
                 return CommonResponses.Forbid();
 
-            var movie = await _client.GetMovieAsync(id);
-            if (!movie.Success)
-                return movie.Error.GetErrorResponse().StatusMessage;
+            var movieResponse = await _client.GetMovieAsync(id);
+            if (!movieResponse.Success)
+                return movieResponse.Error.Message;
+
+            var movie = movieResponse.Data;
 
             var ret = new DetailedTMDB
             {
-                ArtworkUrl = TMDB.Utils.GetFullPosterPath(movie.Data.PosterPath, true),
-                BackdropUrl = TMDB.Utils.GetFullBackdropPath(movie.Data.BackdropPath, true),
-                Description = movie.Data.Overview,
+                ArtworkUrl = GetFullImageUrl(movie.PosterPath, "w185"),
+                BackdropUrl = GetFullImageUrl(movie.BackdropPath, "w300"),
+                Description = movie.Overview,
                 MediaType = TMDB_MediaTypes.Movie,
-                Rated = HostedServices.TMDB_Updater.TryMapMovieRatings(movie.Data.Releases),
-                Title = movie.Data.Title,
-                TMDB_ID = movie.Data.Id
+                Rated = TryMapMovieRatings(movie.ReleaseDates),
+                Title = movie.Title,
+                TMDB_ID = movie.Id
             };
 
-            if (movie.Data.ReleaseDate.HasValue)
-            {
-                ret.Year = movie.Data.ReleaseDate.Value.Year;
-            }
-            else
-            {
-                if (movie.Data.Releases != null && movie.Data.Releases.Countries != null)
-                {
-                    movie.Data.Releases.Countries.Sort();
-                    foreach (var release in movie.Data.Releases.Countries.Where(item => item.Name == "US"))
-                    {
-                        ret.Year = release.ReleaseDate.Year;
-                        break;
-                    }
-                }
-            }
+            ret.Year = TryGetMovieDate(movie)?.Year ?? 0;
 
-            if (movie.Data.Genres != null)
-                ret.Genres = string.Join(",", movie.Data.Genres.Select(item => item.Name)).ToGenres();
+            if (movie.Genres != null)
+                ret.Genres = string.Join(",", movie.Genres.Select(item => item.Name)).ToGenres();
 
-            FillCredits(movie.Data.Credits, ret);
+            FillCredits(GetCommonCredits(movie.Credits), ret);
 
 
             var available = await DB.MediaEntries
@@ -141,30 +132,31 @@ namespace DustyPig.Server.Controllers.v3
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
                 return CommonResponses.Forbid();
 
-            var series = await _client.GetSeriesAsync(id);
-            if (!series.Success)
-                return series.Error.GetErrorResponse().StatusMessage;
-
+            var seriesResponse = await _client.GetSeriesAsync(id);
+            if (!seriesResponse.Success)
+                return seriesResponse.Error.Message;
+            var series = seriesResponse.Data;
+            
             // Response
             var ret = new DetailedTMDB
             {
-                ArtworkUrl = TMDB.Utils.GetFullPosterPath(series.Data.PosterPath, true),
-                BackdropUrl = TMDB.Utils.GetFullBackdropPath(series.Data.BackdropPath, true),
-                Description = series.Data.Overview,
+                ArtworkUrl = GetFullImageUrl(series.PosterPath, "w185"),
+                BackdropUrl = GetFullImageUrl(series.BackdropPath, "w300"),
+                Description = series.Overview,
                 MediaType = TMDB_MediaTypes.Series,
-                Rated = HostedServices.TMDB_Updater.TryMapTVRatings(series.Data.ContentRatings),
-                Title = series.Data.Title,
-                TMDB_ID = series.Data.Id
+                Rated = TryMapTVRatings(series.ContentRatings),
+                Title = series.Name,
+                TMDB_ID = series.Id
             };
 
 
-            if (series.Data.FirstAirDate.HasValue)
-                ret.Year = series.Data.FirstAirDate.Value.Year;
+            if (series.FirstAirDate.HasValue)
+                ret.Year = series.FirstAirDate.Value.Year;
 
-            if (series.Data.Genres != null)
-                ret.Genres = string.Join(",", series.Data.Genres.Select(item => item.Name)).ToGenres();
+            if (series.Genres != null)
+                ret.Genres = string.Join(",", series.Genres.Select(item => item.Name)).ToGenres();
 
-            FillCredits(series.Data.Credits, ret);
+            FillCredits(GetCommonCredits(series.Credits), ret);
 
 
             var available = await DB.MediaEntries
@@ -327,7 +319,7 @@ namespace DustyPig.Server.Controllers.v3
                 var response = await _client.GetSeriesAsync(data.TMDB_Id);
                 if (!response.Success)
                     return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
-                title = response.Data.Title;
+                title = response.Data.Name;
             }
 
 
@@ -516,39 +508,39 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        private static void FillCredits(Credits credits, DetailedTMDB ret)
+        private static void FillCredits(CreditsDTO credits, DetailedTMDB ret)
         {
             if (credits != null)
             {
-                if (credits.Cast != null && credits.Cast.Count > 0)
+                if (credits.CastMembers.Count > 0)
                 {
                     ret.Credits ??= new();
-                    foreach (var castMember in credits.Cast.OrderBy(item => item.Order))
+                    foreach (var castMember in credits.CastMembers.OrderBy(item => item.Order))
                         AddPersonToCredits(ret.Credits, castMember);
                 }
 
-                if (credits.Crew != null)
+                if (credits.CrewMembers != null)
                 {
-                    foreach (var director in credits.Crew.Where(item => item.Job.ICEquals("Director")))
+                    foreach (var director in credits.CrewMembers.Where(item => item.Job.ICEquals("Director")))
                     {
                         ret.Credits ??= new();
                         AddPersonToCredits(ret.Credits, director, CreditRoles.Director);
                     }
 
-                    foreach (var producer in credits.Crew.Where(item => item.Job.ICEquals("Producer")))
+                    foreach (var producer in credits.CrewMembers.Where(item => item.Job.ICEquals("Producer")))
                     {
                         ret.Credits ??= new();
                         AddPersonToCredits(ret.Credits, producer, CreditRoles.Producer);
                     }
 
-                    foreach (var executiveProducer in credits.Crew.Where(item => item.Job.ICEquals("Executive Producer")))
+                    foreach (var executiveProducer in credits.CrewMembers.Where(item => item.Job.ICEquals("Executive Producer")))
                     {
                         ret.Credits ??= new();
                         AddPersonToCredits(ret.Credits, executiveProducer, CreditRoles.ExecutiveProducer);
                     }
 
                     foreach(string writerJob in new string[] { "Writer", "Screenplay" })
-                        foreach (var writer in credits.Crew.Where(item => item.Job.ICEquals(writerJob)))
+                        foreach (var writer in credits.CrewMembers.Where(item => item.Job.ICEquals(writerJob)))
                         {
                             ret.Credits ??= new();
                             AddPersonToCredits(ret.Credits, writer, CreditRoles.Writer);
@@ -558,13 +550,13 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        private static void AddPersonToCredits(List<Person> credits, Cast castMember)
+        private static void AddPersonToCredits(List<Person> credits, CastDTO castMember)
         {
             if (!credits.Any(item => item.TMDB_Id == castMember.Id && item.Role == CreditRoles.Cast))
                 credits.Add(new Person
                 {
                     TMDB_Id = castMember.Id,
-                    AvatarUrl = TMDB.Utils.GetFullBackdropPath(castMember.ProfilePath, false),
+                    AvatarUrl = castMember.FullImagePath,
                     Name = castMember.Name,
                     Initials = castMember.Name.GetInitials(),
                     Role = CreditRoles.Cast,
@@ -572,13 +564,13 @@ namespace DustyPig.Server.Controllers.v3
                 });
         }
 
-        private static void AddPersonToCredits(List<Person> credits, Crew crewMember, CreditRoles role)
+        private static void AddPersonToCredits(List<Person> credits, CrewDTO crewMember, CreditRoles role)
         {
             if (!credits.Any(item => item.TMDB_Id == crewMember.Id && item.Role == role))
                 credits.Add(new Person
                 {
                     TMDB_Id = crewMember.Id,
-                    AvatarUrl = TMDB.Utils.GetFullBackdropPath(crewMember.ProfilePath, false),
+                    AvatarUrl = crewMember.FullImagePath,
                     Name = crewMember.Name,
                     Initials = crewMember.Name.GetInitials(),
                     Role = role,
