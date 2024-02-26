@@ -57,7 +57,7 @@ namespace DustyPig.Server.Controllers.v3
                 BackdropUrl = GetBackdropPath(movie.BackdropPath),
                 Description = movie.Overview,
                 MediaType = TMDB_MediaTypes.Movie,
-                Rated = TryMapMovieRatings(movie.ReleaseDates),
+                Rated = TryMapMovieRatings(movie),
                 Title = movie.Title,
                 TMDB_ID = movie.Id
             };
@@ -67,7 +67,7 @@ namespace DustyPig.Server.Controllers.v3
             if (movie.Genres != null)
                 ret.Genres = string.Join(",", movie.Genres.Select(item => item.Name)).ToGenres();
 
-            FillCredits(GetCommonCredits(movie.Credits), ret);
+            FillCredits(GetCommonCredits(movie), ret);
 
 
             var available = await DB.MediaEntries
@@ -143,7 +143,7 @@ namespace DustyPig.Server.Controllers.v3
                 BackdropUrl = GetBackdropPath(series.BackdropPath),
                 Description = series.Overview,
                 MediaType = TMDB_MediaTypes.Series,
-                Rated = TryMapTVRatings(series.ContentRatings),
+                Rated = TryMapTVRatings(series),
                 Title = series.Name,
                 TMDB_ID = series.Id
             };
@@ -155,7 +155,7 @@ namespace DustyPig.Server.Controllers.v3
             if (series.Genres != null)
                 ret.Genres = string.Join(",", series.Genres.Select(item => item.Name)).ToGenres();
 
-            FillCredits(GetCommonCredits(series.Credits), ret);
+            FillCredits(GetCommonCredits(series), ret);
 
 
             var available = await DB.MediaEntries

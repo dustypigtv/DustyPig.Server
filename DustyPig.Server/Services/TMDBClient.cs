@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
+using DustyPig.TMDB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,23 +21,23 @@ namespace DustyPig.Server.Services
         public TMDBClient() : base(AuthTypes.APIKey, _apiKey) { }
 
 
-        public Task<REST.Response<TMDB.Models.Movie.DetailsResponse>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
-            Endpoints.Movie.GetDetailsAsync(id, TMDB.Models.Movie.AppendToResponse.Credits | TMDB.Models.Movie.AppendToResponse.ReleaseDates, cancellationToken:  cancellationToken);
+        public Task<Response<TMDB.Models.Movies.Details>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
+            Endpoints.Movies.GetDetailsAsync(id, TMDB.Models.Movies.AppendToResponse.Credits | TMDB.Models.Movies.AppendToResponse.ReleaseDates, cancellationToken:  cancellationToken);
 
-        public Task<REST.Response<TMDB.Models.TvSeries.DetailsResponse>> GetSeriesAsync(int id, CancellationToken cancellationToken = default) =>
+        public Task<Response<TMDB.Models.TvSeries.Details>> GetSeriesAsync(int id, CancellationToken cancellationToken = default) =>
             Endpoints.TvSeries.GetDetailsAsync(id, TMDB.Models.TvSeries.AppendToResponse.Credits | TMDB.Models.TvSeries.AppendToResponse.ContentRatings, cancellationToken: cancellationToken);
 
         
 
 
-        public static DateOnly? TryGetMovieDate(TMDB.Models.Movie.DetailsResponse response)
+        public static DateOnly? TryGetMovieDate(TMDB.Models.Movies.Details movieDetails)
         {
-            if (response.ReleaseDate != null)
-                return response.ReleaseDate;
+            if (movieDetails.ReleaseDate != null)
+                return movieDetails.ReleaseDate;
 
-            if (response.ReleaseDates?.Results != null)
+            if (movieDetails.ReleaseDates?.Results != null)
             {
-                foreach (var resultObject in response.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals("US")))
+                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals("US")))
                     if (resultObject.ReleaseDates != null)
                     {
                         foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals("en")))
@@ -48,7 +49,7 @@ namespace DustyPig.Server.Services
                                 return releaseDate.ReleaseDate;
                     }
 
-                foreach (var resultObject in response.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals("US")))
+                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals("US")))
                     if (resultObject.ReleaseDates != null)
                     {
                         foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals("en")))
@@ -65,12 +66,12 @@ namespace DustyPig.Server.Services
         }
 
 
-        public static string TryMapMovieRatings(TMDB.Models.Movie.DetailsResponse.AppendReleaseDatesObject appendReleaseDatesObject)
+        public static string TryMapMovieRatings(TMDB.Models.Movies.Details movieDetails)
         {
-            if (appendReleaseDatesObject == null || appendReleaseDatesObject.Results == null)
+            if (movieDetails == null || movieDetails.ReleaseDates == null)
                 return null;
 
-            foreach (var resultsObject in appendReleaseDatesObject.Results.Where(item => item.CountryCode.ICEquals("US")))
+            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals("US")))
             {
                 if (resultsObject.ReleaseDates != null)
                 {
@@ -86,7 +87,7 @@ namespace DustyPig.Server.Services
             }
 
 
-            foreach (var resultsObject in appendReleaseDatesObject.Results.Where(item => !item.CountryCode.ICEquals("US")))
+            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals("US")))
             {
                 if (resultsObject.ReleaseDates != null)
                 {
@@ -126,19 +127,16 @@ namespace DustyPig.Server.Services
 
 
 
-        public static string TryMapTVRatings(TMDB.Models.TvSeries.DetailsResponse.AppendContentRatingsObject contentRatings)
+        public static string TryMapTVRatings(TMDB.Models.TvSeries.Details details)
         {
-            if (contentRatings == null)
+            if (details == null || details.ContentRatings == null || details.ContentRatings.Results == null)
                 return null;
 
-            if (contentRatings.Results == null)
-                return null;
-
-            foreach (var contentRating in contentRatings.Results.Where(item => item.CountryCode.ICEquals("US")))
+            foreach (var contentRating in details.ContentRatings.Results.Where(item => item.CountryCode.ICEquals("US")))
                 if (TryMapTVRatings(contentRating.CountryCode, contentRating.Rating, out string ret))
                     return ret;
 
-            foreach (var contentRating in contentRatings.Results.Where(item => !item.CountryCode.ICEquals("US")))
+            foreach (var contentRating in details.ContentRatings.Results.Where(item => !item.CountryCode.ICEquals("US")))
                 if (TryMapMovieRatings(contentRating.CountryCode, contentRating.Rating, out string ret))
                     return ret;
 
@@ -165,9 +163,9 @@ namespace DustyPig.Server.Services
 
 
 
-        public static CreditsDTO GetCommonCredits(TMDB.Models.Movie.DetailsResponse.AppendCreditsObject credits) => CreditsDTO.FromAPI(credits);
+        public static CreditsDTO GetCommonCredits(TMDB.Models.Movies.Details details) => CreditsDTO.FromAPI(details.Credits);
 
-        public static CreditsDTO GetCommonCredits(TMDB.Models.TvSeries.DetailsResponse.AppendCreditsObject credits) => CreditsDTO.FromAPI(credits);
+        public static CreditsDTO GetCommonCredits(TMDB.Models.TvSeries.Details details) => CreditsDTO.FromAPI(details.Credits);
 
 
         public static string GetPosterPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w185");
@@ -223,7 +221,7 @@ namespace DustyPig.Server.Services
             public string FullImagePath { get; set; }
             public string Job { get; set; }
 
-            public static CrewDTO FromAPI(TMDB.Models.Movie.DetailsResponse.AppendCreditsObject.CrewObject crewObject)
+            public static CrewDTO FromAPI(TMDB.Models.Common.CommonCrew crewObject)
             {
                 return new CrewDTO
                 {
@@ -234,7 +232,7 @@ namespace DustyPig.Server.Services
                 };
             }
 
-            public static CrewDTO FromAPI(TMDB.Models.TvSeries.DetailsResponse.AppendCreditsObject.CrewObject crewObject)
+            public static CrewDTO FromAPI(TMDB.Models.TvSeries.Crew crewObject)
             {
                 return new CrewDTO
                 {
@@ -253,7 +251,7 @@ namespace DustyPig.Server.Services
             public string FullImagePath { get; set; }
             public int Order { get; set; }
 
-            public static CastDTO FromAPI(TMDB.Models.Movie.DetailsResponse.AppendCreditsObject.CastObject castObject)
+            public static CastDTO FromAPI(TMDB.Models.Movies.Cast castObject)
             {
                 return new CastDTO
                 {
@@ -264,7 +262,7 @@ namespace DustyPig.Server.Services
                 };
             }
 
-            public static CastDTO FromAPI(TMDB.Models.TvSeries.DetailsResponse.AppendCreditsObject.CastObject castObject)
+            public static CastDTO FromAPI(TMDB.Models.Common.CommonCast1 castObject)
             {
                 return new CastDTO
                 {
@@ -281,7 +279,7 @@ namespace DustyPig.Server.Services
             public List<CrewDTO> CrewMembers { get; } = [];
             public List<CastDTO> CastMembers { get; } = [];
 
-            public static CreditsDTO FromAPI(TMDB.Models.Movie.DetailsResponse.AppendCreditsObject credits)
+            public static CreditsDTO FromAPI(TMDB.Models.Movies.Credits credits)
             {
                 var ret = new CreditsDTO();
                 if (credits != null)
@@ -295,7 +293,7 @@ namespace DustyPig.Server.Services
                 return ret;
             }
 
-            public static CreditsDTO FromAPI(TMDB.Models.TvSeries.DetailsResponse.AppendCreditsObject credits)
+            public static CreditsDTO FromAPI(TMDB.Models.TvSeries.Credits credits)
             {
                 var ret = new CreditsDTO();
                 if (credits != null)

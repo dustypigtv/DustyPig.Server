@@ -207,6 +207,20 @@ namespace DustyPig.Server.HostedServices
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, ex.Message);
+
+                    //This is so failures don't repeatedly try - wait a day!
+                    var conn = db.Database.GetDbConnection();
+                    if (conn.State != System.Data.ConnectionState.Open)
+                        await conn.OpenAsync(_cancellationToken);
+                    
+                    await Task.Delay(100, _cancellationToken);
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.PopularityUpdated)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
+                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", DateTime.UtcNow));
+                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", entryData.TMDB_Id));
+                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", (int)entryData.EntryType));
+                    await cmd.ExecuteNonQueryAsync(_cancellationToken);
+
                 }
             }
         }
@@ -223,7 +237,7 @@ namespace DustyPig.Server.HostedServices
             if (movie == null)
                 return null;
 
-            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie.Credits), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie.ReleaseDates), cancellationToken);
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie), cancellationToken);
         }
 
         public static async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId, CancellationToken cancellationToken = default)
@@ -236,7 +250,7 @@ namespace DustyPig.Server.HostedServices
             if (series == null)
                 return null;
 
-            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBClient.GetCommonCredits(series.Credits), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBClient.TryMapTVRatings(series.ContentRatings), cancellationToken);
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBClient.GetCommonCredits(series), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBClient.TryMapTVRatings(series), cancellationToken);
         }
 
 
