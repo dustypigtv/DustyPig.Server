@@ -16,7 +16,6 @@ namespace DustyPig.Server.Data.Models
     [Index(nameof(TVRating))]
     [Index(nameof(LinkedToId))]
     [Index(nameof(Popularity))]
-    [Index(nameof(PopularityUpdated))]
     [Index(nameof(TMDB_EntryId))]
     [Index(nameof(EntryType))]
     [Index(nameof(Added))]
@@ -164,8 +163,6 @@ namespace DustyPig.Server.Data.Models
         public DateTime? Added { get; set; }
 
         public double? Popularity { get; set; }
-
-        public DateTime? PopularityUpdated { get; set; }
 
         public MovieRatings? MovieRating { get; set; }
 

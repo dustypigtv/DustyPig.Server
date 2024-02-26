@@ -444,19 +444,23 @@ namespace DustyPig.Server.Controllers.v3
             //TMDB
             if (newItem.TMDB_Id.HasValue)
             {
-                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(newItem.TMDB_Id.Value, false);
+                var info = await DB.TMDB_Entries
+                    .AsNoTracking()
+                    .Where(item => item.TMDB_Id == newItem.TMDB_Id.Value)
+                    .Where(item => item.MediaType == TMDB_MediaTypes.Series)
+                    .FirstOrDefaultAsync();
+
                 if (info != null)
                 {
                     newItem.TMDB_EntryId = info.Id;
                     newItem.Popularity = info.Popularity;
-                    newItem.PopularityUpdated = DateTime.UtcNow;
 
                     //backdrop
                     if (newItem.TVRating == null || newItem.TVRating == TVRatings.None)
                         newItem.TVRating = info.TVRating;
 
                     if (string.IsNullOrWhiteSpace(newItem.Description))
-                        newItem.Description = info.Overview;
+                        newItem.Description = info.Description;
 
                     if (string.IsNullOrWhiteSpace(newItem.BackdropUrl))
                     {
@@ -574,19 +578,23 @@ namespace DustyPig.Server.Controllers.v3
             //TMDB
             if (existingItem.TMDB_Id.HasValue)
             {
-                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(existingItem.TMDB_Id.Value, false);
+                var info = await DB.TMDB_Entries
+                    .AsNoTracking()
+                    .Where(item => item.TMDB_Id == existingItem.TMDB_Id.Value)
+                    .Where(item => item.MediaType == TMDB_MediaTypes.Series)
+                    .FirstOrDefaultAsync();
+
                 if (info != null)
                 {
                     existingItem.TMDB_EntryId = info.Id;
                     existingItem.Popularity = info.Popularity;
-                    existingItem.PopularityUpdated = DateTime.UtcNow;
 
                     //backdrop
                     if (existingItem.TVRating == null || existingItem.TVRating == TVRatings.None)
                         existingItem.TVRating = info.TVRating;
 
                     if (string.IsNullOrWhiteSpace(existingItem.Description))
-                        existingItem.Description = info.Overview;
+                        existingItem.Description = info.Description;
 
                     if (string.IsNullOrWhiteSpace(existingItem.BackdropUrl))
                     {
