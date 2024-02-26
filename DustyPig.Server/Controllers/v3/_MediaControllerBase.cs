@@ -71,49 +71,6 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal async Task UpdatePopularity(MediaEntry me)
-        {
-            if (!(me.EntryType == MediaTypes.Movie || me.EntryType == MediaTypes.Series))
-                return;
-
-            if (me.TMDB_Id == null)
-                return;
-
-            if (me.TMDB_Id <= 0)
-                return;
-
-            try
-            {
-                me.Popularity = await DB.MediaEntries
-                    .Where(item => item.Id != me.Id)
-                    .Where(item => item.TMDB_Id == me.TMDB_Id)
-                    .Where(item => item.EntryType == me.EntryType)
-                    .Where(item => item.Popularity != null)
-                    .Where(item => item.Popularity > 0)
-                    .Select(item => item.Popularity)
-                    .FirstOrDefaultAsync();
-
-                if (me.Popularity == null)
-                {
-                    if (me.EntryType == MediaTypes.Movie)
-                    {
-                        var movie = await _tmdbClient.GetMovieAsync(me.TMDB_Id.Value);
-                        me.Popularity = movie.Success ? movie.Data.Popularity : 0;
-                    }
-                    else //Series
-                    {
-                        var series = await _tmdbClient.GetSeriesAsync(me.TMDB_Id.Value);
-                        me.Popularity = series.Success ? series.Data.Popularity : 0;
-                    }
-                }
-            }
-            catch
-            {
-                me.Popularity = 0;
-            }
-        }
-
-
         internal static List<string> GetSearchTerms(MediaEntry me, List<string> extraSearchTerms)
         {
             var ret = (me.Title + string.Empty).NormalizedQueryString().Tokenize();
@@ -169,8 +126,6 @@ namespace DustyPig.Server.Controllers.v3
                 .Distinct()
                 .ToList();
         }
-
-
 
     }
 }
