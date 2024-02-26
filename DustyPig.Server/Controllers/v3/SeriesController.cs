@@ -444,7 +444,7 @@ namespace DustyPig.Server.Controllers.v3
             //TMDB
             if (newItem.TMDB_Id.HasValue)
             {
-                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(newItem.TMDB_Id.Value);
+                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(newItem.TMDB_Id.Value, false);
                 if (info != null)
                 {
                     newItem.TMDB_EntryId = info.Id;
@@ -574,7 +574,7 @@ namespace DustyPig.Server.Controllers.v3
             //TMDB
             if (existingItem.TMDB_Id.HasValue)
             {
-                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(existingItem.TMDB_Id.Value);
+                var info = await HostedServices.TMDB_Updater.AddOrUpdateTMDBSeriesAsync(existingItem.TMDB_Id.Value, false);
                 if (info != null)
                 {
                     existingItem.TMDB_EntryId = info.Id;

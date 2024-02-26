@@ -197,8 +197,9 @@ namespace DustyPig.Server.Services
             public MovieRatings? MovieRating { get; set; }
             public TVRatings? TVRating { get; set; }
             public string Overview { get; set; }
+            public bool Changed { get; set; }
 
-            public static TMDBInfo FromEntry(TMDB_Entry entry)
+            public static TMDBInfo FromEntry(TMDB_Entry entry, bool changed)
             {
                 return new TMDBInfo
                 {
@@ -208,7 +209,8 @@ namespace DustyPig.Server.Services
                     MovieRating = entry.MovieRating,
                     Overview = entry.Description,
                     Popularity = entry.Popularity,
-                    TVRating = entry.TVRating
+                    TVRating = entry.TVRating,
+                    Changed = changed
                 };
             }
         }

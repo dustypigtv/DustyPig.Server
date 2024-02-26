@@ -110,8 +110,8 @@ namespace DustyPig.Server.HostedServices
                 try
                 {
                     var info = entryData.EntryType == MediaTypes.Movie ?
-                        await AddOrUpdateTMDBMovieAsync(entryData.TMDB_Id, _cancellationToken) :
-                        await AddOrUpdateTMDBSeriesAsync(entryData.TMDB_Id, _cancellationToken);
+                        await AddOrUpdateTMDBMovieAsync(entryData.TMDB_Id, true, _cancellationToken) :
+                        await AddOrUpdateTMDBSeriesAsync(entryData.TMDB_Id, true, _cancellationToken);
 
 
                     if (info != null)
@@ -226,8 +226,8 @@ namespace DustyPig.Server.HostedServices
         }
 
 
-
-        public static async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId, CancellationToken cancellationToken = default)
+        /// <param name="updatePeople">Don't update people from HttpControllers, it's too slow.</param>
+        public static async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId, bool updatePeople, CancellationToken cancellationToken = default)
         {
             await Task.Delay(250, cancellationToken);
             var response = await _client.GetMovieAsync(tmdbId, cancellationToken);
@@ -237,10 +237,11 @@ namespace DustyPig.Server.HostedServices
             if (movie == null)
                 return null;
 
-            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie), cancellationToken);
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, updatePeople, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie), cancellationToken);
         }
 
-        public static async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId, CancellationToken cancellationToken = default)
+        /// <param name="updatePeople">Don't update people from HttpControllers, it's too slow.</param>
+        public static async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId, bool updatePeople, CancellationToken cancellationToken = default)
         {
             await Task.Delay(250, cancellationToken);
             var response = await _client.GetSeriesAsync(tmdbId, cancellationToken);
@@ -250,30 +251,30 @@ namespace DustyPig.Server.HostedServices
             if (series == null)
                 return null;
 
-            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBClient.GetCommonCredits(series), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBClient.TryMapTVRatings(series), cancellationToken);
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, updatePeople, TMDB_MediaTypes.Series, TMDBClient.GetCommonCredits(series), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBClient.TryMapTVRatings(series), cancellationToken);
         }
 
 
 
 
 
-        private static async Task<TMDBInfo> AddOrUpdateTMDBEntryAsync(int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
+        private static async Task<TMDBInfo> AddOrUpdateTMDBEntryAsync(int tmdbId, bool updatePeople, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
         {
             using var db = new AppDbContext();
 
             await Task.Delay(100, cancellationToken);
             var entry = await db.TMDB_Entries
-                .AsNoTracking()
                 .Where(item => item.TMDB_Id == tmdbId)
                 .Where(item => item.MediaType == mediaType)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entry != null)
                 if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
-                    return TMDBInfo.FromEntry(entry);
+                    return TMDBInfo.FromEntry(entry, false);
 
-            await EnsurePeopleExistAsync(credits, cancellationToken);
-            
+            if(updatePeople)
+                await EnsurePeopleExistAsync(credits, cancellationToken);
+
             var backdropUrl = TMDBClient.GetPosterPath(backdropPath);
 
             bool changed = false;
@@ -345,22 +346,23 @@ namespace DustyPig.Server.HostedServices
                 }
             }
 
+            //If http controllers are adding this, then  updating people is far too slow.
+            //Queue it to happen on the next loop
+            entry.LastUpdated = updatePeople ? DateTime.UtcNow : DateTime.UtcNow.AddYears(-100);
+
 
             //Save changes
-            if (changed)
-            {
-                entry.LastUpdated = DateTime.UtcNow;
-                if (newEntry)
-                    db.TMDB_Entries.Add(entry);
-                else
-                    db.TMDB_Entries.Update(entry);
-                await Task.Delay(100, cancellationToken);
-                await db.SaveChangesAsync(cancellationToken);
-            }
+            if (newEntry)
+                db.TMDB_Entries.Add(entry);
+            else
+                db.TMDB_Entries.Update(entry);
+            await Task.Delay(100, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
 
-            await BridgeEntryAndPeopleAsync(tmdbId, mediaType, credits, cancellationToken);
+            if(updatePeople)
+                await BridgeEntryAndPeopleAsync(tmdbId, mediaType, credits, cancellationToken);
 
-            return TMDBInfo.FromEntry(entry);
+            return TMDBInfo.FromEntry(entry, changed);
         }
 
         private static async Task EnsurePeopleExistAsync(CreditsDTO credits, CancellationToken cancellationToken)
