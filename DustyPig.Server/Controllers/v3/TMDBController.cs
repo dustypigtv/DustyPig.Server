@@ -226,7 +226,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = new API.v3.Models.TMDB_Person
             {
-                ArtworkUrl = TMDB.Utils.GetFullSizeImageUrl(response.Data.ProfilePath),
+                ArtworkUrl = TMDBClient.GetPosterPath(response.Data.ProfilePath),
                 Biography = response.Data.Biography,
                 Birthday = response.Data.Birthday,
                 Deathday = response.Data.Deathday,
