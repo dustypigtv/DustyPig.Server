@@ -106,7 +106,7 @@ namespace DustyPig.Server.Controllers.v3
                 BifUrl = episode.BifUrl,
                 BifSize = episode.BifSize,
                 CreditsStartTime = episode.CreditsStartTime,
-                Date = episode.Date.Value.ToDateOnly(),
+                Date = episode.Date.Value,
                 Description = episode.Description,
                 EpisodeNumber = (ushort)episode.Episode.Value,
                 Id = episode.Id,
@@ -223,7 +223,7 @@ namespace DustyPig.Server.Controllers.v3
                 BifUrl = episodeInfo.BifUrl,
                 BifSize = episodeInfo.BifSize,
                 CreditsStartTime = episodeInfo.CreditsStartTime,
-                Date = episodeInfo.Date.ToDateTime(),
+                Date = episodeInfo.Date,
                 Description = episodeInfo.Description,
                 EntryType = MediaTypes.Episode,
                 Episode = episodeInfo.EpisodeNumber,
@@ -431,7 +431,7 @@ namespace DustyPig.Server.Controllers.v3
             existingEpisode.BifUrl = episodeInfo.BifUrl;
             existingEpisode.BifSize = episodeInfo.BifSize;
             existingEpisode.CreditsStartTime = episodeInfo.CreditsStartTime;
-            existingEpisode.Date = episodeInfo.Date.ToDateTime();
+            existingEpisode.Date = episodeInfo.Date;
             existingEpisode.Description = episodeInfo.Description;
             existingEpisode.Episode = episodeInfo.EpisodeNumber;
             existingEpisode.IntroEndTime = episodeInfo.IntroEndTime;

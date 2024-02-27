@@ -85,8 +85,7 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_NAME_LENGTH)]
         public string SortTitle { get; set; }
 
-        [DataType(DataType.Date)]
-        public DateTime? Date { get; set; }
+        public DateOnly? Date { get; set; }
 
         [MaxLength(Constants.MAX_DESCRIPTION_LENGTH)]
         public string Description { get; set; }

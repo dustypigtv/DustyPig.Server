@@ -316,10 +316,10 @@ namespace DustyPig.Server.HostedServices
                 catch { }
             }
 
-            DateTime? movieDate = TMDBClient.ConvertToDateTime(date);
-            if (entry.Date != movieDate)
+            //DateTime? movieDate = TMDBClient.ConvertToDateTime(date);
+            if (entry.Date != date)
             {
-                entry.Date = movieDate;
+                entry.Date = date;
                 changed = true;
             }
             if (entry.Description != overview)
