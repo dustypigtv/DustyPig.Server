@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
+using DustyPig.REST;
 using DustyPig.Server.Data.Models;
 using DustyPig.TMDB;
 using System;
