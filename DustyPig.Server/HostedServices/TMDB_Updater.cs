@@ -62,7 +62,9 @@ namespace DustyPig.Server.HostedServices
         {
             try
             {
+#if !DEBUG
                 await DoUpdateAsync();
+#endif
             }
             catch (Exception ex)
             {
@@ -385,19 +387,7 @@ namespace DustyPig.Server.HostedServices
 
             foreach (var apiPerson in credits.CrewMembers.Where(item => !alreadyProcessed.Contains(item.Id)))
             {
-                if (apiPerson.Job.ICEquals("Director"))
-                {
-                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
-                    alreadyProcessed.Add(tmdbId);
-                }
-
-                if (apiPerson.Job.ICEquals("Producer") || apiPerson.Job.ICEquals("Executive Producer"))
-                {
-                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
-                    alreadyProcessed.Add(tmdbId);
-                }
-
-                if (apiPerson.Job.ICEquals("Writer") || apiPerson.Job.ICEquals("Screenplay"))
+                if (TMDBClient.CrewJobs.ICContains(apiPerson.Job))
                 {
                     int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
                     alreadyProcessed.Add(tmdbId);
@@ -417,7 +407,7 @@ namespace DustyPig.Server.HostedServices
 
             if (dbPerson == null)
             {
-                dbPerson = db.TMDB_People.Add(new TMDB_Person
+                dbPerson = db.TMDB_People.Add(new Data.Models.TMDB_Person
                 {
                     TMDB_Id = tmdbId,
                     Name = name,

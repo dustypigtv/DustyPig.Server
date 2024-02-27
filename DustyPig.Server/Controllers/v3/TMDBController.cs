@@ -9,6 +9,7 @@ using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using DustyPig.TMDB;
 using DustyPig.TMDB.Models;
+using DustyPig.TMDB.Models.Common;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -29,8 +30,10 @@ namespace DustyPig.Server.Controllers.v3
     {
         private readonly TMDBClient _client = new()
         {
+#if !DEBUG
             RetryCount = 1,
             RetryDelay = 100
+#endif
         };
 
         public TMDBController(AppDbContext db) : base(db) { }
@@ -207,6 +210,116 @@ namespace DustyPig.Server.Controllers.v3
 
             return ret;
         }
+
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<API.v3.Models.TMDB_Person>))]
+        public async Task<Result<API.v3.Models.TMDB_Person>> GetPerson(int id)
+        {
+            var response = await _client.Endpoints.People.GetDetailsAsync(id, TMDB.Models.People.AppendToResponse.CombinedCredits);
+            if (!response.Success)
+                return response.Error.Message;
+
+            var ret = new API.v3.Models.TMDB_Person
+            {
+                ArtworkUrl = TMDB.Utils.GetFullSizeImageUrl(response.Data.ProfilePath),
+                Biography = response.Data.Biography,
+                Birthday = response.Data.Birthday,
+                Deathday = response.Data.Deathday,
+                KnownFor = response.Data.KnownForDepartment,
+                Name = response.Data.Name,
+                PlaceOfBirth = response.Data.PlaceOfBirth,
+                TMDB_ID = id
+            };
+
+            CommonMediaTypes[] allowed = [CommonMediaTypes.Movie, CommonMediaTypes.TvSeries];
+
+            var castList = new List<TmdbTitleDTO>();
+            if(response.Data.CombinedCredits != null)
+            {
+                foreach(var item in response.Data.CombinedCredits.Cast.Where(c => !c.Adult).Where(c => allowed.Contains(c.MediaType)))
+                {
+                    var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
+                    castList.Add(new TmdbTitleDTO
+                    {
+                        Id = item.Id,
+                        MediaType = mt,
+                        Role = CreditRoles.Cast
+                    });
+
+                    ret.OtherTitles.Add(new BasicTMDB
+                    {
+                        ArtworkUrl = TMDBClient.GetPosterPath(item.PosterPath),
+                        BackdropUrl = TMDBClient.GetBackdropPath(item.BackdropPath),
+                        MediaType = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
+                        Role = CreditRoles.Cast,
+                        Title = item.Title,
+                        TMDB_ID = item.Id
+                    });
+                }
+
+                foreach (var item in response.Data.CombinedCredits.Crew.Where(c => !c.Adult).Where(c => allowed.Contains(c.MediaType)))
+                {
+                    if (TMDBClient.CrewJobs.ICContains(item.Job))
+                    {
+                        var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
+                        castList.Add(new TmdbTitleDTO
+                        {
+                            Id = item.Id,
+                            MediaType = mt,
+                            Role = TMDBClient.GetCreditRole(item.Job).Value
+                        });
+
+                        ret.OtherTitles.Add(new BasicTMDB
+                        {
+                            ArtworkUrl = TMDBClient.GetPosterPath(item.PosterPath),
+                            BackdropUrl = TMDBClient.GetBackdropPath(item.BackdropPath),
+                            MediaType = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
+                            Role = TMDBClient.GetCreditRole(item.Job),
+                            Title = item.Title,
+                            TMDB_ID = item.Id
+                        });
+                    }
+                }
+            }
+
+
+            //Put int tmdb order
+            foreach(var mediaType in castList.Select(item => item.MediaType).Distinct())
+            {
+                var subLst = castList
+                    .Where(item => item.MediaType == mediaType)
+                    .Select(item => item.Id)
+                    .Distinct()
+                    .ToList();
+
+                var entries = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+                    .AsNoTracking()
+                    .Where(item => item.TMDB_Id.HasValue)
+                    .Where(item => subLst.Contains(item.TMDB_Id.Value))
+                    .Where(item => item.EntryType == mediaType)
+                    .ToListAsync();
+
+                foreach (var tmdbId in subLst)
+                {
+                    var entry = entries.FirstOrDefault(m => m.TMDB_Id == tmdbId);
+                    if (entry != null)
+                    {
+                        var bm = entry.ToBasicMedia();
+                        bm.Role = castList.First(c => c.Id == tmdbId).Role;
+                        ret.Available.Add(bm);
+                    }
+                }
+            }
+
+            return ret;
+        }
+
+
 
 
         /// <summary>
@@ -477,6 +590,7 @@ namespace DustyPig.Server.Controllers.v3
             }
         }
 
+
         private async Task<(RequestStatus Status, TitleRequestPermissions Permission)> CalculateTitleRequestStatusAsync(int id, TMDB_MediaTypes mediaType)
         {
             RequestStatus status = RequestStatus.NotRequested;
@@ -563,6 +677,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
         }
 
+
         private static void AddPersonToCredits(List<Person> credits, CrewDTO crewMember, CreditRoles role)
         {
             if (!credits.Any(item => item.TMDB_Id == crewMember.Id && item.Role == role))
@@ -576,5 +691,14 @@ namespace DustyPig.Server.Controllers.v3
                     Order = credits.Count(item => item.Role == role)
                 });
         }
+    
+    
+        class TmdbTitleDTO
+        {
+            public int Id { get; set; }
+            public MediaTypes MediaType { get; set; }
+            public CreditRoles Role { get; set; }
+        }
+    
     }
 }

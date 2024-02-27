@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.MPAA;
+﻿using DustyPig.API.v3.Models;
+using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
 using DustyPig.TMDB;
 using System;
@@ -16,9 +17,19 @@ namespace DustyPig.Server.Services
     {
         private static string _apiKey;
 
+        public static readonly string[] CrewJobs = ["Director", "Producer", "Executive Producer", "Writer", "Screenplay"];
+
         public static void Configure(string apiKey) => _apiKey = apiKey;
 
-        public TMDBClient() : base(AuthTypes.APIKey, _apiKey) { }
+        public TMDBClient() : base(AuthTypes.APIKey, _apiKey)
+        {
+#if DEBUG
+            //My dev is behind a proxy that hates TMDB.  This solves it
+            RetryCount = 100;
+            RetryDelay = 1;
+#endif
+        }
+
 
 
         public Task<Response<TMDB.Models.Movies.Details>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
@@ -28,6 +39,21 @@ namespace DustyPig.Server.Services
             Endpoints.TvSeries.GetDetailsAsync(id, TMDB.Models.TvSeries.AppendToResponse.Credits | TMDB.Models.TvSeries.AppendToResponse.ContentRatings, cancellationToken: cancellationToken);
 
         
+        public static CreditRoles? GetCreditRole(string job)
+        {
+            if (string.IsNullOrWhiteSpace(job))
+                return null;
+
+            return job.Trim().ToLower() switch
+            {
+                "director" => CreditRoles.Director,
+                "producer" => CreditRoles.Producer,
+                "executive producer" => CreditRoles.ExecutiveProducer,
+                "writer" => CreditRoles.Writer,
+                "screenplay" => CreditRoles.Writer,
+                _ => null
+            };
+        }
 
 
         public static DateOnly? TryGetMovieDate(TMDB.Models.Movies.Details movieDetails)
@@ -168,9 +194,9 @@ namespace DustyPig.Server.Services
         public static CreditsDTO GetCommonCredits(TMDB.Models.TvSeries.Details details) => CreditsDTO.FromAPI(details.Credits);
 
 
-        public static string GetPosterPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w185");
+        public static string GetPosterPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w342");
 
-        public static string GetBackdropPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w300");
+        public static string GetBackdropPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w780");
 
 
 
@@ -287,10 +313,15 @@ namespace DustyPig.Server.Services
                 if (credits != null)
                 {
                     if (credits.Crew != null)
-                        ret.CrewMembers.AddRange(credits.Crew.Select(item => CrewDTO.FromAPI(item)));
+                        ret.CrewMembers.AddRange(
+                            credits.Crew
+                                .Where(item => !item.Adult)
+                                .Where(item => CrewJobs.ICContains(item.Job + string.Empty))
+                                .Select(item => CrewDTO.FromAPI(item))
+                        );
 
                     if (credits.Cast != null)
-                        ret.CastMembers.AddRange(credits.Cast.Select(item => CastDTO.FromAPI(item)));
+                        ret.CastMembers.AddRange(credits.Cast.Where(item => !item.Adult).Select(item => CastDTO.FromAPI(item)));
                 }
                 return ret;
             }
