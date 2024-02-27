@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Net;
 using System.Text.Json.Serialization;
@@ -65,6 +66,7 @@ namespace DustyPig.Server.HostedServices
 #if !DEBUG
                 await DoUpdateAsync();
 #endif
+                await DoUpdateAsync();
             }
             catch (Exception ex)
             {
@@ -377,57 +379,60 @@ namespace DustyPig.Server.HostedServices
 
         private static async Task EnsurePeopleExistAsync(CreditsDTO credits, CancellationToken cancellationToken)
         {
-            var alreadyProcessed = new List<int>();
-
-            foreach (var apiPerson in credits.CastMembers.Where(item => !alreadyProcessed.Contains(item.Id)))
-            {
-                int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
-                alreadyProcessed.Add(tmdbId);
-            }
-
-            foreach (var apiPerson in credits.CrewMembers.Where(item => !alreadyProcessed.Contains(item.Id)))
-            {
-                if (TMDBClient.CrewJobs.ICContains(apiPerson.Job))
-                {
-                    int tmdbId = await AddOrUpdatePersonAsync(apiPerson.Id, apiPerson.Name, apiPerson.FullImagePath, cancellationToken);
-                    alreadyProcessed.Add(tmdbId);
-                }
-            }
-        }
-
-        private static async Task<int> AddOrUpdatePersonAsync(int tmdbId, string name, string fullImageUrl, CancellationToken cancellationToken)
-        {
-            using var db = new AppDbContext();
+            var needed = credits.CastMembers.Select(item => item.Id).ToList();
+            needed.AddRange(credits.CrewMembers.Select(item => item.Id));
+            needed = needed.Distinct().ToList();
+            needed.Sort();
 
             await Task.Delay(100, cancellationToken);
-            var dbPerson = await db.TMDB_People
+            using var db = new AppDbContext();
+            var existing = await db.TMDB_People
                 .AsNoTracking()
-                .Where(item => item.TMDB_Id == tmdbId)
-                .FirstOrDefaultAsync(cancellationToken);
+                .Where(item => needed.Contains(item.TMDB_Id))
+                .ToListAsync(cancellationToken);
 
-            if (dbPerson == null)
+            foreach(var id in needed)
             {
-                dbPerson = db.TMDB_People.Add(new Data.Models.TMDB_Person
+                string avatarUrl;
+                string personName;
+
+                var neededCast = credits.CastMembers.FirstOrDefault(item => item.Id == id);
+                if (neededCast != null)
                 {
-                    TMDB_Id = tmdbId,
-                    Name = name,
-                    AvatarUrl = fullImageUrl
-                }).Entity;
-            }
-            else
-            {
-                if (dbPerson.Name != name || dbPerson.AvatarUrl != fullImageUrl)
+                    avatarUrl = neededCast.FullImagePath;
+                    personName = neededCast.Name;
+                }
+                else
                 {
-                    dbPerson.Name = name;
-                    dbPerson.AvatarUrl = fullImageUrl;
-                    db.TMDB_People.Update(dbPerson);
+                    var neededCrew = credits.CrewMembers.FirstOrDefault(item => item.Id == id);
+                    avatarUrl = neededCrew.FullImagePath;
+                    personName = neededCrew.Name;
+                }
+
+                
+                var entry = existing.FirstOrDefault(item => item.TMDB_Id == id);
+                if (entry == null)
+                {
+                    entry = db.TMDB_People.Add(new Data.Models.TMDB_Person
+                    {
+                        TMDB_Id = id,
+                        AvatarUrl = avatarUrl,
+                        Name = personName
+                    }).Entity;
+                }
+                else if (entry.Name != personName || entry.AvatarUrl != avatarUrl)
+                {
+                    entry.Name = personName;
+                    entry.AvatarUrl = avatarUrl;
+                    db.TMDB_People.Update(entry);
                 }
             }
 
             await Task.Delay(100, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
-            return dbPerson.TMDB_Id;
         }
+
+        
 
         private static async Task BridgeEntryAndPeopleAsync(int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, CancellationToken cancellationToken)
         {
