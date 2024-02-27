@@ -85,7 +85,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 BifSize = self.BifSize,
                 Credits = self.GetPeople(),
                 CreditsStartTime = self.CreditsStartTime,
-                Date = self.Date.Value,
+                Date = self.Date.Value.ToDateOnly(),
                 Description = self.Description,
                 Genres = self.ToGenres(),
                 Id = self.Id,

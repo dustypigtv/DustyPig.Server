@@ -292,7 +292,7 @@ namespace DustyPig.Server.Controllers.v3
                 BifUrl = movieInfo.BifUrl,
                 BifSize = movieInfo.BifSize,
                 CreditsStartTime = movieInfo.CreditsStartTime,
-                Date = movieInfo.Date,
+                Date = movieInfo.Date.ToDateTime(),
                 Description = movieInfo.Description,
                 EntryType = MediaTypes.Movie,
                 IntroEndTime = movieInfo.IntroEndTime,
@@ -467,7 +467,7 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.BifUrl = movieInfo.BifUrl;
             existingItem.BifSize = movieInfo.BifSize;
             existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
-            existingItem.Date = movieInfo.Date;
+            existingItem.Date = movieInfo.Date.ToDateTime();
             existingItem.Description = movieInfo.Description;
             existingItem.SetGenreFlags(movieInfo.Genres);
             existingItem.IntroEndTime = movieInfo.IntroEndTime;
