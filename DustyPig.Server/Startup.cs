@@ -39,10 +39,11 @@ namespace DustyPig.Server
 
             //*** Database Connection ***
 #if DEBUG
-            AppDbContext.Configure(Configuration["mysql-server-v3-dev"]);
+            string connStr = Configuration["mysql-server-v3-dev"];
 #else
-            AppDbContext.Configure(Configuration["mysql-server-v3"]);
+            string connStr = Configuration["mysql-server-v3"];
 #endif
+            AppDbContext.Configure(connStr);
 
 
             //*** Firebase Cloud Messaging ***
@@ -78,7 +79,7 @@ namespace DustyPig.Server
             var dbTarget = new DatabaseTarget("DB")
             {
                 DBProvider = "MySql.Data.MySqlClient.MySqlConnection, MySql.Data",
-                ConnectionString = Configuration["mysql-server-v3"],
+                ConnectionString = connStr,
                 CommandText = @"insert into Logs (
                                     Timestamp, Logger, CallSite, Level, Message, Exception
                                 ) values (

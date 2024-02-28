@@ -16,21 +16,26 @@ namespace DustyPig.Server.Services
     /// </summary>
     public class TMDBClient : TMDB.Client
     {
-        private static string _apiKey;
+        public const string JOB_DIRECTOR = "Director";
+        public const string JOB_PRODUCER = "Producer";
+        public const string JOB_EXECUTIVE_PRODUCER = "Executive Producer";
+        public const string JOB_WRITER = "Writer";
+        public const string JOB_SCREENPLAY = "Screenplay";
+        public const string COUNTRY_US = "US";
+        public const string LANGUAGE_ENGLISH = "en";
 
-        public static readonly string[] CrewJobs = ["Director", "Producer", "Executive Producer", "Writer", "Screenplay"];
+        public static readonly string[] CrewJobs = [JOB_DIRECTOR, JOB_PRODUCER, JOB_EXECUTIVE_PRODUCER, JOB_WRITER, JOB_SCREENPLAY];
+
+
+        private const string POSTER_WIDTH = "w342";
+        private const string BACKDROP_WIDTH = "w780";
+
+
+        private static string _apiKey;
 
         public static void Configure(string apiKey) => _apiKey = apiKey;
 
-        public TMDBClient() : base(AuthTypes.APIKey, _apiKey)
-        {
-#if DEBUG
-            //My dev is behind a proxy that hates TMDB.  This solves it
-            RetryCount = 100;
-            RetryDelay = 1;
-#endif
-        }
-
+        public TMDBClient() : base(AuthTypes.APIKey, _apiKey) { }
 
 
         public Task<Response<TMDB.Models.Movies.Details>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
@@ -45,15 +50,22 @@ namespace DustyPig.Server.Services
             if (string.IsNullOrWhiteSpace(job))
                 return null;
 
-            return job.Trim().ToLower() switch
-            {
-                "director" => CreditRoles.Director,
-                "producer" => CreditRoles.Producer,
-                "executive producer" => CreditRoles.ExecutiveProducer,
-                "writer" => CreditRoles.Writer,
-                "screenplay" => CreditRoles.Writer,
-                _ => null
-            };
+            if (job.ICEquals(JOB_DIRECTOR))
+                return CreditRoles.Director;
+
+            if(job.ICEquals(JOB_PRODUCER))
+                return CreditRoles.Producer;
+
+            if (job.ICEquals(JOB_EXECUTIVE_PRODUCER))
+                return CreditRoles.ExecutiveProducer;
+
+            if (job.ICEquals(JOB_WRITER))
+                return CreditRoles.Writer;
+
+            if (job.ICEquals(JOB_SCREENPLAY))
+                return CreditRoles.Writer;
+
+            return null;
         }
 
 
@@ -64,26 +76,26 @@ namespace DustyPig.Server.Services
 
             if (movieDetails.ReleaseDates?.Results != null)
             {
-                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals("US")))
+                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals(COUNTRY_US)))
                     if (resultObject.ReleaseDates != null)
                     {
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals("en")))
+                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                             if (releaseDate.ReleaseDate != null)
                                 return releaseDate.ReleaseDate;
 
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => !item.LanguageCode.ICEquals("en")))
+                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                             if (releaseDate.ReleaseDate != null)
                                 return releaseDate.ReleaseDate;
                     }
 
-                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals("US")))
+                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals(COUNTRY_US)))
                     if (resultObject.ReleaseDates != null)
                     {
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals("en")))
+                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                             if (releaseDate.ReleaseDate != null)
                                 return releaseDate.ReleaseDate;
 
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => !item.LanguageCode.ICEquals("en")))
+                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                             if (releaseDate.ReleaseDate != null)
                                 return releaseDate.ReleaseDate;
                     }
@@ -98,32 +110,32 @@ namespace DustyPig.Server.Services
             if (movieDetails == null || movieDetails.ReleaseDates == null)
                 return null;
 
-            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals("US")))
+            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals(COUNTRY_US)))
             {
                 if (resultsObject.ReleaseDates != null)
                 {
                     var releaseDatesObjectsWithCertification = resultsObject.ReleaseDates.Where(item => !string.IsNullOrWhiteSpace(item.Certification));
-                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => item.LanguageCode.ICEquals("en")))
+                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                         if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
                             return rated;
 
-                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => !item.LanguageCode.ICEquals("en")))
+                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                         if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
                             return rated;
                 }
             }
 
 
-            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals("US")))
+            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals(COUNTRY_US)))
             {
                 if (resultsObject.ReleaseDates != null)
                 {
                     var releaseDatesObjectsWithCertification = resultsObject.ReleaseDates.Where(item => !string.IsNullOrWhiteSpace(item.Certification));
-                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => item.LanguageCode.ICEquals("en")))
+                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                         if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
                             return rated;
 
-                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => !item.LanguageCode.ICEquals("en")))
+                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                         if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
                             return rated;
                 }
@@ -159,11 +171,11 @@ namespace DustyPig.Server.Services
             if (details == null || details.ContentRatings == null || details.ContentRatings.Results == null)
                 return null;
 
-            foreach (var contentRating in details.ContentRatings.Results.Where(item => item.CountryCode.ICEquals("US")))
+            foreach (var contentRating in details.ContentRatings.Results.Where(item => item.CountryCode.ICEquals(COUNTRY_US)))
                 if (TryMapTVRatings(contentRating.CountryCode, contentRating.Rating, out string ret))
                     return ret;
 
-            foreach (var contentRating in details.ContentRatings.Results.Where(item => !item.CountryCode.ICEquals("US")))
+            foreach (var contentRating in details.ContentRatings.Results.Where(item => !item.CountryCode.ICEquals(COUNTRY_US)))
                 if (TryMapMovieRatings(contentRating.CountryCode, contentRating.Rating, out string ret))
                     return ret;
 
@@ -195,9 +207,9 @@ namespace DustyPig.Server.Services
         public static CreditsDTO GetCommonCredits(TMDB.Models.TvSeries.Details details) => CreditsDTO.FromAPI(details.Credits);
 
 
-        public static string GetPosterPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w342");
+        public static string GetPosterPath(string path) => TMDB.Utils.GetFullImageUrl(path, POSTER_WIDTH);
 
-        public static string GetBackdropPath(string path) => TMDB.Utils.GetFullImageUrl(path, "w780");
+        public static string GetBackdropPath(string path) => TMDB.Utils.GetFullImageUrl(path, BACKDROP_WIDTH);
 
 
 
@@ -317,12 +329,16 @@ namespace DustyPig.Server.Services
                         ret.CrewMembers.AddRange(
                             credits.Crew
                                 .Where(item => !item.Adult)
-                                .Where(item => CrewJobs.ICContains(item.Job + string.Empty))
+                                .Where(item => CrewJobs.ICContains(item.Job))
                                 .Select(item => CrewDTO.FromAPI(item))
                         );
 
                     if (credits.Cast != null)
-                        ret.CastMembers.AddRange(credits.Cast.Where(item => !item.Adult).Select(item => CastDTO.FromAPI(item)));
+                        ret.CastMembers.AddRange(
+                            credits.Cast
+                            .Where(item => !item.Adult)
+                            .Select(item => CastDTO.FromAPI(item))
+                        );
                 }
                 return ret;
             }
@@ -333,10 +349,19 @@ namespace DustyPig.Server.Services
                 if (credits != null)
                 {
                     if (credits.Crew != null)
-                        ret.CrewMembers.AddRange(credits.Crew.Select(item => CrewDTO.FromAPI(item)));
+                        ret.CrewMembers.AddRange(
+                            credits.Crew
+                            .Where(item => !item.Adult)
+                            .Where(item => CrewJobs.ICContains(item.Job))
+                            .Select(item => CrewDTO.FromAPI(item))
+                    );
 
                     if (credits.Cast != null)
-                        ret.CastMembers.AddRange(credits.Cast.Select(item => CastDTO.FromAPI(item)));
+                        ret.CastMembers.AddRange(
+                            credits.Cast
+                            .Where(item => !item.Adult)
+                            .Select(item => CastDTO.FromAPI(item))
+                        );
                 }
                 return ret;
             }
