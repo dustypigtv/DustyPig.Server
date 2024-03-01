@@ -27,7 +27,7 @@ namespace DustyPig.Server.HostedServices
         private readonly ILogger<TMDB_Updater> _logger;
         private static readonly TMDBClient _client = new()
         {
-            RetryCount = 100,
+            RetryCount = 1,
             RetryDelay = 250,
             Throttle = 250
         };

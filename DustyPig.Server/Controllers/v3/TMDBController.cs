@@ -28,14 +28,6 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(TMDBController))]
     public class TMDBController : _BaseProfileController
     {
-        private readonly TMDBClient _client = new()
-        {
-#if !DEBUG
-            RetryCount = 1,
-            RetryDelay = 100
-#endif
-        };
-
         public TMDBController(AppDbContext db) : base(db) { }
 
         /// <summary>
@@ -48,7 +40,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
                 return CommonResponses.Forbid();
 
-            var movieResponse = await _client.GetMovieAsync(id);
+            var movieResponse = await TMDBClient.DefaultInstance.GetMovieAsync(id);
             if (!movieResponse.Success)
                 return movieResponse.Error.Message;
 
@@ -134,7 +126,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!(UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled))
                 return CommonResponses.Forbid();
 
-            var seriesResponse = await _client.GetSeriesAsync(id);
+            var seriesResponse = await TMDBClient.DefaultInstance.GetSeriesAsync(id);
             if (!seriesResponse.Success)
                 return seriesResponse.Error.Message;
             var series = seriesResponse.Data;
@@ -220,7 +212,7 @@ namespace DustyPig.Server.Controllers.v3
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<API.v3.Models.TMDB_Person>))]
         public async Task<Result<API.v3.Models.TMDB_Person>> GetPerson(int id)
         {
-            var response = await _client.Endpoints.People.GetDetailsAsync(id, TMDB.Models.People.AppendToResponse.CombinedCredits);
+            var response = await TMDBClient.DefaultInstance.Endpoints.People.GetDetailsAsync(id, TMDB.Models.People.AppendToResponse.CombinedCredits);
             if (!response.Success)
                 return response.Error.Message;
 
@@ -421,14 +413,14 @@ namespace DustyPig.Server.Controllers.v3
             string title = null;
             if (data.MediaType == TMDB_MediaTypes.Movie)
             {
-                var response = await _client.GetMovieAsync(data.TMDB_Id);
+                var response = await TMDBClient.DefaultInstance.GetMovieAsync(data.TMDB_Id);
                 if (!response.Success)
                     return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
                 title = response.Data.Title;
             }
             else
             {
-                var response = await _client.GetSeriesAsync(data.TMDB_Id);
+                var response = await TMDBClient.DefaultInstance.GetSeriesAsync(data.TMDB_Id);
                 if (!response.Success)
                     return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
                 title = response.Data.Name;

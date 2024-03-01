@@ -38,6 +38,9 @@ namespace DustyPig.Server.Services
         public TMDBClient() : base(AuthTypes.APIKey, _apiKey) { }
 
 
+        public static TMDBClient DefaultInstance => new();
+
+
         public Task<Response<TMDB.Models.Movies.Details>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
             Endpoints.Movies.GetDetailsAsync(id, TMDB.Models.Movies.AppendToResponse.Credits | TMDB.Models.Movies.AppendToResponse.ReleaseDates, cancellationToken:  cancellationToken);
 

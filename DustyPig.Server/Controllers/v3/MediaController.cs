@@ -329,7 +329,7 @@ namespace DustyPig.Server.Controllers.v3
             var searchOtherTitles = request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed;
             if (request.SearchPeople || searchOtherTitles)
             {
-                var response = await _tmdbClient.Endpoints.Search.MultiAsync(request.Query, cancellationToken: cancellationToken);
+                var response = await TMDBClient.DefaultInstance.Endpoints.Search.MultiAsync(request.Query, cancellationToken: cancellationToken);
                 if (response.Success && response.Data.Results.Count > 0)
                 {
                     if (searchOtherTitles)
