@@ -76,26 +76,10 @@ namespace DustyPig.Server.Services
 
             if (movieDetails.ReleaseDates?.Results != null)
             {
-                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals(COUNTRY_US)))
+                foreach (var resultObject in movieDetails.ReleaseDates.Results.OrderBy(item => !item.CountryCode.ICEquals(COUNTRY_US)))
                     if (resultObject.ReleaseDates != null)
                     {
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
-                            if (releaseDate.ReleaseDate != null)
-                                return releaseDate.ReleaseDate;
-
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
-                            if (releaseDate.ReleaseDate != null)
-                                return releaseDate.ReleaseDate;
-                    }
-
-                foreach (var resultObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals(COUNTRY_US)))
-                    if (resultObject.ReleaseDates != null)
-                    {
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
-                            if (releaseDate.ReleaseDate != null)
-                                return releaseDate.ReleaseDate;
-
-                        foreach (var releaseDate in resultObject.ReleaseDates.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
+                        foreach (var releaseDate in resultObject.ReleaseDates.OrderBy(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
                             if (releaseDate.ReleaseDate != null)
                                 return releaseDate.ReleaseDate;
                     }
@@ -110,7 +94,7 @@ namespace DustyPig.Server.Services
             if (movieDetails == null || movieDetails.ReleaseDates == null)
                 return null;
 
-            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => item.CountryCode.ICEquals(COUNTRY_US)))
+            foreach (var resultsObject in movieDetails.ReleaseDates.Results.OrderBy(item => !item.CountryCode.ICEquals(COUNTRY_US)))
             {
                 if (resultsObject.ReleaseDates != null)
                 {
@@ -120,23 +104,7 @@ namespace DustyPig.Server.Services
                             return rated;
 
                     foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
-                        if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
-                            return rated;
-                }
-            }
-
-
-            foreach (var resultsObject in movieDetails.ReleaseDates.Results.Where(item => !item.CountryCode.ICEquals(COUNTRY_US)))
-            {
-                if (resultsObject.ReleaseDates != null)
-                {
-                    var releaseDatesObjectsWithCertification = resultsObject.ReleaseDates.Where(item => !string.IsNullOrWhiteSpace(item.Certification));
-                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
-                        if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
-                            return rated;
-
-                    foreach (var releaseDateObject in releaseDatesObjectsWithCertification.Where(item => !item.LanguageCode.ICEquals(LANGUAGE_ENGLISH)))
-                        if (TryMapMovieRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
+                        if (TryMapTVRatings(resultsObject.CountryCode, releaseDateObject.Certification, out string rated))
                             return rated;
                 }
             }
@@ -171,13 +139,14 @@ namespace DustyPig.Server.Services
             if (details == null || details.ContentRatings == null || details.ContentRatings.Results == null)
                 return null;
 
-            foreach (var contentRating in details.ContentRatings.Results.Where(item => item.CountryCode.ICEquals(COUNTRY_US)))
+            foreach (var contentRating in details.ContentRatings.Results.OrderBy(item => !item.CountryCode.ICEquals(COUNTRY_US)))
+            {
                 if (TryMapTVRatings(contentRating.CountryCode, contentRating.Rating, out string ret))
                     return ret;
 
-            foreach (var contentRating in details.ContentRatings.Results.Where(item => !item.CountryCode.ICEquals(COUNTRY_US)))
-                if (TryMapMovieRatings(contentRating.CountryCode, contentRating.Rating, out string ret))
+                if (TryMapMovieRatings(contentRating.CountryCode, contentRating.Rating, out ret))
                     return ret;
+            }
 
             return null;
         }

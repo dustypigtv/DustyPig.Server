@@ -288,7 +288,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            //Put int tmdb order
+            //Put in tmdb order
             foreach(var mediaType in castList.Select(item => item.MediaType).Distinct())
             {
                 var subLst = castList
@@ -625,7 +625,7 @@ namespace DustyPig.Server.Controllers.v3
         {
             if (credits != null)
             {
-                if (credits.CastMembers.Count > 0)
+                if (credits.CastMembers?.Count > 0)
                 {
                     ret.Credits ??= new();
                     foreach (var castMember in credits.CastMembers.OrderBy(item => item.Order))
