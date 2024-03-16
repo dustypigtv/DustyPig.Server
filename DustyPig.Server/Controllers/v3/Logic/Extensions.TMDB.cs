@@ -15,7 +15,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             Title = self.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? self.Title : self.Name
         };
 
-        public static API.v3.Models.Person ToTMDBPerson(this TMDB.Models.Search.MultiObject self) => new Person
+        public static API.v3.Models.BasicPerson ToTMDBPerson(this TMDB.Models.Search.MultiObject self) => new BasicPerson
         {
             TMDB_Id = self.Id,
             Name = self.Name, 

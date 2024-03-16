@@ -4,7 +4,7 @@ using DustyPig.Server.Data.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using APIPerson = DustyPig.API.v3.Models.Person;
+using APIPerson = DustyPig.API.v3.Models.BasicPerson;
 
 namespace DustyPig.Server.Controllers.v3.Logic
 {

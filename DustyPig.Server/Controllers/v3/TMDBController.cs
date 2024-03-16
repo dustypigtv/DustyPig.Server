@@ -218,7 +218,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var ret = new API.v3.Models.TMDB_Person
             {
-                ArtworkUrl = TMDBClient.GetPosterPath(response.Data.ProfilePath),
+                AvatarUrl = TMDBClient.GetPosterPath(response.Data.ProfilePath),
                 Biography = response.Data.Biography,
                 Birthday = response.Data.Birthday,
                 Deathday = response.Data.Deathday,
@@ -655,10 +655,10 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        private static void AddPersonToCredits(List<Person> credits, CastDTO castMember)
+        private static void AddPersonToCredits(List<BasicPerson> credits, CastDTO castMember)
         {
             if (!credits.Any(item => item.TMDB_Id == castMember.Id && item.Role == CreditRoles.Cast))
-                credits.Add(new Person
+                credits.Add(new BasicPerson
                 {
                     TMDB_Id = castMember.Id,
                     AvatarUrl = castMember.FullImagePath,
@@ -670,10 +670,10 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        private static void AddPersonToCredits(List<Person> credits, CrewDTO crewMember, CreditRoles role)
+        private static void AddPersonToCredits(List<BasicPerson> credits, CrewDTO crewMember, CreditRoles role)
         {
             if (!credits.Any(item => item.TMDB_Id == crewMember.Id && item.Role == role))
-                credits.Add(new Person
+                credits.Add(new BasicPerson
                 {
                     TMDB_Id = crewMember.Id,
                     AvatarUrl = crewMember.FullImagePath,
