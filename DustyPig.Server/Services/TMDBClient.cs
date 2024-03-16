@@ -184,6 +184,13 @@ namespace DustyPig.Server.Services
         public static string GetBackdropPath(string path) => TMDB.Utils.GetFullImageUrl(path, BACKDROP_WIDTH);
 
 
+        public static string GetAvatarPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return Constants.DEFAULT_PROFILE_IMAGE_GREY;
+            return GetPosterPath(path);
+        }
+
 
         public static DateTime? ConvertToDateTime(DateOnly? dt)
         {

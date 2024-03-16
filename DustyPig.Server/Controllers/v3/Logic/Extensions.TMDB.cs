@@ -20,7 +20,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             TMDB_Id = self.Id,
             Name = self.Name, 
             Initials = self.Name.GetInitials(),
-            AvatarUrl = TMDBClient.GetPosterPath(self.ProfilePath)
+            AvatarUrl = TMDBClient.GetAvatarPath(self.ProfilePath)
         };
     }
 }
