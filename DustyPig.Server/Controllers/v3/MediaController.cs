@@ -451,41 +451,41 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> UpdatePlaybackProgress(PlaybackProgress hist)
+        public async Task<Result> UpdatePlaybackProgress(PlaybackProgress newProgress)
         {
-            try { hist.Validate(); }
+            try { newProgress.Validate(); }
             catch (ModelValidationException ex) { return ex; }
 
             var maybeEpisode = await DB.MediaEntries
                 .AsNoTracking()
-                .Where(m => m.Id == hist.Id)
+                .Where(m => m.Id == newProgress.Id)
                 .FirstOrDefaultAsync();
 
             if (maybeEpisode == null)
-                return CommonResponses.ValueNotFound(nameof(hist.Id));
+                return CommonResponses.ValueNotFound(nameof(newProgress.Id));
 
             if (!Constants.PLAYABLE_MEDIA_TYPES.Contains(maybeEpisode.EntryType))
-                return CommonResponses.ValueNotFound(nameof(hist.Id));
+                return CommonResponses.ValueNotFound(nameof(newProgress.Id));
 
             if (maybeEpisode.EntryType == MediaTypes.Episode)
-                hist.Id = maybeEpisode.LinkedToId.Value;
+                newProgress.Id = maybeEpisode.LinkedToId.Value;
 
 
             var mediaEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
                 .Include(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
-                .Where(m => m.Id == hist.Id)
+                .Where(m => m.Id == newProgress.Id)
                 .FirstOrDefaultAsync();
 
 
             if (mediaEntry == null)
-                return CommonResponses.ValueNotFound(nameof(hist.Id));
+                return CommonResponses.ValueNotFound(nameof(newProgress.Id));
 
-            var progress = mediaEntry.ProfileMediaProgress.FirstOrDefault();
-            if (progress == null)
+            var existingProgress = mediaEntry.ProfileMediaProgress.FirstOrDefault();
+            if (existingProgress == null)
             {
                 if (mediaEntry.EntryType == MediaTypes.Movie)
-                    if (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9)))
+                    if (newProgress.Seconds < 1 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9)))
                         return Result.BuildSuccess();
 
                 //Add
@@ -493,24 +493,24 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     MediaEntryId = mediaEntry.Id,
                     ProfileId = UserProfile.Id,
-                    Played = Math.Max(0, hist.Seconds),
+                    Played = Math.Max(0, newProgress.Seconds),
                     Timestamp = DateTime.UtcNow,
                     Xid = maybeEpisode.Xid
                 });
             }
             else
             {
-                if (mediaEntry.EntryType == MediaTypes.Movie && (hist.Seconds < 1 || hist.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
+                if (mediaEntry.EntryType == MediaTypes.Movie && (newProgress.Seconds < 1 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
                 {
-                    DB.ProfileMediaProgresses.Remove(progress);
+                    DB.ProfileMediaProgresses.Remove(existingProgress);
                 }
                 else
                 {
                     //Update
-                    progress.Played = Math.Max(0, hist.Seconds);
-                    progress.Timestamp = DateTime.UtcNow;
-                    progress.Xid = maybeEpisode.Xid;
-                    DB.ProfileMediaProgresses.Update(progress);
+                    existingProgress.Played = Math.Max(0, newProgress.Seconds);
+                    existingProgress.Timestamp = DateTime.UtcNow;
+                    existingProgress.Xid = maybeEpisode.Xid;
+                    DB.ProfileMediaProgresses.Update(existingProgress);
                 }
             }
 
