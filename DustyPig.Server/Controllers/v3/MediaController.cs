@@ -30,7 +30,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<HomeScreen>))]
@@ -207,7 +207,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Returns more items for the specified home screen list based on start position</remarks>
         [HttpPost]
@@ -247,7 +247,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<SearchResults>))]
@@ -393,7 +393,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -424,7 +424,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpDelete("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -447,7 +447,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -524,7 +524,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -673,7 +673,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpGet("{id}")]
         [RequireMainProfile]
@@ -849,7 +849,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Set access override for a specific title</remarks>
         [HttpPost]

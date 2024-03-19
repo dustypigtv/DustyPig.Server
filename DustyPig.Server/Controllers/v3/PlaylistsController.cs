@@ -30,7 +30,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicPlaylist>>))]
@@ -61,7 +61,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedPlaylist>))]
@@ -258,7 +258,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
@@ -294,7 +294,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -338,7 +338,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpDelete("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -362,7 +362,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Set the currently playing index</remarks>
         [HttpPost]
@@ -393,7 +393,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -427,7 +427,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
@@ -529,7 +529,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Add all episodes from a series to a playlist</remarks>
         [HttpPost]
@@ -638,7 +638,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpDelete("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -663,7 +663,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -719,7 +719,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]

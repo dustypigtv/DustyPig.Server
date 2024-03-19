@@ -31,7 +31,7 @@ namespace DustyPig.Server.Controllers.v3
         public ProfilesListController(AppDbContext db) : base(db) { }
 
         /// <summary>
-        /// Level 1
+        /// Requires account
         /// </summary>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicProfile>>))]
@@ -56,7 +56,7 @@ namespace DustyPig.Server.Controllers.v3
         public ProfilesController(AppDbContext db) : base(db) { }
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Only the profile owner or the main profile for the account may view this information</remarks>
         [HttpGet("{id}")]
@@ -150,7 +150,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Only the main profile on the account or the profile owner can update a profile.
         /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and Avatar. 
@@ -216,7 +216,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <returns>Url to the new avatar</returns>
         /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
@@ -259,7 +259,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <returns>Url to the new avatar</returns>
         /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
@@ -313,7 +313,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
@@ -353,7 +353,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Warning! This will remove all subscriptions, overrides, notifications, watchlists and playlists for this profile</remarks>
         [HttpDelete("{id}")]
@@ -395,7 +395,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
@@ -405,7 +405,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]

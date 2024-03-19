@@ -28,7 +28,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Returns the next 25 movies based on start position and sort order</remarks>
         [HttpPost]
@@ -54,7 +54,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>
         /// Returns the next 100 movies based on start position and sort order. Designed for admin tools, will return all mvoies owned by the account.
@@ -89,7 +89,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedMovie>))]
@@ -210,7 +210,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Designed for admin tools, this will return info on any movie owned by the account</remarks>
         [HttpGet("{id}")]
@@ -258,7 +258,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -420,7 +420,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -578,7 +578,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpDelete("{id}")]
         [RequireMainProfile]
@@ -588,7 +588,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]

@@ -23,7 +23,7 @@ namespace DustyPig.Server.Controllers.v3
         public NotificationsController(AppDbContext db) : base(db) { }
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Lists the next 25 notifications based on start position</remarks>
         [HttpGet("{start}")]
@@ -74,7 +74,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Marks a notification as seen</remarks>
         [HttpGet("{id}")]
@@ -102,7 +102,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpDelete("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]

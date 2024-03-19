@@ -206,10 +206,10 @@ namespace DustyPig.Server
                     Version = $"v3",
                     Title = "Dusty Pig API - BETA",
                     Description = "API for the Dusty Pig. Each method is marked with a level:<br /><p>" +
-                    "Level 0: No authentication needed<br />" +
-                    "Level 1: User must present an account token from either Auth/LoginWithFirebaseToken or Auth/PasswordLogin<br />" +
-                    "Level 2: User must present a profile token from auth/profilelogin<br />" +
-                    "Level 3: User must be the main profile on the account</p><br /><br /><p>" +
+                    "Requires no authorization: No authentication needed<br />" +
+                    "Requires account: User must present an account token from either Auth/LoginWithFirebaseToken or Auth/PasswordLogin<br />" +
+                    "Requires profile: User must present a profile token from auth/profilelogin<br />" +
+                    "Requires main profile: User must be the main profile on the account</p><br /><br /><p>" +
                     $"Server: v{Program.ServerVersion}<br />" +
                     $"Client API: v{API.v3.Client.APIVersion}</p>"
                 });

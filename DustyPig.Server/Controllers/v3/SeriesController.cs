@@ -29,7 +29,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Returns the next 100 series based on start position and sort order</remarks>
         [HttpPost]
@@ -52,7 +52,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>
         /// Returns the next 100 series based on start position and sort order. Designed for admin tools, will return all series owned by the account.
@@ -86,7 +86,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedSeries>))]
@@ -294,7 +294,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Designed for admin tools, this will return info on any series owned by the account</remarks>
         [HttpGet("{id}")]
@@ -385,7 +385,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -481,7 +481,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -619,7 +619,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Warning! For series, this will also delete all episodes.  For videos, this will delete all linked subtitles. It will also delete all subscriptions, overrides, and watch progess, and remove the media from any watchlists and playlists</remarks>
         [HttpDelete("{id}")]
@@ -630,7 +630,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
@@ -647,7 +647,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Subscribe to notificaitons when new episodes are added to a series</remarks>
         [HttpGet("{id}")]
@@ -682,7 +682,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Unsubcribe from notifications when new episodes are added to a series</remarks>
         [HttpDelete("{id}")]
@@ -708,7 +708,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -733,7 +733,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]

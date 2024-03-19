@@ -27,7 +27,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<DetailedEpisode>))]
@@ -187,7 +187,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -397,7 +397,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -456,7 +456,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -542,7 +542,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpDelete("{id}")]
         [RequireMainProfile]

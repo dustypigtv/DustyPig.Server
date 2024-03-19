@@ -37,7 +37,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         /// <remarks>This will create the Firebase account and send a confirmation email</remarks>
         [HttpPost]
@@ -118,7 +118,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>WARNING: This will permanently delete the account and ALL data. This is not recoverable!</remarks>
         [HttpDelete]
@@ -176,7 +176,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Change the password for the account</remarks>
         /// <param name="newPassword"># This _MUST_ be a JSON encoded string</param>

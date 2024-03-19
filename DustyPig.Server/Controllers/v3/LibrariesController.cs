@@ -23,7 +23,7 @@ namespace DustyPig.Server.Controllers.v3
         public LibrariesController(AppDbContext db) : base(db) { }
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicLibrary>>))]
@@ -71,7 +71,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpGet]
         [RequireMainProfile]
@@ -171,7 +171,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpGet("{id}")]
         [RequireMainProfile]
@@ -269,7 +269,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <returns>Id of newly created library</returns>
         [HttpPost]
@@ -314,7 +314,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -356,7 +356,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Warning! This will delete all media in the lib, which will in turn delete all subscriptions, overrides and watch progress for the media, and remove all deleted media from watchlists and playlists</remarks>
         [HttpDelete("{id}")]
@@ -390,7 +390,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
@@ -400,7 +400,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
@@ -410,7 +410,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]
@@ -420,7 +420,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         [HttpPost]
         [RequireMainProfile]

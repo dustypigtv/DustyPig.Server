@@ -34,7 +34,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         /// <param name="token"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
@@ -79,7 +79,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
@@ -140,7 +140,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         /// <remarks>Sends a new account verification email</remarks>
         [HttpPost]
@@ -167,7 +167,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         /// <remarks>Sends a password reset email</remarks>
         /// <param name="email"># This _MUST_ be a JSON encoded string</param>
@@ -195,7 +195,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         /// <remarks>Returns a code that can be used to login a device with no keyboard (streaming devices, smart tvs, etc)</remarks>
         [HttpGet]
@@ -228,7 +228,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 0
+        /// Requires no authorization
         /// </summary>
         /// <remarks>Check the generated code to see if it has been authorized, and if so returns an account level bearer token. Once this returns true, the generated code will be deleted</remarks>
         /// <param name="code"># This _MUST_ be a JSON encoded string</param>
@@ -279,7 +279,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 2
+        /// Requires profile
         /// </summary>
         /// <remarks>Associates the generated code with logged in user account, allowing a subsequent call to VerifyLoginCode by the device to get an account token</remarks>
         /// <param name="code"># This _MUST_ be a JSON encoded string</param>
@@ -323,7 +323,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 1
+        /// Requires account
         /// </summary>
         /// <remarks>Returns a profile level bearer token</remarks>
         [HttpPost]
@@ -374,7 +374,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
         /// <summary>
-        /// Level 1
+        /// Requires account
         /// </summary>
         /// <remarks>If presenting an account level token, will sign out of the account. If presenting a profile level token,will sign out of the profile</remarks>
         [HttpGet]
@@ -412,7 +412,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 3
+        /// Requires main profile
         /// </summary>
         /// <remarks>Sign all users out of all devices</remarks>
         [HttpGet]
@@ -464,7 +464,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 1
+        /// Requires account
         /// </summary>
         /// <returns>Verifies the current auth token (and if not null, the FirebaseCloudMessaging token) and returns the type. This may include a new AuthToken</returns>
         /// <param name="fcmToken"># This _MUST_ be a JSON encoded string</param>
@@ -510,7 +510,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
         /// <summary>
-        /// Level 1
+        /// Requires account
         /// </summary>
         /// <returns>Updates the device token for Firebase Cloud Messaging, and returns a new JWT</returns>
         /// <param name="newFCMToken"># This _MUST_ be a JSON encoded string</param>
