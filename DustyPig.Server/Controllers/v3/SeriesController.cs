@@ -737,7 +737,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> MarkSeriesWatched(int id)
+        public async Task<Result> MarkWatched(int id)
         {
             if (id <= 0)
                 return Result.BuildSuccess();

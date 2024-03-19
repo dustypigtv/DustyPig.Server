@@ -395,6 +395,40 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Level 2
         /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MarkWatched(int id)
+        {
+            var playlist = await DB.Playlists
+                .AsNoTracking()
+                .Include(p => p.PlaylistItems)
+                .Where(p => p.Id == id)
+                .Where(p => p.ProfileId == UserProfile.Id)
+                .FirstOrDefaultAsync();
+
+            if (playlist == null)
+                return CommonResponses.ValueNotFound(nameof(id));
+
+            if (playlist.PlaylistItems.Count > 0)
+            {
+                playlist.PlaylistItems.Sort();
+                playlist.CurrentItemId = playlist.PlaylistItems.First().Id;
+            }
+            else
+            {
+                playlist.CurrentItemId = 0;
+            }
+            playlist.CurrentProgress = 0;
+
+            await DB.SaveChangesAsync();
+
+            return Result.BuildSuccess();
+        }
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<int>))]
         public async Task<Result<int>> AddItem(AddPlaylistItem info)

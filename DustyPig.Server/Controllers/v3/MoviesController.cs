@@ -585,5 +585,30 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
         public Task<Result> Delete(int id) => DeleteMedia(id);
+
+
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MarkWatched(int id)
+        {
+            var movie = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+                .AsNoTracking()
+                .Include(e => e.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
+                .Where(item => item.Id == id)
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .FirstOrDefaultAsync();
+
+            if (movie == null || !movie.ProfileMediaProgress.Any())
+                return CommonResponses.ValueNotFound(nameof(id));
+
+            DB.ProfileMediaProgresses.Remove(movie.ProfileMediaProgress.First());
+            await DB.SaveChangesAsync();
+
+            return Result.BuildSuccess();
+        }
+
     }
 }

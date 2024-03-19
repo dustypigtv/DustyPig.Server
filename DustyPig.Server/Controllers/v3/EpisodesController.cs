@@ -396,6 +396,64 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+        /// <summary>
+        /// Level 2
+        /// </summary>
+        [HttpGet("{id}")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MarkWatched(int id)
+        {
+            var episodeEntry = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.Id == id)
+                .Where(item => item.EntryType == MediaTypes.Episode)
+                .FirstOrDefaultAsync();
+
+            if (episodeEntry == null)
+                return CommonResponses.ValueNotFound(nameof(id));
+
+            double seconds = episodeEntry.Length ?? 0;
+
+            var seriesEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+               .AsNoTracking()
+               .Include(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
+               .Where(m => m.Id == episodeEntry.LinkedToId.Value)
+               .Where(m => m.EntryType == MediaTypes.Series)
+               .FirstOrDefaultAsync();
+
+
+            if (seriesEntry == null)
+                return CommonResponses.ValueNotFound(nameof(id));
+
+            var existingProgress = seriesEntry.ProfileMediaProgress.FirstOrDefault();
+            if (existingProgress == null)
+            {
+                //Add
+                DB.ProfileMediaProgresses.Add(new ProfileMediaProgress
+                {
+                    MediaEntryId = seriesEntry.Id,
+                    ProfileId = UserProfile.Id,
+                    Played = seconds,
+                    Timestamp = DateTime.UtcNow,
+                    Xid = episodeEntry.Xid
+                });
+            }
+            else
+            {
+                //Update
+                existingProgress.Played = Math.Max(0, seconds);
+                existingProgress.Timestamp = DateTime.UtcNow;
+                existingProgress.Xid = episodeEntry.Xid;
+                DB.ProfileMediaProgresses.Update(existingProgress);
+            }
+
+            await DB.SaveChangesAsync();
+
+            return Result.BuildSuccess();
+        }
+
+
+
 
         /// <summary>
         /// Level 3
