@@ -33,72 +33,21 @@ namespace DustyPig.Server.Controllers.v3
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<DetailedEpisodeEx>))]
         public async Task<Result<DetailedEpisodeEx>> Details(int id)
         {
-
-            var episode = await DB.MediaEntries
+            var seriesId = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(m => m.Subtitles)
                 .Where(m => m.Id == id)
                 .Where(m => m.EntryType == MediaTypes.Episode)
+                .Select(m => m.LinkedToId)
                 .FirstOrDefaultAsync();
 
-            if (episode == null)
+            if (seriesId == null)
                 return CommonResponses.ValueNotFound(nameof(id));
 
-            var series = await DB.MediaEntries
-                .AsNoTracking()
-                .Include(item => item.Library)
-                .ThenInclude(item => item.Account)
-                .ThenInclude(item => item.Profiles)
-
-                .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
-                .ThenInclude(item => item.Friendship)
-                .ThenInclude(item => item.Account1)
-                .ThenInclude(item => item.Profiles)
-
-                .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares.Where(item2 => item2.Friendship.Account1Id == UserAccount.Id || item2.Friendship.Account2Id == UserAccount.Id))
-                .ThenInclude(item => item.Friendship)
-                .ThenInclude(item => item.Account2)
-                .ThenInclude(item => item.Profiles)
-
-                .Include(item => item.Library)
-                .ThenInclude(item => item.ProfileLibraryShares.Where(item2 => item2.Profile.Id == UserProfile.Id))
-
-                .Include(item => item.TitleOverrides.Where(item2 => item2.ProfileId == UserProfile.Id))
-
-                .Include(item => item.WatchlistItems.Where(item2 => item2.ProfileId == UserProfile.Id))
-
-                .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
-
-                .Where(item => item.Id == episode.LinkedToId.Value)
-                .Where(item => item.EntryType == MediaTypes.Series)
-                .FirstOrDefaultAsync();
-
+            var series = await GetSeriesDetailsAsync(seriesId.Value);
             if (series == null)
                 return CommonResponses.ValueNotFound(nameof(id));
 
-            if (series.Library.AccountId != UserAccount.Id)
-                if (!series.Library.FriendLibraryShares.Any())
-                    if (!series.TitleOverrides.Any())
-                        if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
-                            return CommonResponses.ValueNotFound(nameof(id));
-
-
-            bool playable = (UserProfile.IsMain)
-                || series.TitleOverrides.Any(item => item.State == OverrideState.Allow)
-                ||
-                (
-                    !series.TitleOverrides.Any(item => item.State == OverrideState.Block)
-                    &&
-                    (
-                        series.Library.ProfileLibraryShares.Any()
-                        && UserProfile.MaxTVRating >= (series.TVRating ?? TVRatings.NotRated)
-                    )
-                );
-
-
-            //Build the response
+            var episode = series.Episodes.First(e => e.Id == id);
             var ret = new DetailedEpisodeEx
             {
                 ArtworkUrl = episode.ArtworkUrl,
@@ -106,81 +55,26 @@ namespace DustyPig.Server.Controllers.v3
                 BifUrl = episode.BifUrl,
                 BifSize = episode.BifSize,
                 CreditsStartTime = episode.CreditsStartTime,
-                Date = episode.Date.Value,
+                Date = episode.Date,
                 Description = episode.Description,
-                EpisodeNumber = (ushort)episode.Episode.Value,
+                EpisodeNumber = episode.EpisodeNumber,
                 Id = episode.Id,
                 IntroEndTime = episode.IntroEndTime,
                 IntroStartTime = episode.IntroStartTime,
-                Length = episode.Length.Value,
-                SeasonNumber = (ushort)episode.Season.Value,
-                SeriesId = series.Id,
-                SeriesTitle = series.Title,
+                Length = episode.Length,
+                Played = episode.Played,
+                SeasonNumber = episode.SeasonNumber,
                 SeriesArtworkUrl = series.ArtworkUrl,
                 SeriesBackdropUrl = series.BackdropUrl,
+                SeriesId = series.Id,
+                SeriesTitle = series.Title,
+                SRTSubtitles = episode.SRTSubtitles,
                 Title = episode.Title,
                 TMDB_Id = episode.TMDB_Id,
-                VideoUrl = playable ? episode.VideoUrl : null,
+                UpNext = episode.UpNext,
+                VideoUrl = series.CanPlay ? episode.VideoUrl : null,
                 VideoSize = episode.VideoSize
             };
-
-            ret.SRTSubtitles = episode
-                .Subtitles
-                .Select(s => s.ToSRTSubtitle())
-                .ToList();
-
-
-
-            var pmp = series.ProfileMediaProgress.FirstOrDefault();
-            if (pmp != null)
-            {
-                var allEpisodes = await DB.MediaEntries
-                    .AsNoTracking()
-                    .Include(item => item.Subtitles)
-                    .Where(item => item.LinkedToId == series.Id)
-                    .OrderBy(item => item.Xid)
-                    .ToListAsync();
-
-                if (allEpisodes.Count > 0)
-                {
-                    var dbEp = allEpisodes.FirstOrDefault(item => item.Xid == pmp.Xid);
-                    if (dbEp != null)
-                    {
-                        if (dbEp.Xid == episode.Xid)
-                        {
-                            if (pmp.Played < (episode.CreditsStartTime ?? episode.Length.Value - 30))
-                            {
-                                //Partially played episode
-                                ret.UpNext = true;
-                                ret.Played = pmp.Played;
-                            }
-                            else
-                            {
-                                //Fully played episode, find the next one
-                                var nextDBEp = allEpisodes.FirstOrDefault(item => item.Xid > dbEp.Xid);
-                                if (nextDBEp == null)
-                                {
-                                    //Progress was on last episode
-                                    ret.UpNext = true;
-                                    ret.Played = pmp.Played;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var prev = allEpisodes.LastOrDefault(item => item.Xid < episode.Xid);
-                            if (prev != null && prev.Xid == pmp.Xid)
-                            {
-                                if (pmp.Played >= (prev.CreditsStartTime ?? prev.Length.Value - 30))
-                                {
-                                    ret.UpNext = true;
-                                    ret.Played = 0;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
 
             return ret;
