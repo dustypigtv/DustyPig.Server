@@ -30,8 +30,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires profile
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<DetailedEpisode>))]
-        public async Task<Result<DetailedEpisode>> Details(int id)
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result<DetailedEpisodeEx>))]
+        public async Task<Result<DetailedEpisodeEx>> Details(int id)
         {
 
             var episode = await DB.MediaEntries
@@ -99,7 +99,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Build the response
-            var ret = new DetailedEpisode
+            var ret = new DetailedEpisodeEx
             {
                 ArtworkUrl = episode.ArtworkUrl,
                 ArtworkSize = episode.ArtworkSize,
@@ -116,6 +116,8 @@ namespace DustyPig.Server.Controllers.v3
                 SeasonNumber = (ushort)episode.Season.Value,
                 SeriesId = series.Id,
                 SeriesTitle = series.Title,
+                SeriesArtworkUrl = series.ArtworkUrl,
+                SeriesBackdropUrl = series.BackdropUrl,
                 Title = episode.Title,
                 TMDB_Id = episode.TMDB_Id,
                 VideoUrl = playable ? episode.VideoUrl : null,
