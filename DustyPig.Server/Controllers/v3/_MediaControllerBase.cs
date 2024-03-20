@@ -254,7 +254,7 @@ namespace DustyPig.Server.Controllers.v3
                         ArtworkUrl = dbEp.ArtworkUrl,
                         ArtworkSize = dbEp.ArtworkSize,
                         BifUrl = playable ? dbEp.BifUrl : null,
-                        BifSize = dbEp.BifSize,
+                        BifSize = playable ? dbEp.BifSize : 0,
                         CreditsStartTime = dbEp.CreditsStartTime,
                         Date = dbEp.Date.Value,
                         Description = dbEp.Description,
@@ -269,7 +269,7 @@ namespace DustyPig.Server.Controllers.v3
                         Title = dbEp.Title,
                         TMDB_Id = dbEp.TMDB_Id,
                         VideoUrl = playable ? dbEp.VideoUrl : null,
-                        VideoSize = dbEp.VideoSize
+                        VideoSize = playable ? dbEp.VideoSize : 0
                     };
 
                     ret.Episodes.Add(ep);

@@ -129,7 +129,9 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedSeries
             {
                 ArtworkUrl = mediaEntry.ArtworkUrl,
+                ArtworkSize = mediaEntry.ArtworkSize,
                 BackdropUrl = mediaEntry.BackdropUrl,
+                BackdropSize = mediaEntry.BackdropSize,
                 Credits = mediaEntry.GetPeople(),
                 Description = mediaEntry.Description,
                 Genres = mediaEntry.ToGenres(),
@@ -157,7 +159,9 @@ namespace DustyPig.Server.Controllers.v3
                     var ep = new DetailedEpisode
                     {
                         ArtworkUrl = dbEp.ArtworkUrl,
+                        ArtworkSize = dbEp.ArtworkSize,
                         BifUrl = dbEp.BifUrl,
+                        BifSize = dbEp.BifSize,
                         CreditsStartTime = dbEp.CreditsStartTime,
                         Date = dbEp.Date.Value,
                         Description = dbEp.Description,
@@ -170,7 +174,8 @@ namespace DustyPig.Server.Controllers.v3
                         SeriesId = id,
                         Title = dbEp.Title,
                         TMDB_Id = dbEp.TMDB_Id,
-                        VideoUrl = dbEp.VideoUrl
+                        VideoUrl = dbEp.VideoUrl,
+                        VideoSize = dbEp.VideoSize,
                     };
 
                     ep.SRTSubtitles = dbEp.Subtitles.ToSRTSubtitleList();
