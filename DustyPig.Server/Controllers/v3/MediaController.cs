@@ -1029,6 +1029,15 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
+                //Pomelo is being weird: Use a duplicate
+                overrideEntity = new TitleOverride
+                {
+                    Id = overrideEntity.Id,
+                    MediaEntryId = overrideEntity.MediaEntryId,
+                    ProfileId = overrideEntity.ProfileId,
+                    State = overrideEntity.State,
+                    Status = overrideEntity.Status
+                };
 
                 //Check if should delete
                 bool deleteOverride = false;
