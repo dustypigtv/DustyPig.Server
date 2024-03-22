@@ -988,13 +988,10 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-
-
             //Check for an existing override
             var overrideEntity = mediaEntry.TitleOverrides
                 .Where(item => item.ProfileId == info.ProfileId)
                 .FirstOrDefault();
-
 
 
             if (overrideEntity == null)
@@ -1092,7 +1089,7 @@ namespace DustyPig.Server.Controllers.v3
                                    .FirstOrDefault();
                                 if (profile != null)
                                 {
-                                    foreach (var subProfile in profileLst)
+                                    foreach (var subProfile in profileLst.Where(p => p.Id != profile.Id))
                                     {
                                         var subOverride = mediaEntry.TitleOverrides.FirstOrDefault(item => item.ProfileId == subProfile.Id);
                                         if (subOverride != null)
