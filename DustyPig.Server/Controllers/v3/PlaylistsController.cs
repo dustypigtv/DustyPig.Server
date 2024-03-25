@@ -161,7 +161,7 @@ namespace DustyPig.Server.Controllers.v3
                 CurrentProgress = playlist.CurrentProgress,
                 ArtworkUrl = playlist.ArtworkUrl,
                 ArtworkSize = playlist.ArtworkSize,
-                Items = playlist.PlaylistItems.Count > 0 ? new() : null
+                Items = []
             };
 
             foreach (var dbPlaylistItem in playlist.PlaylistItems.OrderBy(p => p.Index))
