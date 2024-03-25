@@ -38,7 +38,8 @@ namespace DustyPig.Server.Services
             {
                 BucketName = Constants.DEFAULT_HOST,
                 InputStream = ms,
-                Key = key
+                Key = key,
+                AutoCloseStream = false
             };
             return _transferUtility.UploadAsync(req, cancellationToken);
         }
@@ -53,7 +54,8 @@ namespace DustyPig.Server.Services
             {
                 BucketName = Constants.DEFAULT_HOST,
                 InputStream = ms,
-                Key = key
+                Key = key,
+                AutoCloseStream = false
             };
             req.Headers.CacheControl = "max-age=10000000";
             return _transferUtility.UploadAsync(req, cancellationToken);
