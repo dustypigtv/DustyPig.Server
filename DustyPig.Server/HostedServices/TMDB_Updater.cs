@@ -510,7 +510,7 @@ namespace DustyPig.Server.HostedServices
                 if (credits.CastMembers.Any(item => item.Id == personId))
                 {
                     var castMember = credits.CastMembers.First(item => item.Id == personId);
-                    castMember.Order = credits.CastMembers.Min(item => item.Order);
+                    //castMember.Order = credits.CastMembers.Min(item => item.Order);
 
                     var entry = existing
                         .Where(item => item.TMDB_PersonId == personId)
