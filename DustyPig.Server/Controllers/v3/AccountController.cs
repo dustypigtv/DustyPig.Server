@@ -60,7 +60,8 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     //This means the user sent the same password that already exists.
                     //Go ahead and send a response with the email verificaiton parameter
-                    return new AccountCreated { EmailVerificationRequired = !existingUser.EmailVerified };
+                    //return new AccountCreated { EmailVerificationRequired = !existingUser.EmailVerified };
+                    return new AccountCreated { EmailVerificationRequired = false };
                 }
 
 
@@ -95,20 +96,21 @@ namespace DustyPig.Server.Controllers.v3
                     await DB.SaveChangesAsync();
                 }
 
-                //Send verification mail
-                var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
-                if (!dataResponse.Success)
-                    return dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData);
+                ////Send verification mail
+                //var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
+                //if (!dataResponse.Success)
+                //    return dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData);
 
-                bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
-                if (emailVerificationRequired)
-                {
-                    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
-                    if (!sendVerificationEmailResponse.Success)
-                        return sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail);
-                }
+                //bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
+                //if (emailVerificationRequired)
+                //{
+                //    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
+                //    if (!sendVerificationEmailResponse.Success)
+                //        return sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail);
+                //}
 
-                return new AccountCreated { EmailVerificationRequired = emailVerificationRequired };
+                //return new AccountCreated { EmailVerificationRequired = emailVerificationRequired };
+                return new AccountCreated { EmailVerificationRequired = false };
             }
             else
             {

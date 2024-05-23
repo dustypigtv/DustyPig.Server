@@ -48,9 +48,9 @@ namespace DustyPig.Server.Controllers.v3
 
             var verifyResponse = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token, true);
 
-            bool emailVerified = GetFBClaim(verifyResponse.Claims, "email_verified", false);
-            if (!emailVerified)
-                return "You must verify your email address before you can sign in";
+            //bool emailVerified = GetFBClaim(verifyResponse.Claims, "email_verified", false);
+            //if (!emailVerified)
+            //    return "You must verify your email address before you can sign in";
 
             string displayName = GetFBClaim(verifyResponse.Claims, "name", default(string));
             string email = GetFBClaim(verifyResponse.Claims, "email", default(string));
@@ -109,8 +109,8 @@ namespace DustyPig.Server.Controllers.v3
                     return dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData);
 
                 var user = dataResponse.Data.Users.First();
-                if (!user.EmailVerified)
-                    return "You must verify your email address before you can sign in";
+                //if (!user.EmailVerified)
+                //    return "You must verify your email address before you can sign in";
 
                 account = await GetOrCreateAccountAsync(user.LocalId, user.DisplayName, user.Email, user.PhotoUrl);
             }
