@@ -355,7 +355,7 @@ namespace DustyPig.Server.Controllers.v3
             if (profile.PinNumber != null && profile.PinNumber >= 1000 && profile.PinNumber <= 9999)
             {
                 if (credentials.Pin == null || credentials.Pin != profile.PinNumber)
-                    return Unauthorized("Invalid pin");
+                    return (Result<LoginResponse>)Result.BuildError("Invalid pin");
             }
 
             if (!profile.IsMain && profile.Locked)
