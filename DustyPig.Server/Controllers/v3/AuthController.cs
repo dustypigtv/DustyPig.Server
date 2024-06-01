@@ -33,48 +33,7 @@ namespace DustyPig.Server.Controllers.v3
             _jwtProvider = jwtProvider;
         }
 
-        /// <summary>
-        /// Requires no authorization
-        /// </summary>
-        /// <param name="token"># This _MUST_ be a JSON encoded string</param>
-        [HttpPost]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
-        public async Task<Result<LoginResponse>> LoginWithFirebaseToken([FromBody] string token)
-        {
-            //For mobile clients that login using the Firebase lib, this will convert the Firebase token to a DustyPig token
-
-            if (string.IsNullOrEmpty(token))
-                return CommonResponses.RequiredValueMissing(nameof(token));
-
-            var verifyResponse = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(token, true);
-
-            //bool emailVerified = GetFBClaim(verifyResponse.Claims, "email_verified", false);
-            //if (!emailVerified)
-            //    return "You must verify your email address before you can sign in";
-
-            string displayName = GetFBClaim(verifyResponse.Claims, "name", default(string));
-            string email = GetFBClaim(verifyResponse.Claims, "email", default(string));
-            string picture = GetFBClaim(verifyResponse.Claims, "picture", default(string));
-
-            var account = await GetOrCreateAccountAsync(verifyResponse.Uid, displayName, email, picture);
-            if (account.Profiles.Count == 1)
-            {
-                return new LoginResponse
-                {
-                    LoginType = LoginType.MainProfile,
-                    ProfileId = account.Profiles.First().Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null, null)
-                };
-            }
-            else
-            {
-                return new LoginResponse
-                {
-                    LoginType = LoginType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null, null)
-                };
-            }
-        }
+        
 
 
 
