@@ -422,50 +422,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-        ///// <summary>
-        ///// Requires account
-        ///// </summary>
-        ///// <returns>Verifies the current auth token (and if not null, the FirebaseCloudMessaging token) and returns the type. This may include a new AuthToken</returns>
-        ///// <param name="fcmToken"># This _MUST_ be a JSON encoded string</param>
-        //[HttpPost]
-        //[Authorize]
-        //[SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        //[SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
-        //public async Task<ActionResult<Result<LoginResponse>>> UpdateAuthToken([FromBody] string fcmToken)
-        //{
-        //    var (account, profile) = await User.VerifyAsync();
-
-        //    if (profile == null)
-        //        return Unauthorized();
-
-
-        //    int? newFCMId = null;
-        //    string newFCMVal = fcmToken == null ? null : fcmToken;
-
-        //    if (string.IsNullOrWhiteSpace(newFCMVal))
-        //        await DeleteCurrentFCMToken(profile);
-        //    else
-        //        newFCMId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMVal);
-
-        //    var authId = User.GetAuthTokenId();
-        //    var oldAuthToken = await DB.AccountTokens
-        //        .AsNoTracking()
-        //        .Where(item => item.Id == authId)
-        //        .FirstOrDefaultAsync();
-
-        //    if (oldAuthToken != null)
-        //    {
-        //        DB.AccountTokens.Remove(oldAuthToken);
-        //        await DB.SaveChangesAsync();
-        //    }
-
-        //    return Result<LoginResponse>.BuildSuccess(new LoginResponse
-        //    {
-        //        LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
-        //        ProfileId = profile.Id,
-        //        Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMId, null)
-        //    });
-        //}
+        
 
 
         /// <summary>
