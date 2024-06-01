@@ -63,7 +63,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     LoginType = LoginType.MainProfile,
                     ProfileId = account.Profiles.First().Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null, null)
                 };
             }
             else
@@ -71,7 +71,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new LoginResponse
                 {
                     LoginType = LoginType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null, null)
                 };
             }
         }
@@ -125,7 +125,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     LoginType = LoginType.MainProfile,
                     ProfileId = account.Profiles.First().Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId, credentials.DeviceId)
                 };
             }
             else
@@ -133,7 +133,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new LoginResponse
                 {
                     LoginType = LoginType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null, null)
                 };
             }
         }
@@ -262,12 +262,12 @@ namespace DustyPig.Server.Controllers.v3
 
                 if (rec.Account.Profiles.Count == 1)
                 {
-                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, rec.Account.Profiles[0].Id, null);
+                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, rec.Account.Profiles[0].Id, null, null);
                     ret.LoginType = LoginType.MainProfile;
                 }
                 else
                 {
-                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null);
+                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null, null);
                     ret.LoginType = LoginType.Account;
                 }
             }
@@ -369,7 +369,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 ProfileId = profile.Id,
                 LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
-                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, fcmId)
+                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, fcmId, credentials.DeviceId)
             });
         }
 
@@ -504,7 +504,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
                 ProfileId = profile.Id,
-                Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMId)
+                Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newFCMId, null)
             });
         }
 
@@ -530,12 +530,12 @@ namespace DustyPig.Server.Controllers.v3
             if (string.IsNullOrWhiteSpace(newFCMToken))
             {
                 await DeleteCurrentFCMToken(profile);
-                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null);
+                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null, null);
             }
             else
             {
                 int newId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMToken);
-                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId);
+                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId, null);
             }
 
             return Result<string>.BuildSuccess(newJWT);

@@ -1,8 +1,10 @@
 ﻿using DustyPig.Server.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,9 +33,22 @@ namespace DustyPig.Server.Services
 
         public JWTProvider(AppDbContext db) => _db = db;
 
-        public async Task<string> CreateTokenAsync(int accountId, int? profileId, int? fcmTokenId)
+        public async Task<string> CreateTokenAsync(int accountId, int? profileId, int? fcmTokenId, string deviceId)
         {
-            var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken { AccountId = accountId }).Entity;
+            if (profileId != null && !string.IsNullOrWhiteSpace(deviceId))
+            {
+                var toDel = await _db.AccountTokens
+                    .Where(a => a.AccountId == accountId)
+                    .Where(a => a.DeviceId == deviceId)
+                    .ToListAsync();
+                _db.AccountTokens.RemoveRange(toDel);            
+            }
+
+            var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken 
+            {
+                AccountId = accountId,
+                DeviceId = profileId == null || string.IsNullOrWhiteSpace(deviceId) ? null : deviceId
+            }).Entity;
             await _db.SaveChangesAsync();
 
             var claims = new List<Claim>();
