@@ -1,4 +1,5 @@
 ﻿using DustyPig.Server.Data;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -47,7 +48,7 @@ namespace DustyPig.Server.Services
             var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken 
             {
                 AccountId = accountId,
-                DeviceId = profileId == null || string.IsNullOrWhiteSpace(deviceId) ? null : deviceId
+                DeviceId = profileId == null || string.IsNullOrWhiteSpace(deviceId) ? null : Crypto.HashString(deviceId)
             }).Entity;
             await _db.SaveChangesAsync();
 
