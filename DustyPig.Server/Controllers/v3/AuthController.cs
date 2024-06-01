@@ -98,31 +98,31 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        /// <summary>
-        /// Requires no authorization
-        /// </summary>
-        /// <remarks>Sends a new account verification email</remarks>
-        [HttpPost]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> SendVerificationEmail(PasswordCredentials credentials)
-        {
-            //Validate
-            try { credentials.Validate(); }
-            catch (ModelValidationException ex) { return ex; }
+        ///// <summary>
+        ///// Requires no authorization
+        ///// </summary>
+        ///// <remarks>Sends a new account verification email</remarks>
+        //[HttpPost]
+        //[SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        //public async Task<Result> SendVerificationEmail(PasswordCredentials credentials)
+        //{
+        //    //Validate
+        //    try { credentials.Validate(); }
+        //    catch (ModelValidationException ex) { return ex; }
 
-            if (credentials.Email == TestAccount.Email)
-                return CommonResponses.ProhibitTestUser();
+        //    if (credentials.Email == TestAccount.Email)
+        //        return CommonResponses.ProhibitTestUser();
 
-            var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
-            if (!signInResponse.Success)
-                return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
+        //    var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
+        //    if (!signInResponse.Success)
+        //        return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
 
-            var sendVerificationEmailResponse = await _firebaseClient.SendEmailVerificationAsync(signInResponse.Data.IdToken);
-            if (!sendVerificationEmailResponse.Success)
-                return sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail);
+        //    var sendVerificationEmailResponse = await _firebaseClient.SendEmailVerificationAsync(signInResponse.Data.IdToken);
+        //    if (!sendVerificationEmailResponse.Success)
+        //        return sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail);
 
-            return Result.BuildSuccess();
-        }
+        //    return Result.BuildSuccess();
+        //}
 
 
         /// <summary>
