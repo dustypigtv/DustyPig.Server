@@ -36,8 +36,14 @@ namespace DustyPig.Server.Services
 
         public async Task<string> CreateTokenAsync(int accountId, int? profileId, int? fcmTokenId, string deviceId)
         {
-            if (profileId != null && !string.IsNullOrWhiteSpace(deviceId))
+            if (profileId == null || string.IsNullOrWhiteSpace(deviceId))
             {
+                deviceId = null;
+            }
+            else
+            {
+                deviceId = Crypto.HashString(deviceId);
+
                 var toDel = await _db.AccountTokens
                     .Where(a => a.AccountId == accountId)
                     .Where(a => a.DeviceId == deviceId)
@@ -48,7 +54,7 @@ namespace DustyPig.Server.Services
             var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken 
             {
                 AccountId = accountId,
-                DeviceId = profileId == null || string.IsNullOrWhiteSpace(deviceId) ? null : Crypto.HashString(deviceId)
+                DeviceId = deviceId
             }).Entity;
             await _db.SaveChangesAsync();
 
