@@ -47,6 +47,10 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("AccountId")
                         .HasColumnType("int");
 
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AccountId");
