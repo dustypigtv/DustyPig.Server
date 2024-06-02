@@ -277,17 +277,21 @@ namespace DustyPig.Server.Controllers.v3
                 return Unauthorized();
 
             using var db = new AppDbContext();
-            var profile = await db.Profiles
+
+            var profiles = await db.Profiles
                 .AsNoTracking()
                 .Include(item => item.FCMTokens)
                 .Where(item => item.AccountId == account.Id)
+                .ToListAsync();
+
+            var profile = profiles
                 .Where(item => item.Id == credentials.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefault();
 
             if (profile == null)
                 return (Result<LoginResponse>)CommonResponses.ValueNotFound(nameof(credentials.Id));
 
-            if (profile.PinNumber != null && profile.PinNumber >= 1000 && profile.PinNumber <= 9999)
+            if (profiles.Count > 1 && profile.PinNumber != null && profile.PinNumber >= 1000 && profile.PinNumber <= 9999)
             {
                 if (credentials.Pin == null || credentials.Pin != profile.PinNumber)
                     return (Result<LoginResponse>)Result.BuildError("Invalid pin");
