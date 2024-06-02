@@ -41,8 +41,8 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires no authorization
         /// </summary>
         [HttpPost]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
-        public async Task<Result<LoginResponse>> PasswordLogin(PasswordCredentials credentials)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<AccountLoginResponse>))]
+        public async Task<Result<AccountLoginResponse>> PasswordLogin(PasswordCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
@@ -74,25 +74,29 @@ namespace DustyPig.Server.Controllers.v3
                 account = await GetOrCreateAccountAsync(user.LocalId, user.DisplayName, user.Email, user.PhotoUrl);
             }
 
+            var profiles = account.Profiles.Select(p => p.ToBasicProfileInfo()).ToList();
+            profiles.Sort();
             if (account.Profiles.Count == 1)
             {
                 int? fcmId = string.IsNullOrWhiteSpace(credentials.FCMToken) ?
                     null :
                     await EnsureFCMTokenAssociatedWithProfile(account.Profiles.First(), credentials.FCMToken);
 
-                return new LoginResponse
+                return new AccountLoginResponse
                 {
                     LoginType = LoginType.MainProfile,
                     ProfileId = account.Profiles.First().Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId, credentials.DeviceId)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId, credentials.DeviceId),
+                    Profiles = profiles
                 };
             }
             else
             {
-                return new LoginResponse
+                return new AccountLoginResponse
                 {
                     LoginType = LoginType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null, null)
+                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null, null),
+                    Profiles = profiles
                 };
             }
         }
@@ -264,12 +268,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<LoginResponse>))]
-        public async Task<ActionResult<Result<LoginResponse>>> ProfileLogin(ProfileCredentials credentials)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<ProfileLoginResponse>))]
+        public async Task<ActionResult<Result<ProfileLoginResponse>>> ProfileLogin(ProfileCredentials credentials)
         {
             //Validate
             try { credentials.Validate(); }
-            catch (ModelValidationException ex) { return Result<LoginResponse>.BuildError(ex); }
+            catch (ModelValidationException ex) { return Result<ProfileLoginResponse>.BuildError(ex); }
 
             var (account, _) = await User.VerifyAsync();
 
@@ -289,22 +293,22 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefault();
 
             if (profile == null)
-                return (Result<LoginResponse>)CommonResponses.ValueNotFound(nameof(credentials.Id));
+                return (Result<ProfileLoginResponse>)CommonResponses.ValueNotFound(nameof(credentials.Id));
 
             if (profiles.Count > 1 && profile.PinNumber != null && profile.PinNumber >= 1000 && profile.PinNumber <= 9999)
             {
                 if (credentials.Pin == null || credentials.Pin != profile.PinNumber)
-                    return (Result<LoginResponse>)Result.BuildError("Invalid pin");
+                    return (Result<ProfileLoginResponse>)Result.BuildError("Invalid pin");
             }
 
             if (!profile.IsMain && profile.Locked)
-                return (Result<LoginResponse>)CommonResponses.ProfileIsLocked();
+                return (Result<ProfileLoginResponse>)CommonResponses.ProfileIsLocked();
 
             int? fcmId = string.IsNullOrWhiteSpace(credentials.FCMToken) ?
                 null :
                 await EnsureFCMTokenAssociatedWithProfile(profile, credentials.FCMToken);
 
-            return Result<LoginResponse>.BuildSuccess(new LoginResponse
+            return Result<ProfileLoginResponse>.BuildSuccess(new ProfileLoginResponse
             {
                 ProfileId = profile.Id,
                 LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
