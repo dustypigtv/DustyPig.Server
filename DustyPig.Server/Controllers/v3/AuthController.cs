@@ -86,7 +86,8 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     LoginType = LoginType.MainProfile,
                     ProfileId = account.Profiles.First().Id,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId, credentials.DeviceId),
+                    AccountToken = await _jwtProvider.CreateTokenAsync(account.Id, null, null, credentials.DeviceId),
+                    ProfileToken = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, fcmId, credentials.DeviceId),
                     Profiles = profiles
                 };
             }
@@ -95,7 +96,7 @@ namespace DustyPig.Server.Controllers.v3
                 return new AccountLoginResponse
                 {
                     LoginType = LoginType.Account,
-                    Token = await _jwtProvider.CreateTokenAsync(account.Id, null, null, null),
+                    AccountToken = await _jwtProvider.CreateTokenAsync(account.Id, null, null, credentials.DeviceId),
                     Profiles = profiles
                 };
             }
@@ -184,8 +185,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var rec = await DB.ActivationCodes
                 .AsNoTracking()
-                .Include(item => item.Account)
-                .ThenInclude(item => item.Profiles)
+                .Include(item => item.Profile)
                 .Where(item => item.Code == code)
                 .SingleOrDefaultAsync();
 
@@ -193,22 +193,14 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.ValueNotFound(nameof(code));
 
 
-            var ret = new DeviceCodeStatus { Activated = rec.AccountId != null };
+            var ret = new DeviceCodeStatus { Activated = rec.ProfileId != null };
             if (ret.Activated)
             {
                 DB.ActivationCodes.Remove(rec);
                 await DB.SaveChangesAsync();
 
-                if (rec.Account.Profiles.Count == 1)
-                {
-                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, rec.Account.Profiles[0].Id, null, null);
-                    ret.LoginType = LoginType.MainProfile;
-                }
-                else
-                {
-                    ret.Token = await new JWTProvider(DB).CreateTokenAsync(rec.AccountId.Value, null, null, null);
-                    ret.LoginType = LoginType.Account;
-                }
+                ret.ProfileToken = await new JWTProvider(DB).CreateTokenAsync(rec.Profile.AccountId, rec.Profile.Id, null, null);
+                ret.LoginType = rec.Profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile;
             }
 
             return ret;
@@ -245,13 +237,13 @@ namespace DustyPig.Server.Controllers.v3
 
             var rec = await DB.ActivationCodes
                 .Where(item => item.Code == code)
-                .Where(item => item.AccountId == null)
+                .Where(item => item.ProfileId == null)
                 .SingleOrDefaultAsync();
 
             if (rec == null)
                 return CommonResponses.ValueNotFound(nameof(code));
 
-            rec.AccountId = account.Id;
+            rec.ProfileId = profile.Id;
             await DB.SaveChangesAsync();
 
             return Result.BuildSuccess();
@@ -312,7 +304,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 ProfileId = profile.Id,
                 LoginType = profile.IsMain ? LoginType.MainProfile : LoginType.SubProfile,
-                Token = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, fcmId, credentials.DeviceId)
+                ProfileToken = await _jwtProvider.CreateTokenAsync(account.Id, profile.Id, fcmId, credentials.DeviceId)
             });
         }
 

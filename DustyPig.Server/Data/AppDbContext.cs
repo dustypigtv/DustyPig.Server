@@ -73,7 +73,7 @@ namespace DustyPig.Server.Data
             base.OnModelCreating(modelBuilder);
 
             //Manually set OnDelete = Cascade for tables with optional one-to-many links
-            modelBuilder.Entity<ActivationCode>().HasOne(p => p.Account).WithMany().OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ActivationCode>().HasOne(p => p.Profile).WithMany().OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<MediaEntry>().HasOne(p => p.LinkedTo).WithMany().OnDelete(DeleteBehavior.Cascade);
 
             //Set notifications to null
