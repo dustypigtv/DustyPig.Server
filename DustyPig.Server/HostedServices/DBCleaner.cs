@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DustyPig.Server.HostedServices
 {
-    public class LogCleaner : IHostedService, IDisposable
+    public class DBCleaner : IHostedService, IDisposable
     {
         //No reason to run this more than once/day
         private const int MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -16,7 +16,7 @@ namespace DustyPig.Server.HostedServices
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
 
-        public LogCleaner()
+        public DBCleaner()
         {
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
         }
@@ -47,7 +47,7 @@ namespace DustyPig.Server.HostedServices
         {
             try
             {
-                await CleanLogsAsync();
+                await CleanupAsync();
             }
             catch { }
 
@@ -55,10 +55,16 @@ namespace DustyPig.Server.HostedServices
                 _timer.Change(MILLISECONDS_PER_DAY, Timeout.Infinite);
         }
 
-        private async Task CleanLogsAsync()
+        private async Task CleanupAsync()
         {
             using var db = new AppDbContext();
+
+            //Clean logs more than 3 months old
             string query = $"DELETE FROM {nameof(db.Logs)} WHERE {nameof(LogEntry.Timestamp)} < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
+            await db.Database.ExecuteSqlRawAsync(query);
+
+            //Clean activation codes more than 1 day old
+            query = $"DELETE FROM {nameof(db.ActivationCodes)} WHERE {nameof(ActivationCode.Created)} < '{DateTime.UtcNow.AddDays(-1):yyyy-MM-dd}'";
             await db.Database.ExecuteSqlRawAsync(query);
         }
 

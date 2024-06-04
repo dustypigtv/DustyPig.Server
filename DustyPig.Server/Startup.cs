@@ -319,7 +319,7 @@ namespace DustyPig.Server
             services.AddScoped<JWTProvider>();
             services.AddHostedService<TMDB_Updater>();
             services.AddHostedService<FirebaseNotificationsManager>();
-            services.AddHostedService<LogCleaner>();
+            services.AddHostedService<DBCleaner>();
             services.AddHostedService<ArtworkUpdater>();
         }
 
