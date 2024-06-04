@@ -113,7 +113,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             ListId = query.Key.Key,
                             Title = query.Key.Value,
-                            Items = result.Select(item => item.ToBasicMedia()).ToList()
+                            Items = result.Take(sectionSize).Select(item => item.ToBasicMedia()).ToList()
                         });
                     }
                 }
@@ -196,7 +196,7 @@ namespace DustyPig.Server.Controllers.v3
                         {
                             ListId = query.Key.Key,
                             Title = query.Key.Value,
-                            Items = result.Select(item => item.ToBasicMedia()).ToList()
+                            Items = result.Take(sectionSize).Select(item => item.ToBasicMedia()).ToList()
                         });
                     }
                 }
