@@ -505,7 +505,7 @@ namespace DustyPig.Server.Controllers.v3
             }
             else
             {
-                if (mediaEntry.EntryType == MediaTypes.Movie && (newProgress.Seconds < 1 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
+                if (mediaEntry.EntryType == MediaTypes.Movie && (newProgress.Seconds < 60 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
                 {
                     DB.ProfileMediaProgresses.Remove(existingProgress);
                 }
