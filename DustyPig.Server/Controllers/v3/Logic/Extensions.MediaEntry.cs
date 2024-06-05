@@ -129,9 +129,13 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 foreach(var bridge in bridges)
                 {
                     ret ??= [];
+
+                    string avatarUrl = bridge.TMDB_Person.AvatarUrl;
+                    if (string.IsNullOrWhiteSpace(avatarUrl))
+                        avatarUrl = Constants.DEFAULT_PROFILE_IMAGE_GREY;
                     ret.Add(new APIPerson
                     {
-                        AvatarUrl = bridge.TMDB_Person.AvatarUrl,
+                        AvatarUrl = avatarUrl,
                         Initials = bridge.TMDB_Person.Name.GetInitials(),
                         Name = bridge.TMDB_Person.Name,
                         Order = bridge.SortOrder,
