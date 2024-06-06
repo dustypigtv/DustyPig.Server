@@ -311,7 +311,6 @@ namespace DustyPig.Server.Controllers.v3
             double seconds = episodeEntry.Length ?? 0;
 
             var seriesEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
-               .AsNoTracking()
                .Include(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
                .Where(m => m.Id == episodeEntry.LinkedToId.Value)
                .Where(m => m.EntryType == MediaTypes.Series)
@@ -320,6 +319,8 @@ namespace DustyPig.Server.Controllers.v3
 
             if (seriesEntry == null)
                 return CommonResponses.ValueNotFound(nameof(id));
+
+            seriesEntry.EverPlayed = true;
 
             var existingProgress = seriesEntry.ProfileMediaProgress.FirstOrDefault();
             if (existingProgress == null)

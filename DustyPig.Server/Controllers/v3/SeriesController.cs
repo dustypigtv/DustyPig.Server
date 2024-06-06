@@ -55,7 +55,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires main profile
         /// </summary>
         /// <remarks>
-        /// Returns the next 100 series based on start position and sort order. Designed for admin tools, will return all series owned by the account.
+        /// Returns the next 100 series based on start position. Designed for admin tools, will return all series owned by the account.
         /// If you specify libId > 0, this will filter on series in that library
         /// </remarks>
         [HttpGet("{start}/{libId}")]
@@ -83,6 +83,82 @@ namespace DustyPig.Server.Controllers.v3
 
             return series.Select(item => item.ToBasicMedia()).ToList();
         }
+
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>
+        /// Returns the next 100 series based on start position. Designed for admin tools, will return all series owned by the account that have never been played.
+        /// If you specify libId > 0, this will filter on series in that library
+        /// </remarks>
+        [HttpGet("{start}/{libId}")]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> GetNeverPlayed(int start, int libId)
+        {
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
+            var q = DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.EverPlayed == false)
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Series);
+
+            if (libId > 0)
+                q = q.Where(item => item.LibraryId == libId);
+
+            var series = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(ADMIN_LIST_SIZE)
+                 .ToListAsync();
+
+            return series.Select(item => item.ToBasicMedia()).ToList();
+        }
+
+
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>
+        /// Returns the next 100 series based on start position. Designed for admin tools, will return all series owned by the account that have ever been played.
+        /// If you specify libId > 0, this will filter on series in that library
+        /// </remarks>
+        [HttpGet("{start}/{libId}")]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> GetEverPlayed(int start, int libId)
+        {
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
+            var q = DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.EverPlayed == true)
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Series);
+
+            if (libId > 0)
+                q = q.Where(item => item.LibraryId == libId);
+
+            var series = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(ADMIN_LIST_SIZE)
+                 .ToListAsync();
+
+            return series.Select(item => item.ToBasicMedia()).ToList();
+        }
+
+
+
 
 
         /// <summary>
@@ -600,6 +676,8 @@ namespace DustyPig.Server.Controllers.v3
             if (lastEpisode == null)
                 return Result.BuildSuccess();
 
+            DB.MediaEntries.Update(lastEpisode.LinkedTo);
+            lastEpisode.LinkedTo.EverPlayed = true;
 
             var progress = lastEpisode.LinkedTo.ProfileMediaProgress.FirstOrDefault();
 

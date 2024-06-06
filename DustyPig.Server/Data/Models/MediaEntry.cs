@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.Models;
+﻿using Amazon.S3.Model;
+using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -242,6 +243,11 @@ namespace DustyPig.Server.Data.Models
         public bool Genre_War { get; set; }
 
         public bool Genre_Western { get; set; }
+
+        /// <summary>
+        /// Stores whether this entry has ever been played
+        /// </summary>
+        public bool EverPlayed { get; set; }
 
 
         public List<PlaylistItem> PlaylistItems { get; set; } = new List<PlaylistItem>();

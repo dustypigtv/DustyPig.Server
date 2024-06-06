@@ -477,7 +477,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var mediaEntry = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
-                .AsNoTracking()
                 .Include(m => m.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
                 .Where(m => m.Id == newProgress.Id)
                 .FirstOrDefaultAsync();
@@ -485,6 +484,9 @@ namespace DustyPig.Server.Controllers.v3
 
             if (mediaEntry == null)
                 return CommonResponses.ValueNotFound(nameof(newProgress.Id));
+
+
+            mediaEntry.EverPlayed = true;
 
             var existingProgress = mediaEntry.ProfileMediaProgress.FirstOrDefault();
             if (existingProgress == null)

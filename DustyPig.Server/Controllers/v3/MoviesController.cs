@@ -57,7 +57,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires main profile
         /// </summary>
         /// <remarks>
-        /// Returns the next 100 movies based on start position and sort order. Designed for admin tools, will return all mvoies owned by the account.
+        /// Returns the next 100 movies based on start position. Designed for admin tools, will return all mvoies owned by the account.
         /// If you specify a value > 0 for libId, it will filter on movies only in the specified library
         /// </remarks>
         [HttpGet("{start}/{libId}")]
@@ -85,6 +85,80 @@ namespace DustyPig.Server.Controllers.v3
 
             return movies.Select(item => item.ToBasicMedia()).ToList();
         }
+
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>
+        /// Returns the next 100 movies based on start position. Designed for admin tools, will return all mvoies owned by the account that have never been played.
+        /// If you specify a value > 0 for libId, it will filter on movies only in the specified library
+        /// </remarks>
+        [HttpGet("{start}/{libId}")]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> GetNeverPlayed(int start, int libId)
+        {
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
+            var q = DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.EverPlayed == false)
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Movie);
+
+            if (libId > 0)
+                q = q.Where(item => item.LibraryId == libId);
+
+            var movies = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(ADMIN_LIST_SIZE)
+                 .ToListAsync();
+
+            return movies.Select(item => item.ToBasicMedia()).ToList();
+        }
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>
+        /// Returns the next 100 movies based on start position. Designed for admin tools, will return all mvoies owned by the account that have ever been played.
+        /// If you specify a value > 0 for libId, it will filter on movies only in the specified library
+        /// </remarks>
+        [HttpGet("{start}/{libId}")]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> GetEverPlayed(int start, int libId)
+        {
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
+            var q = DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.EverPlayed == true)
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Movie);
+
+            if (libId > 0)
+                q = q.Where(item => item.LibraryId == libId);
+
+            var movies = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(ADMIN_LIST_SIZE)
+                 .ToListAsync();
+
+            return movies.Select(item => item.ToBasicMedia()).ToList();
+        }
+
+
+
 
 
 
@@ -595,7 +669,6 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<Result> MarkWatched(int id)
         {
             var movie = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
-                .AsNoTracking()
                 .Include(e => e.ProfileMediaProgress.Where(p => p.ProfileId == UserProfile.Id))
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
@@ -604,6 +677,7 @@ namespace DustyPig.Server.Controllers.v3
             if (movie == null || !movie.ProfileMediaProgress.Any())
                 return CommonResponses.ValueNotFound(nameof(id));
 
+            movie.EverPlayed = true;
             DB.ProfileMediaProgresses.Remove(movie.ProfileMediaProgress.First());
             await DB.SaveChangesAsync();
 
