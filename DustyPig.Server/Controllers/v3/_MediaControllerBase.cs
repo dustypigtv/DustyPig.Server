@@ -235,7 +235,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             var progress = media.ProfileMediaProgress.FirstOrDefault(item => item.ProfileId == UserProfile.Id);
-            if (progress != null && progress.Played < 60)
+            if (progress != null && progress.Played < 1)
                 progress = null;
 
 

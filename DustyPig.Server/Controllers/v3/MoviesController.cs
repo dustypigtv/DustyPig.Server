@@ -184,7 +184,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var progress = media.ProfileMediaProgress.FirstOrDefault();
                 if (progress != null)
-                    if (progress.Played >= 60 && progress.Played < (media.CreditsStartTime ?? media.Length.Value * 0.9))
+                    if (progress.Played >= 1 && progress.Played < (media.CreditsStartTime ?? media.Length.Value * 0.9))
                         ret.Played = progress.Played;
             }
             else
