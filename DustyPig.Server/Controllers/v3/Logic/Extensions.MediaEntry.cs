@@ -51,8 +51,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             new SRTSubtitle
             {
                 Name = self.Name,
-                Url = self.Url,
-                FileSize = self.FileSize
+                Url = self.Url
             };
 
 
@@ -79,11 +78,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             var ret = new DetailedMovie
             {
                 ArtworkUrl = self.ArtworkUrl,
-                ArtworkSize = self.ArtworkSize,
                 BackdropUrl = self.BackdropUrl,
-                BackdropSize = self.BackdropSize,
                 BifUrl = playable ? self.BifUrl : null,
-                BifSize = self.BifSize,
                 Credits = self.GetPeople(),
                 CreditsStartTime = self.CreditsStartTime,
                 Date = self.Date.Value,
@@ -99,7 +95,6 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 Title = self.Title,
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = playable ? self.VideoUrl : null,
-                VideoSize = self.VideoSize,
             };
 
             //Subs

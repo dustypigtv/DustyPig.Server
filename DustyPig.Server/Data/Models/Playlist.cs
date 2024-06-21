@@ -34,8 +34,6 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_NAME_LENGTH)]
         public string ArtworkUrl { get; set; }
 
-        public ulong ArtworkSize { get; set; }
-
         public bool ArtworkUpdateNeeded { get; set; }
 
         public List<PlaylistItem> PlaylistItems { get; set; }

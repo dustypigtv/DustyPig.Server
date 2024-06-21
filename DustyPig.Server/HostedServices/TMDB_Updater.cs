@@ -207,9 +207,8 @@ namespace DustyPig.Server.HostedServices
                     if (!string.IsNullOrWhiteSpace(info.BackdropUrl))
                     {
                         cmd = conn.CreateCommand();
-                        cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.BackdropUrl)}=@p1, {nameof(MediaEntry.BackdropSize)}=@p2 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND ({nameof(MediaEntry.BackdropUrl)}=@p5 OR {nameof(MediaEntry.BackdropUrl)} IS NULL)";
+                        cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.BackdropUrl)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND ({nameof(MediaEntry.BackdropUrl)}=@p5 OR {nameof(MediaEntry.BackdropUrl)} IS NULL)";
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.BackdropUrl));
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", (ulong)info.BackdropSize));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", tmdbId));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", entryType));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p5", ""));

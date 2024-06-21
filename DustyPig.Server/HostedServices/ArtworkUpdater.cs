@@ -196,7 +196,6 @@ namespace DustyPig.Server.HostedServices
                 if (art.Count == 0)
                 {
                     playlist.ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE;
-                    playlist.ArtworkSize = Constants.DEFAULT_PLAYLIST_IMAGE_SIZE;
                 }
                 else
                 {
@@ -260,7 +259,6 @@ namespace DustyPig.Server.HostedServices
 
                         //Then this
                         playlist.ArtworkUrl = calcArt;
-                        playlist.ArtworkSize = (ulong)ms.Length;
                     }
 
                 }
