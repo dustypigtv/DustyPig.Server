@@ -87,6 +87,63 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>
+        /// Returns the next 100 movies based on start position. Designed for admin tools, will return all mvoies owned by the account.
+        /// If you specify a value > 0 for libId, it will filter on movies only in the specified library
+        /// </remarks>
+        [HttpGet("{start}/{libId}")]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<DetailedMovie>>> AdminListDetails(int start, int libId)
+        {
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
+            var q = DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Movie);
+
+            if (libId > 0)
+                q = q.Where(item => item.LibraryId == libId);
+
+            var movies = await q
+                .AsNoTracking()
+                .Include(Item => Item.Library)
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+                .Include(item => item.Subtitles)
+                .ApplySortOrder(SortOrder.Alphabetical)
+                .Skip(start)
+                .Take(ADMIN_LIST_SIZE)
+                .ToListAsync();
+
+            return movies.Select(item =>
+            {
+                var ret = item.ToDetailedMovie(true);
+
+                //Extra Search Terms
+                var allTerms = item.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
+                var coreTerms = item.Title.NormalizedQueryString().Tokenize();
+                allTerms.RemoveAll(item => coreTerms.Contains(item));
+                ret.ExtraSearchTerms = allTerms;
+
+                ret.CanManage = true;
+
+                return ret;
+            }).ToList();
+        }
+
+
+
+
+
 
         /// <summary>
         /// Requires main profile

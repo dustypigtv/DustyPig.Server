@@ -90,6 +90,190 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires main profile
         /// </summary>
         /// <remarks>
+        /// Returns the next 100 series based on start position. Designed for admin tools, will return all series owned by the account.
+        /// If you specify libId > 0, this will filter on series in that library
+        /// </remarks>
+        [HttpGet("{start}/{libId}")]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<DetailedSeries>>> AdminListDetails(int start, int libId)
+        {
+            /*
+             //Get the media entry
+            var mediaEntry = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(Item => Item.Library)
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+                .Where(item => item.Id == id)
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Series)
+                .SingleOrDefaultAsync();
+
+            if (mediaEntry == null)
+                return CommonResponses.ValueNotFound(nameof(id));
+
+            //Build the response
+            var ret = new DetailedSeries
+            {
+                ArtworkUrl = mediaEntry.ArtworkUrl,
+                BackdropUrl = mediaEntry.BackdropUrl,
+                Credits = mediaEntry.GetPeople(),
+                Description = mediaEntry.Description,
+                Genres = mediaEntry.ToGenres(),
+                Id = id,
+                LibraryId = mediaEntry.LibraryId,
+                Rated = mediaEntry.TVRating ?? TVRatings.None,
+                Title = mediaEntry.Title,
+                TMDB_Id = mediaEntry.TMDB_Id,
+            };
+
+
+            //Get the episodes
+            var dbEps = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Subtitles)
+                .Where(item => item.LinkedToId == id)
+                .OrderBy(item => item.Xid)
+                .ToListAsync();
+
+            if (dbEps.Count > 0)
+            {
+                ret.Episodes ??= new();
+                foreach (var dbEp in dbEps)
+                {
+                    var ep = new DetailedEpisode
+                    {
+                        ArtworkUrl = dbEp.ArtworkUrl,
+                        BifUrl = dbEp.BifUrl,
+                        CreditsStartTime = dbEp.CreditsStartTime,
+                        Date = dbEp.Date.Value,
+                        Description = dbEp.Description,
+                        EpisodeNumber = (ushort)dbEp.Episode.Value,
+                        Id = dbEp.Id,
+                        IntroEndTime = dbEp.IntroEndTime,
+                        IntroStartTime = dbEp.IntroStartTime,
+                        Length = dbEp.Length.Value,
+                        SeasonNumber = (ushort)dbEp.Season.Value,
+                        SeriesId = id,
+                        Title = dbEp.Title,
+                        TMDB_Id = dbEp.TMDB_Id,
+                        VideoUrl = dbEp.VideoUrl,
+                    };
+
+                    ep.SRTSubtitles = dbEp.Subtitles.ToSRTSubtitleList();
+
+                    ret.Episodes.Add(ep);
+                }
+            }
+
+            //Extra Search Terms
+            var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
+            var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
+            allTerms.RemoveAll(item => coreTerms.Contains(item));
+            ret.ExtraSearchTerms = allTerms;
+            ret.CanManage = true;
+
+            return ret;
+             */
+            if (start < 0)
+                return CommonResponses.InvalidValue(nameof(start));
+
+            var q = DB.MediaEntries
+                .AsNoTracking()
+                .Include(Item => Item.Library)
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+                .Where(item => item.Library.AccountId == UserAccount.Id)
+                .Where(item => item.EntryType == MediaTypes.Series);
+
+            if (libId > 0)
+                q = q.Where(item => item.LibraryId == libId);
+
+            var series = await q
+                 .AsNoTracking()
+                 .ApplySortOrder(SortOrder.Alphabetical)
+                 .Skip(start)
+                 .Take(ADMIN_LIST_SIZE)
+                 .ToListAsync();
+
+            var seriesIds = series.Select(item => item.Id).Distinct().ToList();
+
+            var dbEps = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Subtitles)
+                .Where(item => item.LinkedToId.HasValue)
+                .Where(item => seriesIds.Contains(item.LinkedToId.Value))
+                .ToListAsync();
+
+
+            return series.Select(mediaEntry =>
+            {
+                var ret = new DetailedSeries
+                {
+                    ArtworkUrl = mediaEntry.ArtworkUrl,
+                    BackdropUrl = mediaEntry.BackdropUrl,
+                    Credits = mediaEntry.GetPeople(),
+                    Description = mediaEntry.Description,
+                    Genres = mediaEntry.ToGenres(),
+                    Id = mediaEntry.Id,
+                    LibraryId = mediaEntry.LibraryId,
+                    Rated = mediaEntry.TVRating ?? TVRatings.None,
+                    Title = mediaEntry.Title,
+                    TMDB_Id = mediaEntry.TMDB_Id,
+                };
+
+                ret.Episodes ??= new();
+                foreach (var dbEp in dbEps.Where(item => item.LinkedToId == mediaEntry.Id))
+                {
+                    var ep = new DetailedEpisode
+                    {
+                        ArtworkUrl = dbEp.ArtworkUrl,
+                        BifUrl = dbEp.BifUrl,
+                        CreditsStartTime = dbEp.CreditsStartTime,
+                        Date = dbEp.Date.Value,
+                        Description = dbEp.Description,
+                        EpisodeNumber = (ushort)dbEp.Episode.Value,
+                        Id = dbEp.Id,
+                        IntroEndTime = dbEp.IntroEndTime,
+                        IntroStartTime = dbEp.IntroStartTime,
+                        Length = dbEp.Length.Value,
+                        SeasonNumber = (ushort)dbEp.Season.Value,
+                        SeriesId = mediaEntry.Id,
+                        Title = dbEp.Title,
+                        TMDB_Id = dbEp.TMDB_Id,
+                        VideoUrl = dbEp.VideoUrl,
+                    };
+
+                    ep.SRTSubtitles = dbEp.Subtitles.ToSRTSubtitleList();
+
+                    ret.Episodes.Add(ep);
+                }
+
+                //Extra Search Terms
+                var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
+                var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
+                allTerms.RemoveAll(item => coreTerms.Contains(item));
+                ret.ExtraSearchTerms = allTerms;
+                ret.CanManage = true;
+
+                return ret;
+
+            }).ToList();
+        }
+
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>
         /// Returns the next 100 series based on start position. Designed for admin tools, will return all series owned by the account that have never been played.
         /// If you specify libId > 0, this will filter on series in that library
         /// </remarks>
