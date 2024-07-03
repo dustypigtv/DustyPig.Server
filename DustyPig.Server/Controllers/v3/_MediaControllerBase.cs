@@ -190,6 +190,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new DetailedSeries
             {
                 Id = id,
+                Added = media.Added,
                 ArtworkUrl = media.ArtworkUrl,
                 BackdropUrl = media.BackdropUrl,
                 CanPlay = playable,
@@ -252,6 +253,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     var ep = new DetailedEpisode
                     {
+                        Added = dbEp.Added,
                         ArtworkUrl = dbEp.ArtworkUrl,
                         BifUrl = playable ? dbEp.BifUrl : null,
                         CreditsStartTime = dbEp.CreditsStartTime,

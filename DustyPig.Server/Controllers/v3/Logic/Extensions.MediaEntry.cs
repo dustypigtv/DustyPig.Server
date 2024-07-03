@@ -77,6 +77,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Build the response
             var ret = new DetailedMovie
             {
+                Added = self.Added,
                 ArtworkUrl = self.ArtworkUrl,
                 BackdropUrl = self.BackdropUrl,
                 BifUrl = playable ? self.BifUrl : null,

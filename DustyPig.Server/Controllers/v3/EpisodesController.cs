@@ -50,6 +50,7 @@ namespace DustyPig.Server.Controllers.v3
             var episode = series.Episodes.First(e => e.Id == id);
             var ret = new DetailedEpisodeEx
             {
+                Added = episode.Added,
                 ArtworkUrl = episode.ArtworkUrl,
                 BifUrl = episode.BifUrl,
                 CreditsStartTime = episode.CreditsStartTime,
