@@ -140,7 +140,7 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BifUrl { get; set; }
 
-        public DateTime? Added { get; set; }
+        public DateTime Added { get; set; }
 
         public double? Popularity { get; set; }
 

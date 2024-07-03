@@ -1236,7 +1236,7 @@ namespace DustyPig.Server.Controllers.v3
                 select new
                 {
                     MediaEntry = meSeries,
-                    Timestamp = pmp.Timestamp > meEp.Added ? pmp.Timestamp : meEp.Added.Value
+                    Timestamp = pmp.Timestamp > meEp.Added ? pmp.Timestamp : meEp.Added
                 };
 
 
