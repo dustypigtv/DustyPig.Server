@@ -50,6 +50,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static SRTSubtitle ToSRTSubtitle(this Subtitle self) =>
             new SRTSubtitle
             {
+                Language = self.Language,
                 Name = self.Name,
                 Url = self.Url
             };

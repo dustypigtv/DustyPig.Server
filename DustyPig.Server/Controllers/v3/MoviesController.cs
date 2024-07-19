@@ -496,6 +496,7 @@ namespace DustyPig.Server.Controllers.v3
                     DB.Subtitles.Add(new Subtitle
                     {
                         MediaEntry = newItem,
+                        Language = srt.Language,
                         Name = srt.Name,
                         Url = srt.Url
                     });
@@ -681,6 +682,7 @@ namespace DustyPig.Server.Controllers.v3
                     DB.Subtitles.Add(new Subtitle
                     {
                         MediaEntryId = existingItem.Id,
+                        Language = srt.Language,
                         Name = srt.Name,
                         Url = srt.Url
                     });

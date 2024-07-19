@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
@@ -21,6 +22,12 @@ namespace DustyPig.Server.Data.Models
         [Required]
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string Url { get; set; }
+
+        [Required]
+        [MaxLength(3)]
+        [MinLength(3)]
+        [DefaultValue("eng")]
+        public string Language { get; set; }
 
         public int CompareTo(object obj)
         {
