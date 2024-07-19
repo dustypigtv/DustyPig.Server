@@ -317,7 +317,7 @@ namespace DustyPig.Server.HostedServices
             {
                 try
                 {
-                    var size = await SimpleDownloader.GetDownloadSizeAsync(backdropUrl, _cancellationToken);
+                    var size = await SimpleDownloader.GetDownloadSizeAsync(backdropUrl, cancellationToken: _cancellationToken);
                     entry.BackdropUrl = backdropUrl;
                     entry.BackdropSize = (ulong)size;
                     changed = true;
