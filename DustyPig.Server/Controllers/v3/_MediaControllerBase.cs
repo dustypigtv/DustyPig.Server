@@ -82,9 +82,7 @@ namespace DustyPig.Server.Controllers.v3
                         .Distinct()
                 );
 
-            //Add genres
-            ret.AddRange(me.ToGenres().AsString().NormalizedQueryString().Tokenize());
-
+            
             if (extraSearchTerms != null)
             {
                 ret.AddRange
