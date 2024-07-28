@@ -186,10 +186,10 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<ActionResult<Result>> ChangePassword([FromBody] string newPassword)
+        public async Task<ActionResult<Result>> ChangePassword(StringValue newPassword)
         {
-            if (string.IsNullOrWhiteSpace(newPassword))
-                return CommonResponses.RequiredValueMissing(nameof(newPassword));
+            if (string.IsNullOrWhiteSpace(newPassword.Value))
+                return CommonResponses.RequiredValueMissing(nameof(newPassword.Value));
 
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
@@ -208,7 +208,7 @@ namespace DustyPig.Server.Controllers.v3
                 DisplayName = fbUser.DisplayName,
                 Email = fbUser.Email,
                 EmailVerified = fbUser.EmailVerified,
-                Password = newPassword,
+                Password = newPassword.Value,
                 PhoneNumber = fbUser.PhoneNumber,
                 PhotoUrl = fbUser.PhotoUrl,
                 Uid = fbUser.Uid

@@ -113,16 +113,16 @@ namespace DustyPig.Server.Controllers.v3
         /// <param name="email"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> SendPasswordResetEmail([FromBody] string email)
+        public async Task<Result> SendPasswordResetEmail(StringValue email)
         {
-            if (string.IsNullOrWhiteSpace(email))
+            if (string.IsNullOrWhiteSpace(email.Value))
                 return CommonResponses.RequiredValueMissing(nameof(email));
 
-            if (email.ToLower().Trim() == TestAccount.Email)
+            if (email.Value.ToLower().Trim() == TestAccount.Email)
                 return CommonResponses.ProhibitTestUser();
 
 
-            var ret = await _firebaseClient.SendPasswordResetEmailAsync(email);
+            var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
             if (!ret.Success)
                 return ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset);
 
@@ -174,19 +174,19 @@ namespace DustyPig.Server.Controllers.v3
         /// <param name="code"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DeviceCodeStatus>))]
-        public async Task<Result<DeviceCodeStatus>> VerifyDeviceLoginCode([FromBody] string code)
+        public async Task<Result<DeviceCodeStatus>> VerifyDeviceLoginCode(StringValue code)
         {
-            if (string.IsNullOrWhiteSpace(code))
-                return CommonResponses.RequiredValueMissing(nameof(code));
+            if (string.IsNullOrWhiteSpace(code.Value))
+                return CommonResponses.RequiredValueMissing(nameof(code.Value));
 
-            code = code.Trim();
-            if (code.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
-                return CommonResponses.InvalidValue(nameof(code));
+            code.Value = code.Value.Trim();
+            if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
+                return CommonResponses.InvalidValue(nameof(code.Value));
 
             var rec = await DB.ActivationCodes
                 .AsNoTracking()
                 .Include(item => item.Profile)
-                .Where(item => item.Code == code)
+                .Where(item => item.Code == code.Value)
                 .SingleOrDefaultAsync();
 
             if (rec == null)
@@ -218,7 +218,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<ActionResult<Result>> LoginDeviceWithCode([FromBody] string code)
+        public async Task<ActionResult<Result>> LoginDeviceWithCode(StringValue code)
         {
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
@@ -228,15 +228,15 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.ProfileIsLocked();
 
 
-            if (string.IsNullOrWhiteSpace(code))
+            if (string.IsNullOrWhiteSpace(code.Value))
                 return CommonResponses.InvalidValue(nameof(code));
 
-            code = code.Trim();
-            if (code.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
+            code.Value = code.Value.Trim();
+            if (code.Value.Length != Constants.DEVICE_ACTIVATION_CODE_LENGTH)
                 return CommonResponses.InvalidValue(nameof(code));
 
             var rec = await DB.ActivationCodes
-                .Where(item => item.Code == code)
+                .Where(item => item.Code == code.Value)
                 .Where(item => item.ProfileId == null)
                 .SingleOrDefaultAsync();
 
@@ -410,7 +410,7 @@ namespace DustyPig.Server.Controllers.v3
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-        public async Task<ActionResult<Result<string>>> UpdateFCMToken([FromBody] string newFCMToken)
+        public async Task<ActionResult<Result<string>>> UpdateFCMToken(StringValue newFCMToken)
         {
             var (account, profile) = await User.VerifyAsync();
 
@@ -419,15 +419,15 @@ namespace DustyPig.Server.Controllers.v3
 
             string newJWT;
 
-            if (string.IsNullOrWhiteSpace(newFCMToken))
+            if (string.IsNullOrWhiteSpace(newFCMToken.Value))
             {
                 await DeleteCurrentFCMToken(profile);
                 newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, null, null);
             }
             else
             {
-                int newId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMToken);
-                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId, newFCMToken);
+                int newId = await EnsureFCMTokenAssociatedWithProfile(profile, newFCMToken.Value);
+                newJWT = await _jwtProvider.CreateTokenAsync(account.Id, account.Profiles.First().Id, newId, newFCMToken.Value);
             }
 
             return Result<string>.BuildSuccess(newJWT);

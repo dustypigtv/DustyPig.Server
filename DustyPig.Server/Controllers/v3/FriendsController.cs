@@ -117,18 +117,21 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [ProhibitTestUser]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> Invite([FromBody] string email)
+        public async Task<Result> Invite(StringValue email)
         {
-            if (string.IsNullOrWhiteSpace(email))
+            try { email.Validate(); }
+            catch (ModelValidationException ex) { return ex; }
+
+            if (string.IsNullOrWhiteSpace(email.Value))
                 return CommonResponses.InvalidValue(nameof(email));
 
-            email = email.Trim();
+            email.Value = email.Value.Trim();
 
 
             UserRecord fbRec = null;
             try
             {
-                fbRec = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
+                fbRec = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email.Value);
             }
             catch (FirebaseAuthException ex)
             {
