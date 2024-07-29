@@ -41,8 +41,8 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>This will create the Firebase account and send a confirmation email</remarks>
         [HttpPost]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<AccountCreated>))]
-        public async Task<Result<AccountCreated>> Create(CreateAccount info)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> Create(CreateAccount info)
         {
             //Validate
             try { info.Validate(); }
@@ -52,19 +52,6 @@ namespace DustyPig.Server.Controllers.v3
             {
                 //Check if they already exist
                 var existingUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(info.Email);
-
-
-                //Try to sign in
-                var signinResponse = await _client.SignInWithEmailPasswordAsync(info.Email, info.Password);
-                if (signinResponse.Success)
-                {
-                    //This means the user sent the same password that already exists.
-                    //Go ahead and send a response with the email verificaiton parameter
-                    //return new AccountCreated { EmailVerificationRequired = !existingUser.EmailVerified };
-                    return new AccountCreated { EmailVerificationRequired = false };
-                }
-
-
                 return "Account already exists";
             }
             catch { }
@@ -96,21 +83,7 @@ namespace DustyPig.Server.Controllers.v3
                     await DB.SaveChangesAsync();
                 }
 
-                ////Send verification mail
-                //var dataResponse = await _client.GetUserDataAsync(signupResponse.Data.IdToken);
-                //if (!dataResponse.Success)
-                //    return dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData);
-
-                //bool emailVerificationRequired = !dataResponse.Data.Users.Where(item => item.Email.ICEquals(signupResponse.Data.Email)).Any(item => item.EmailVerified);
-                //if (emailVerificationRequired)
-                //{
-                //    var sendVerificationEmailResponse = await _client.SendEmailVerificationAsync(signupResponse.Data.IdToken);
-                //    if (!sendVerificationEmailResponse.Success)
-                //        return sendVerificationEmailResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.SendVerificationEmail);
-                //}
-
-                //return new AccountCreated { EmailVerificationRequired = emailVerificationRequired };
-                return new AccountCreated { EmailVerificationRequired = false };
+                return Result.BuildSuccess();
             }
             else
             {
