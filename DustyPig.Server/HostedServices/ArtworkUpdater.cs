@@ -205,7 +205,7 @@ namespace DustyPig.Server.HostedServices
                     {
                         var dataLst = new List<byte[]>();
                         foreach (var key in art.Keys)
-                            dataLst.Add(await SimpleDownloader.DownloadDataAsync(art[key], null, _cancellationToken));
+                            dataLst.Add(await Program.SharedHttpClient.DownloadDataAsync(art[key], null, _cancellationToken));
 
                         /*
                             tl  tr

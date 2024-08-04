@@ -4,7 +4,7 @@
     {
         private const string API_KEY = "AIzaSyC_m_o4f1_zU0zpUDW9FYfpZiZG_KMXi8Q";
 
-        public FirebaseAuthClient() : base(API_KEY) { }
+        public FirebaseAuthClient() : base(Program.SharedHttpClient, API_KEY) { }
 
     }
 }

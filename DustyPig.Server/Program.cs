@@ -5,11 +5,16 @@ using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Web;
 using System;
+using System.Net.Http;
 
 namespace DustyPig.Server
 {
     public class Program
     {
+        //Shared HttpClient to use across the entire app
+        public static readonly HttpClient SharedHttpClient = new();
+
+
         public static void Main(string[] args)
         {
 #if DEBUG

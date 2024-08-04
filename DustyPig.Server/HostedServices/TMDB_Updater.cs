@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using static DustyPig.Server.Services.TMDBClient;
@@ -317,7 +316,7 @@ namespace DustyPig.Server.HostedServices
             {
                 try
                 {
-                    var size = await SimpleDownloader.GetDownloadSizeAsync(backdropUrl, cancellationToken: _cancellationToken);
+                    var size = await Program.SharedHttpClient.GetDownloadSizeAsync(backdropUrl, cancellationToken: _cancellationToken);
                     entry.BackdropUrl = backdropUrl;
                     entry.BackdropSize = (ulong)size;
                     changed = true;

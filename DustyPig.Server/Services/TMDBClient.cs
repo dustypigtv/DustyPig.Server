@@ -35,7 +35,7 @@ namespace DustyPig.Server.Services
 
         public static void Configure(string apiKey) => _apiKey = apiKey;
 
-        public TMDBClient() : base(AuthTypes.APIKey, _apiKey) { }
+        public TMDBClient() : base(Program.SharedHttpClient, AuthTypes.APIKey, _apiKey) { }
 
 
         public static TMDBClient DefaultInstance => new();
