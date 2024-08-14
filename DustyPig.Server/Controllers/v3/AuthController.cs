@@ -7,6 +7,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -63,15 +64,8 @@ namespace DustyPig.Server.Controllers.v3
                 if (!signInResponse.Success)
                     return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
 
-                var dataResponse = await _firebaseClient.GetUserDataAsync(signInResponse.Data.IdToken);
-                if (!dataResponse.Success)
-                    return dataResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.GetUserData);
-
-                var user = dataResponse.Data.Users.First();
-                //if (!user.EmailVerified)
-                //    return "You must verify your email address before you can sign in";
-
-                account = await GetOrCreateAccountAsync(user.LocalId, user.DisplayName, user.Email, user.PhotoUrl);
+                var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(signInResponse.Data.LocalId);
+                account = await GetOrCreateAccountAsync(user.Uid, user.DisplayName, user.Email, user.PhotoUrl);
             }
 
             var profiles = account.Profiles.Select(p => p.ToBasicProfileInfo()).ToList();
@@ -120,8 +114,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (email.Value.ToLower().Trim() == TestAccount.Email)
                 return CommonResponses.ProhibitTestUser();
-
-
+            
             var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
             if (!ret.Success)
                 return ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset);

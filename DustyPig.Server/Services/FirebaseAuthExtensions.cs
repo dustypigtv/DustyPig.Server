@@ -19,18 +19,7 @@ namespace DustyPig.Server.Services
         public static string TranslateFirebaseError(this Firebase.Auth.Models.ErrorData error, FirebaseMethods method)
         {
             if (error == null || string.IsNullOrWhiteSpace(error.Message))
-            {
-                //switch (method)
-                //{
-                //    case FirebaseMethods.PasswordSignin:
-                //        return "Invalid email or password";
-
-                //    case FirebaseMethods.PasswordReset:
-                //        return "Invalid email";
-                //}
-
                 return "Unknown Firebase.Auth error";
-            }
 
             var split = error.Message.Split(':');
             if (split.Length > 1)
@@ -39,21 +28,6 @@ namespace DustyPig.Server.Services
 
             switch (method)
             {
-                case FirebaseMethods.PasswordSignup:
-                    switch (error.Message)
-                    {
-                        case "EMAIL_EXISTS":
-                            return "Account already exists";
-
-                        case "OPERATION_NOT_ALLOWED":
-                            return "Password sign-in is disabled";
-
-                        case "TOO_MANY_ATTEMPTS_TRY_LATER":
-                            return "Too many attempts, try later";
-                    }
-                    break;
-
-                case FirebaseMethods.ConfirmEmailVerification:
                 case FirebaseMethods.ConfirmPasswordResetCode:
                 case FirebaseMethods.PasswordReset:
                     switch (error.Message)
@@ -64,11 +38,6 @@ namespace DustyPig.Server.Services
                         case "OPERATION_NOT_ALLOWED":
                             return "Password sign-in is disabled";
                     }
-                    break;
-
-                case FirebaseMethods.OauthSignin:
-                    if (error.Message.StartsWith("INVALID_IDP_RESPONSE : Bad access token:"))
-                        return "Bad access token";
                     break;
             }
 

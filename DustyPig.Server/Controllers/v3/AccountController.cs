@@ -1,12 +1,10 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
-using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -26,14 +24,7 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(AccountController))]
     public class AccountController : _BaseController
     {
-        private readonly FirebaseAuthClient _client;
-        private readonly JWTProvider _jwtProvider;
-
-        public AccountController(AppDbContext db, FirebaseAuthClient client, JWTProvider jwtProvider) : base(db)
-        {
-            _client = client;
-            _jwtProvider = jwtProvider;
-        }
+        public AccountController(AppDbContext db) : base(db) { }
 
 
         /// <summary>
@@ -56,39 +47,34 @@ namespace DustyPig.Server.Controllers.v3
             }
             catch { }
 
-
-            var signupResponse = await _client.SignUpWithEmailPasswordAsync(info.Email, info.Password);
-            if (signupResponse.Success)
+            try
             {
-                var account = await DB.Accounts
-                    .AsNoTracking()
-                    .Include(item => item.Profiles)
-                    .Where(item => item.FirebaseId == signupResponse.Data.LocalId)
-                    .FirstOrDefaultAsync();
-
-                if (account == null)
+                var newUserRecord = await FirebaseAuth.DefaultInstance.CreateUserAsync(new UserRecordArgs
                 {
-                    account = DB.Accounts.Add(new Account { FirebaseId = signupResponse.Data.LocalId }).Entity;
-                    var profile = DB.Profiles.Add(new Profile
-                    {
-                        Account = account,
-                        MaxMovieRating = MovieRatings.Unrated,
-                        MaxTVRating = TVRatings.NotRated,
-                        AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl),
-                        IsMain = true,
-                        Name = LogicUtils.Coalesce(info.DisplayName, signupResponse.Data.Email[..signupResponse.Data.Email.IndexOf("@")]),
-                        TitleRequestPermission = TitleRequestPermissions.Enabled
-                    }).Entity;
+                    Email = info.Email,
+                    Password = info.Password
+                });
+                
+                var account = DB.Accounts.Add(new Account { FirebaseId = newUserRecord.Uid }).Entity;
+                var profile = DB.Profiles.Add(new Profile
+                {
+                    Account = account,
+                    MaxMovieRating = MovieRatings.Unrated,
+                    MaxTVRating = TVRatings.NotRated,
+                    AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl),
+                    IsMain = true,
+                    Name = LogicUtils.Coalesce(info.DisplayName, newUserRecord.Email[..newUserRecord.Email.IndexOf("@")]),
+                    TitleRequestPermission = TitleRequestPermissions.Enabled
+                }).Entity;
 
-                    await DB.SaveChangesAsync();
-                }
+                await DB.SaveChangesAsync();
 
                 return Result.BuildSuccess();
             }
-            else
+            catch (Exception ex)
             {
-                return signupResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignup);
-            }
+                return ex;
+            }            
         }
 
 
