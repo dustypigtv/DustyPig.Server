@@ -29,17 +29,19 @@ namespace DustyPig.Server.Controllers.v3.Logic
         }
 
 
-        public static BasicMedia ToBasicMedia(this MediaEntry self)
+        public static BasicMedia ToBasicMedia(this MediaEntry self, bool includeDescription=false)
         {
             var ret = new BasicMedia
             {
                 Id = self.Id,
                 ArtworkUrl = self.ArtworkUrl,
                 BackdropUrl = self.BackdropUrl,
-                Description = self.Description,
                 MediaType = self.EntryType,
                 Title = self.Title
             };
+
+            if(includeDescription)
+                ret.Description = self.Description;
 
             if (ret.MediaType == MediaTypes.Movie && self.Date.HasValue)
                 ret.Title += $" ({self.Date.Value.Year})";
