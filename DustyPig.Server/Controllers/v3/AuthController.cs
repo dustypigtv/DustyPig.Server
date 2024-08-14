@@ -64,7 +64,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (!signInResponse.Success)
                     return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
 
-                var user = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(signInResponse.Data.LocalId);
+                var user = await FirebaseAuth.DefaultInstance.GetUserAsync(signInResponse.Data.LocalId);
                 account = await GetOrCreateAccountAsync(user.Uid, user.DisplayName, user.Email, user.PhotoUrl);
             }
 
