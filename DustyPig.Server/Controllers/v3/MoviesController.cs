@@ -447,7 +447,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (existingItem)
-                return $"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
+                return $"A movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
             
             //Add the new item
             DB.MediaEntries.Add(newItem);
@@ -614,7 +614,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AnyAsync();
 
             if (dup)
-                return $"An movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
+                return $"A movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
 
             
             List<int> playlistIds = null;
