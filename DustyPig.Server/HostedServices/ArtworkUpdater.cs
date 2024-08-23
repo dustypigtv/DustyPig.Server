@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
+using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -20,13 +21,25 @@ namespace DustyPig.Server.HostedServices
 {
     public class ArtworkUpdater : IHostedService, IDisposable
     {
-        //Poster should be 266x400
         //ImageMagick makes each quadrant the specified size, so set to 1/2
-        const int POSTER_WIDTH = 133;
-        const int POSTER_HEIGHT = 200;
+        const int POSTER_WIDTH = Constants.GUIDELINE_MAX_JPG_POSTER_WIDTH / 2;
+        const int POSTER_HEIGHT = Constants.GUIDELINE_MAX_JPG_POSTER_HEIGHT / 2;
+        const int BACKDROP_WIDTH = Constants.GUIDELINE_MAX_JPG_BACKDROP_WIDTH / 2;
+        const int BACKDROP_HEIGHT = Constants.GUIDELINE_MAX_JPG_BACKDROP_HEIGHT / 2;
+
+
 
         //15 Seconds
         const int MILLISECONDS_DELAY = 1000 * 15;
+
+
+        class ArtDTO
+        {
+            public int Id { get; set; }
+            public int ArtworkId { get; set; }
+            public string ArtworkUrl { get; set; }
+            public string BackdropUrl { get; set; }
+        }
 
 
         readonly ILogger<ArtworkUpdater> _logger;
@@ -164,11 +177,12 @@ namespace DustyPig.Server.HostedServices
                             )
                         )
 
-                    select new
+                    select new ArtDTO
                     {
-                        me.Id,
+                        Id = me.Id,
                         ArtworkId = me.EntryType == MediaTypes.Episode ? series.Id : me.Id,
-                        ArtworkUrl = me.EntryType == MediaTypes.Episode ? series.ArtworkUrl : me.ArtworkUrl
+                        ArtworkUrl = me.EntryType == MediaTypes.Episode ? series.ArtworkUrl : me.ArtworkUrl,
+                        BackdropUrl = me.EntryType == MediaTypes.Episode ? series.BackdropUrl : me.BackdropUrl
                     };
 
                 var playable = await q
@@ -180,88 +194,11 @@ namespace DustyPig.Server.HostedServices
 
                 playlist.PlaylistItems.Sort((x, y) => x.Index.CompareTo(y.Index));
 
-                var art = new Dictionary<int, string>();
-                foreach (var playlistItem in playlist.PlaylistItems)
-                {
-                    var playableME = playable.FirstOrDefault(item => item.Id == playlistItem.MediaEntryId);
-                    if (playableME != null)
-                        if (!art.ContainsKey(playableME.ArtworkId))
-                        {
-                            art.Add(playableME.ArtworkId, playableME.ArtworkUrl);
-                            if (art.Count > 3)
-                                break;
-                        }
-                }
 
-                if (art.Count == 0)
-                {
-                    playlist.ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE;
-                }
-                else
-                {
-                    string artId = $"{playlist.Id}." + string.Join('.', art.Keys);
-                    string calcArt = Constants.DEFAULT_PLAYLIST_URL_ROOT + artId + ".jpg";
-                    if (playlist.ArtworkUrl != calcArt)
-                    {
-                        var dataLst = new List<byte[]>();
-                        foreach (var key in art.Keys)
-                            dataLst.Add(await Program.SharedHttpClient.DownloadDataAsync(art[key], null, _cancellationToken));
+                await UpdatePlaylistArtAsync(db, playlist, playable, false);
+                await UpdatePlaylistArtAsync(db, playlist, playable, true);
 
-                        /*
-                            tl  tr
-                            bl  br
-                        */
-                        int idx_tl = 0;
-                        int idx_tr = 0;
-                        int idx_bl = 0;
-                        int idx_br = 0;
 
-                        if (art.Count > 1)
-                        {
-                            idx_tr = 1;
-                            idx_bl = 1;
-                        }
-
-                        if (art.Count > 2)
-                            idx_bl = 2;
-
-                        if (art.Count > 3)
-                            idx_br = 3;
-
-                        using MemoryStream ms = new();
-
-                        using (Image<Rgba32> img1 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tl])))
-                        using (Image<Rgba32> img2 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tr])))
-                        using (Image<Rgba32> img3 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_bl])))
-                        using (Image<Rgba32> img4 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_br])))
-                        using (Image<Rgba32> outputImage = new Image<Rgba32>(POSTER_WIDTH * 2, POSTER_HEIGHT * 2))
-                        {
-                            img1.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
-                            img2.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
-                            img3.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
-                            img4.Mutate(o => o.Resize(POSTER_WIDTH, POSTER_HEIGHT));
-
-                            outputImage.Mutate(o => o
-                                .DrawImage(img1, new Point(0, 0), 1f)
-                                .DrawImage(img2, new Point(POSTER_WIDTH, 0), 1f)
-                                .DrawImage(img3, new Point(0, POSTER_HEIGHT), 1f)
-                                .DrawImage(img4, new Point(POSTER_WIDTH, POSTER_HEIGHT), 1f)
-                            );
-
-                            outputImage.SaveAsJpeg(ms);
-                        }
-
-                        await S3.UploadFileAsync(ms, $"{Constants.DEFAULT_PLAYLIST_PATH}/{artId}.jpg", _cancellationToken);
-
-                        //Do this first
-                        if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
-                            db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
-
-                        //Then this
-                        playlist.ArtworkUrl = calcArt;
-                    }
-
-                }
 
                 playlist.ArtworkUpdateNeeded = false;
                 await db.SaveChangesAsync(_cancellationToken);
@@ -290,9 +227,18 @@ namespace DustyPig.Server.HostedServices
                     bool delete = false;
                     if (entry.Url.ICStartsWith(Constants.DEFAULT_PLAYLIST_URL_ROOT))
                     {
-                        if (!entry.Url.ICEndsWith("/default.png"))
-                            if (!entry.Url.ICEndsWith("/default.jpg"))
-                                delete = true;
+                        string[] defaultPlaylistImages =
+                        [
+                            Constants.DEFAULT_PLAYLIST_BACKDROP,
+                            Constants.DEFAULT_PLAYLIST_IMAGE
+                        ];
+                        delete = true;
+                        foreach(string defaultImg in defaultPlaylistImages)
+                            if(entry.Url.ICEquals(defaultImg))
+                            {
+                                delete = false;
+                                break;
+                            }
                     }
                     else if (entry.Url.ICStartsWith(Constants.DEFAULT_PROFILE_URL_ROOT))
                     {
@@ -359,5 +305,134 @@ namespace DustyPig.Server.HostedServices
             }
         }
 
+
+
+
+        async Task UpdatePlaylistArtAsync(AppDbContext db, Playlist playlist, List<ArtDTO> playable, bool backdrop)
+        {
+            Dictionary<int, string> art = [];
+            foreach (var playlistItem in playlist.PlaylistItems)
+            {
+                var playableME = playable.FirstOrDefault(item => item.Id == playlistItem.MediaEntryId);
+                if (playableME != null)
+                    if (!art.ContainsKey(playableME.ArtworkId))
+                    {
+                        if (backdrop)
+                        {
+                            if (!string.IsNullOrWhiteSpace(playableME.BackdropUrl))
+                                art.Add(playableME.ArtworkId, playableME.BackdropUrl);
+                        }
+                        else
+                        {
+                            art.Add(playableME.ArtworkId, playableME.ArtworkUrl);
+                        }
+                        if (art.Count > 3)
+                            break;
+                    }
+            }
+
+            if (art.Count == 0)
+            {
+                if (backdrop)
+                    playlist.BackdropUrl = Constants.DEFAULT_PLAYLIST_BACKDROP;
+                else
+                    playlist.ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE;
+            }
+            else
+            {
+                string artId = $"{playlist.Id}." + string.Join('.', art.Keys);
+                string calcArt = Constants.DEFAULT_PLAYLIST_URL_ROOT + artId;
+                if (backdrop)
+                    calcArt += ".backdrop";
+                calcArt += ".jpg";
+
+                bool shouldBuild =
+                    backdrop ?
+                    playlist.BackdropUrl != calcArt :
+                    playlist.ArtworkUrl != calcArt;
+
+                if (shouldBuild)
+                {
+                    var dataLst = new List<byte[]>();
+                    foreach (var key in art.Keys)
+                        dataLst.Add(await Program.SharedHttpClient.DownloadDataAsync(art[key], null, _cancellationToken));
+
+                    /*
+                        tl  tr
+                        bl  br
+                    */
+                    int idx_tl = 0;
+                    int idx_tr = 0;
+                    int idx_bl = 0;
+                    int idx_br = 0;
+
+                    if (art.Count > 1)
+                    {
+                        idx_tr = 1;
+                        idx_bl = 1;
+                    }
+
+                    if (art.Count > 2)
+                        idx_bl = 2;
+
+                    if (art.Count > 3)
+                        idx_br = 3;
+
+                    using MemoryStream ms = new();
+
+                    using (Image<Rgba32> img1 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tl])))
+                    using (Image<Rgba32> img2 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tr])))
+                    using (Image<Rgba32> img3 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_bl])))
+                    using (Image<Rgba32> img4 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_br])))
+                    using (Image<Rgba32> outputImage = new Image<Rgba32>(POSTER_WIDTH * 2, POSTER_HEIGHT * 2))
+                    {
+                        int w = backdrop ? BACKDROP_WIDTH : POSTER_WIDTH;
+                        int h = backdrop ? BACKDROP_HEIGHT : POSTER_HEIGHT;
+
+                        img1.Mutate(o => o.Resize(w, h));
+                        img2.Mutate(o => o.Resize(w, h));
+                        img3.Mutate(o => o.Resize(w, h));
+                        img4.Mutate(o => o.Resize(w, h));
+
+                        outputImage.Mutate(o => o
+                            .DrawImage(img1, new Point(0, 0), 1f)
+                            .DrawImage(img2, new Point(w, 0), 1f)
+                            .DrawImage(img3, new Point(0, h), 1f)
+                            .DrawImage(img4, new Point(w, h), 1f)
+                        );
+
+                        outputImage.SaveAsJpeg(ms);
+                    }
+
+                    string uploadKey = $"{Constants.DEFAULT_PLAYLIST_PATH}/{artId}";
+                    if (backdrop)
+                        uploadKey += ".backdrop";
+                    uploadKey += ".jpg";
+                    await S3.UploadFileAsync(ms, uploadKey, _cancellationToken);
+
+
+
+                    //Do this first
+                    if (backdrop)
+                    {
+                        if (!string.IsNullOrWhiteSpace(playlist.BackdropUrl))
+                            db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.BackdropUrl });
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
+                            db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
+                    }
+
+
+                    //Then this
+                    if (backdrop)
+                        playlist.BackdropUrl = calcArt;
+                    else
+                        playlist.ArtworkUrl = calcArt;
+                }
+
+            }
+        }
     }
 }
