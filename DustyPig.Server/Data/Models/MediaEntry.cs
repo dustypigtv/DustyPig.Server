@@ -267,7 +267,7 @@ namespace DustyPig.Server.Data.Models
                 Hash = Crypto.HashMovieTitle(Title, Date.Value.Year);
 
             if (EntryType == MediaTypes.Series)
-                Hash = Crypto.NormalizedString(Title);
+                Hash = Crypto.NormalizedHash(Title);
 
             return Hash;
         }
