@@ -7,7 +7,6 @@ using System.ComponentModel.DataAnnotations;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(ProfileId), nameof(Name), IsUnique = true)]
-    [Index(nameof(ProfileId), IsUnique = false)]
     public class Playlist
     {
         public int Id { get; set; }

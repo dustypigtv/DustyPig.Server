@@ -2,8 +2,6 @@
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(ProfileId), IsUnique = false)]
-    [Index(nameof(LibraryId), IsUnique = false)]
     [PrimaryKey(nameof(ProfileId), nameof(LibraryId))]
     public class ProfileLibraryShare
     {

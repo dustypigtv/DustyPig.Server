@@ -8,7 +8,6 @@ using System.ComponentModel.DataAnnotations;
 namespace DustyPig.Server.Data.Models
 {
     [Index(nameof(AccountId), nameof(Name), IsUnique = true)]
-    [Index(nameof(AccountId), IsUnique = false)]
     public class Profile : IComparable
     {
         public int Id { get; set; }
@@ -33,7 +32,7 @@ namespace DustyPig.Server.Data.Models
 
         public List<ProfileLibraryShare> ProfileLibraryShares { get; set; }
 
-        public List<GetRequest> GetRequests { get; set; }
+        //public List<GetRequest> GetRequests { get; set; }
 
         public List<Notification> Notifications { get; set; }
 

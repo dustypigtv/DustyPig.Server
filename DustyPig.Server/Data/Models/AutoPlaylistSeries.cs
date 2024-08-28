@@ -2,8 +2,6 @@
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(PlaylistId), IsUnique = false)]
-    [Index(nameof(MediaEntryId), IsUnique = false)]
     [PrimaryKey(nameof(PlaylistId), nameof(MediaEntryId))]
     public class AutoPlaylistSeries
     {

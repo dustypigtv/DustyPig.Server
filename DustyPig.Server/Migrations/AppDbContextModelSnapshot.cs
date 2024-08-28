@@ -3,30 +3,32 @@ using System;
 using DustyPig.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace DustyPig.Server.Data.Migrations
+namespace DustyPig.Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20231008073957_Initial")]
-    partial class Initial
+    partial class AppDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.9")
+                .HasAnnotation("ProductVersion", "8.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
+
+            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.Account", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("FirebaseId")
                         .IsRequired()
@@ -47,8 +49,14 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int>("AccountId")
                         .HasColumnType("int");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.HasKey("Id");
 
@@ -63,14 +71,32 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("varchar(5)");
 
-                    b.Property<int?>("AccountId")
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("ProfileId")
                         .HasColumnType("int");
 
                     b.HasKey("Code");
 
-                    b.HasIndex("AccountId");
+                    b.HasIndex("ProfileId");
 
                     b.ToTable("ActivationCodes");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.AutoPlaylistSeries", b =>
+                {
+                    b.Property<int>("PlaylistId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MediaEntryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PlaylistId", "MediaEntryId");
+
+                    b.HasIndex("MediaEntryId");
+
+                    b.ToTable("AutoPlaylistSeries");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.FCMToken", b =>
@@ -78,6 +104,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Hash")
                         .IsRequired()
@@ -130,6 +158,8 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<bool>("Accepted")
                         .HasColumnType("tinyint(1)");
 
@@ -170,13 +200,12 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int>("AccountId")
                         .HasColumnType("int");
 
                     b.Property<int>("EntryType")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ProfileId")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -186,8 +215,6 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProfileId");
 
                     b.HasIndex("AccountId", "EntryType", "TMDB_Id")
                         .IsUnique();
@@ -216,6 +243,8 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int>("AccountId")
                         .HasColumnType("int");
 
@@ -240,6 +269,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CallSite")
                         .HasMaxLength(250)
@@ -274,7 +305,9 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("Added")
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Added")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("ArtworkUrl")
@@ -293,8 +326,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<double?>("CreditsStartTime")
                         .HasColumnType("double");
 
-                    b.Property<DateTime?>("Date")
-                        .HasColumnType("datetime(6)");
+                    b.Property<DateOnly?>("Date")
+                        .HasColumnType("date");
 
                     b.Property<string>("Description")
                         .HasMaxLength(10000)
@@ -305,6 +338,9 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<int?>("Episode")
                         .HasColumnType("int");
+
+                    b.Property<bool>("EverPlayed")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<int?>("ExtraSortOrder")
                         .HasColumnType("int");
@@ -449,15 +485,15 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<double?>("Popularity")
                         .HasColumnType("double");
 
-                    b.Property<DateTime?>("PopularityUpdated")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<int?>("Season")
                         .HasColumnType("int");
 
                     b.Property<string>("SortTitle")
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("TMDB_EntryId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("TMDB_Id")
                         .HasColumnType("int");
@@ -478,6 +514,10 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Added");
+
+                    b.HasIndex("EntryType");
 
                     b.HasIndex("Genre_Action");
 
@@ -561,6 +601,10 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("MovieRating");
 
+                    b.HasIndex("Popularity");
+
+                    b.HasIndex("TMDB_EntryId");
+
                     b.HasIndex("TMDB_Id");
 
                     b.HasIndex("TVRating");
@@ -569,29 +613,6 @@ namespace DustyPig.Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("MediaEntries");
-                });
-
-            modelBuilder.Entity("DustyPig.Server.Data.Models.MediaPersonBridge", b =>
-                {
-                    b.Property<int>("MediaEntryId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PersonId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.HasKey("MediaEntryId", "PersonId", "Role");
-
-                    b.HasIndex("MediaEntryId");
-
-                    b.HasIndex("PersonId");
-
-                    b.ToTable("MediaPersonBridges");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaSearchBridge", b =>
@@ -604,8 +625,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("MediaEntryId", "SearchTermId");
 
-                    b.HasIndex("MediaEntryId");
-
                     b.HasIndex("SearchTermId");
 
                     b.ToTable("MediaSearchBridges");
@@ -616,6 +635,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("FriendshipId")
                         .HasColumnType("int");
@@ -667,45 +688,28 @@ namespace DustyPig.Server.Data.Migrations
                     b.ToTable("Notifications");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.Person", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<string>("Hash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Hash")
-                        .IsUnique();
-
-                    b.ToTable("People");
-                });
-
             modelBuilder.Entity("DustyPig.Server.Data.Models.Playlist", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<bool>("ArtworkUpdateNeeded")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("ArtworkUrl")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
-                    b.Property<int>("CurrentIndex")
+                    b.Property<string>("BackdropUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("CurrentItemId")
                         .HasColumnType("int");
 
                     b.Property<double>("CurrentProgress")
@@ -721,9 +725,7 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProfileId");
-
-                    b.HasIndex("ProfileId", "Name", "CurrentIndex")
+                    b.HasIndex("ProfileId", "Name")
                         .IsUnique();
 
                     b.ToTable("Playlists");
@@ -734,6 +736,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("Index")
                         .HasColumnType("int");
@@ -759,6 +763,8 @@ namespace DustyPig.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int>("AccountId")
                         .HasColumnType("int");
 
@@ -783,15 +789,13 @@ namespace DustyPig.Server.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<short?>("PinNumber")
+                    b.Property<ushort?>("PinNumber")
                         .HasColumnType("smallint unsigned");
 
                     b.Property<byte>("TitleRequestPermission")
                         .HasColumnType("tinyint unsigned");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AccountId");
 
                     b.HasIndex("AccountId", "Name")
                         .IsUnique();
@@ -810,8 +814,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasKey("ProfileId", "LibraryId");
 
                     b.HasIndex("LibraryId");
-
-                    b.HasIndex("ProfileId");
 
                     b.ToTable("ProfileLibraryShares");
                 });
@@ -837,8 +839,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("MediaEntryId");
 
-                    b.HasIndex("ProfileId");
-
                     b.ToTable("ProfileMediaProgresses");
                 });
 
@@ -847,6 +847,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Url")
                         .IsRequired()
@@ -863,6 +865,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Hash")
                         .IsRequired()
@@ -896,8 +900,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("MediaEntryId");
 
-                    b.HasIndex("ProfileId");
-
                     b.ToTable("Subscriptions");
                 });
 
@@ -906,6 +908,13 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("varchar(3)");
 
                     b.Property<int>("MediaEntryId")
                         .HasColumnType("int");
@@ -922,12 +931,105 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MediaEntryId");
-
                     b.HasIndex("MediaEntryId", "Name")
                         .IsUnique();
 
                     b.ToTable("Subtitles");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Entry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<ulong>("BackdropSize")
+                        .HasColumnType("bigint unsigned");
+
+                    b.Property<string>("BackdropUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateOnly?>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(10000)
+                        .HasColumnType("varchar(10000)");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MovieRating")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Popularity")
+                        .HasColumnType("double");
+
+                    b.Property<int>("TMDB_Id")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TVRating")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MediaType");
+
+                    b.HasIndex("TMDB_Id");
+
+                    b.HasIndex("TMDB_Id", "MediaType")
+                        .IsUnique();
+
+                    b.ToTable("TMDB_Entries");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_EntryPersonBridge", b =>
+                {
+                    b.Property<int>("TMDB_EntryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TMDB_PersonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("TMDB_EntryId", "TMDB_PersonId", "Role");
+
+                    b.HasIndex("TMDB_PersonId");
+
+                    b.ToTable("TMDB_EntryPeopleBridges");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Person", b =>
+                {
+                    b.Property<int>("TMDB_Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TMDB_Id"));
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.HasKey("TMDB_Id");
+
+                    b.ToTable("TMDB_People");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.TitleOverride", b =>
@@ -935,6 +1037,8 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("MediaEntryId")
                         .HasColumnType("int");
@@ -951,8 +1055,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MediaEntryId");
-
-                    b.HasIndex("ProfileId");
 
                     b.HasIndex("ProfileId", "MediaEntryId")
                         .IsUnique();
@@ -975,8 +1077,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.HasIndex("MediaEntryId");
 
-                    b.HasIndex("ProfileId");
-
                     b.ToTable("WatchListItems");
                 });
 
@@ -993,12 +1093,31 @@ namespace DustyPig.Server.Data.Migrations
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.ActivationCode", b =>
                 {
-                    b.HasOne("DustyPig.Server.Data.Models.Account", "Account")
+                    b.HasOne("DustyPig.Server.Data.Models.Profile", "Profile")
                         .WithMany()
-                        .HasForeignKey("AccountId")
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.Navigation("Account");
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.AutoPlaylistSeries", b =>
+                {
+                    b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
+                        .WithMany()
+                        .HasForeignKey("MediaEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DustyPig.Server.Data.Models.Playlist", "Playlist")
+                        .WithMany()
+                        .HasForeignKey("PlaylistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MediaEntry");
+
+                    b.Navigation("Playlist");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.FCMToken", b =>
@@ -1058,10 +1177,6 @@ namespace DustyPig.Server.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DustyPig.Server.Data.Models.Profile", null)
-                        .WithMany("GetRequests")
-                        .HasForeignKey("ProfileId");
-
                     b.Navigation("Account");
                 });
 
@@ -1108,28 +1223,16 @@ namespace DustyPig.Server.Data.Migrations
                         .HasForeignKey("LinkedToId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("DustyPig.Server.Data.Models.TMDB_Entry", "TMDB_Entry")
+                        .WithMany("MediaEntries")
+                        .HasForeignKey("TMDB_EntryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Library");
 
                     b.Navigation("LinkedTo");
-                });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.MediaPersonBridge", b =>
-                {
-                    b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
-                        .WithMany("People")
-                        .HasForeignKey("MediaEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DustyPig.Server.Data.Models.Person", "Person")
-                        .WithOne("MediaBridges")
-                        .HasForeignKey("DustyPig.Server.Data.Models.MediaPersonBridge", "PersonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MediaEntry");
-
-                    b.Navigation("Person");
+                    b.Navigation("TMDB_Entry");
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.MediaSearchBridge", b =>
@@ -1299,6 +1402,25 @@ namespace DustyPig.Server.Data.Migrations
                     b.Navigation("MediaEntry");
                 });
 
+            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_EntryPersonBridge", b =>
+                {
+                    b.HasOne("DustyPig.Server.Data.Models.TMDB_Entry", "TMDB_Entry")
+                        .WithMany("People")
+                        .HasForeignKey("TMDB_EntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DustyPig.Server.Data.Models.TMDB_Person", "TMDB_Person")
+                        .WithMany("TMDB_EntryBridges")
+                        .HasForeignKey("TMDB_PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TMDB_Entry");
+
+                    b.Navigation("TMDB_Person");
+                });
+
             modelBuilder.Entity("DustyPig.Server.Data.Models.TitleOverride", b =>
                 {
                     b.HasOne("DustyPig.Server.Data.Models.MediaEntry", "MediaEntry")
@@ -1371,8 +1493,6 @@ namespace DustyPig.Server.Data.Migrations
                 {
                     b.Navigation("MediaSearchBridges");
 
-                    b.Navigation("People");
-
                     b.Navigation("PlaylistItems");
 
                     b.Navigation("ProfileMediaProgress");
@@ -1386,11 +1506,6 @@ namespace DustyPig.Server.Data.Migrations
                     b.Navigation("WatchlistItems");
                 });
 
-            modelBuilder.Entity("DustyPig.Server.Data.Models.Person", b =>
-                {
-                    b.Navigation("MediaBridges");
-                });
-
             modelBuilder.Entity("DustyPig.Server.Data.Models.Playlist", b =>
                 {
                     b.Navigation("PlaylistItems");
@@ -1399,8 +1514,6 @@ namespace DustyPig.Server.Data.Migrations
             modelBuilder.Entity("DustyPig.Server.Data.Models.Profile", b =>
                 {
                     b.Navigation("FCMTokens");
-
-                    b.Navigation("GetRequests");
 
                     b.Navigation("Notifications");
 
@@ -1420,6 +1533,18 @@ namespace DustyPig.Server.Data.Migrations
             modelBuilder.Entity("DustyPig.Server.Data.Models.SearchTerm", b =>
                 {
                     b.Navigation("SearchTermBridges");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Entry", b =>
+                {
+                    b.Navigation("MediaEntries");
+
+                    b.Navigation("People");
+                });
+
+            modelBuilder.Entity("DustyPig.Server.Data.Models.TMDB_Person", b =>
+                {
+                    b.Navigation("TMDB_EntryBridges");
                 });
 #pragma warning restore 612, 618
         }

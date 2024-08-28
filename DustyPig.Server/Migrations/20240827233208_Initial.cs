@@ -1,10 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
-using System;
 
 #nullable disable
 
-namespace DustyPig.Server.Data.Migrations
+namespace DustyPig.Server.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration
@@ -55,23 +55,6 @@ namespace DustyPig.Server.Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "People",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_People", x => x.Id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "S3ArtFilesToDelete",
                 columns: table => new
                 {
@@ -104,38 +87,62 @@ namespace DustyPig.Server.Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "TMDB_Entries",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    TMDB_Id = table.Column<int>(type: "int", nullable: false),
+                    MediaType = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "varchar(10000)", maxLength: 10000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    MovieRating = table.Column<int>(type: "int", nullable: true),
+                    TVRating = table.Column<int>(type: "int", nullable: true),
+                    Date = table.Column<DateOnly>(type: "date", nullable: true),
+                    BackdropUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BackdropSize = table.Column<ulong>(type: "bigint unsigned", nullable: false),
+                    Popularity = table.Column<double>(type: "double", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TMDB_Entries", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "TMDB_People",
+                columns: table => new
+                {
+                    TMDB_Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AvatarUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TMDB_People", x => x.TMDB_Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "AccountTokens",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    AccountId = table.Column<int>(type: "int", nullable: false)
+                    AccountId = table.Column<int>(type: "int", nullable: false),
+                    DeviceId = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AccountTokens", x => x.Id);
                     table.ForeignKey(
                         name: "FK_AccountTokens_Accounts_AccountId",
-                        column: x => x.AccountId,
-                        principalTable: "Accounts",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "ActivationCodes",
-                columns: table => new
-                {
-                    Code = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    AccountId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ActivationCodes", x => x.Code);
-                    table.ForeignKey(
-                        name: "FK_ActivationCodes_Accounts_AccountId",
                         column: x => x.AccountId,
                         principalTable: "Accounts",
                         principalColumn: "Id",
@@ -231,6 +238,33 @@ namespace DustyPig.Server.Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "TMDB_EntryPeopleBridges",
+                columns: table => new
+                {
+                    TMDB_EntryId = table.Column<int>(type: "int", nullable: false),
+                    TMDB_PersonId = table.Column<int>(type: "int", nullable: false),
+                    Role = table.Column<int>(type: "int", nullable: false),
+                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TMDB_EntryPeopleBridges", x => new { x.TMDB_EntryId, x.TMDB_PersonId, x.Role });
+                    table.ForeignKey(
+                        name: "FK_TMDB_EntryPeopleBridges_TMDB_Entries_TMDB_EntryId",
+                        column: x => x.TMDB_EntryId,
+                        principalTable: "TMDB_Entries",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TMDB_EntryPeopleBridges_TMDB_People_TMDB_PersonId",
+                        column: x => x.TMDB_PersonId,
+                        principalTable: "TMDB_People",
+                        principalColumn: "TMDB_Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "FriendLibraryShares",
                 columns: table => new
                 {
@@ -266,13 +300,14 @@ namespace DustyPig.Server.Data.Migrations
                     LibraryId = table.Column<int>(type: "int", nullable: false),
                     EntryType = table.Column<int>(type: "int", nullable: false),
                     TMDB_Id = table.Column<int>(type: "int", nullable: true),
+                    TMDB_EntryId = table.Column<int>(type: "int", nullable: true),
                     Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Hash = table.Column<string>(type: "varchar(128)", maxLength: 128, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     SortTitle = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Date = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Date = table.Column<DateOnly>(type: "date", nullable: true),
                     Description = table.Column<string>(type: "varchar(10000)", maxLength: 10000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     LinkedToId = table.Column<int>(type: "int", nullable: true),
@@ -292,9 +327,8 @@ namespace DustyPig.Server.Data.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     BifUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Added = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Added = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Popularity = table.Column<double>(type: "double", nullable: true),
-                    PopularityUpdated = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     MovieRating = table.Column<int>(type: "int", nullable: true),
                     TVRating = table.Column<int>(type: "int", nullable: true),
                     Genre_Action = table.Column<bool>(type: "tinyint(1)", nullable: false),
@@ -334,7 +368,8 @@ namespace DustyPig.Server.Data.Migrations
                     Genre_Travel = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Genre_TV_Movie = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     Genre_War = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Genre_Western = table.Column<bool>(type: "tinyint(1)", nullable: false)
+                    Genre_Western = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    EverPlayed = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -349,6 +384,33 @@ namespace DustyPig.Server.Data.Migrations
                         name: "FK_MediaEntries_MediaEntries_LinkedToId",
                         column: x => x.LinkedToId,
                         principalTable: "MediaEntries",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_MediaEntries_TMDB_Entries_TMDB_EntryId",
+                        column: x => x.TMDB_EntryId,
+                        principalTable: "TMDB_Entries",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "ActivationCodes",
+                columns: table => new
+                {
+                    Code = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ProfileId = table.Column<int>(type: "int", nullable: true),
+                    Created = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ActivationCodes", x => x.Code);
+                    table.ForeignKey(
+                        name: "FK_ActivationCodes_Profiles_ProfileId",
+                        column: x => x.ProfileId,
+                        principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -417,9 +479,11 @@ namespace DustyPig.Server.Data.Migrations
                     ProfileId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CurrentIndex = table.Column<int>(type: "int", nullable: false),
+                    CurrentItemId = table.Column<int>(type: "int", nullable: false),
                     CurrentProgress = table.Column<double>(type: "double", nullable: false),
-                    ArtworkUrl = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                    ArtworkUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    BackdropUrl = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ArtworkUpdateNeeded = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
@@ -455,33 +519,6 @@ namespace DustyPig.Server.Data.Migrations
                         name: "FK_ProfileLibraryShares_Profiles_ProfileId",
                         column: x => x.ProfileId,
                         principalTable: "Profiles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "MediaPersonBridges",
-                columns: table => new
-                {
-                    MediaEntryId = table.Column<int>(type: "int", nullable: false),
-                    PersonId = table.Column<int>(type: "int", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
-                    SortOrder = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MediaPersonBridges", x => new { x.MediaEntryId, x.PersonId, x.Role });
-                    table.ForeignKey(
-                        name: "FK_MediaPersonBridges_MediaEntries_MediaEntryId",
-                        column: x => x.MediaEntryId,
-                        principalTable: "MediaEntries",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_MediaPersonBridges_People_PersonId",
-                        column: x => x.PersonId,
-                        principalTable: "People",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -575,6 +612,8 @@ namespace DustyPig.Server.Data.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MediaEntryId = table.Column<int>(type: "int", nullable: false),
                     Url = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Language = table.Column<string>(type: "varchar(3)", maxLength: 3, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -664,6 +703,31 @@ namespace DustyPig.Server.Data.Migrations
                         name: "FK_GetRequestSubscriptions_Profiles_ProfileId",
                         column: x => x.ProfileId,
                         principalTable: "Profiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "AutoPlaylistSeries",
+                columns: table => new
+                {
+                    PlaylistId = table.Column<int>(type: "int", nullable: false),
+                    MediaEntryId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AutoPlaylistSeries", x => new { x.PlaylistId, x.MediaEntryId });
+                    table.ForeignKey(
+                        name: "FK_AutoPlaylistSeries_MediaEntries_MediaEntryId",
+                        column: x => x.MediaEntryId,
+                        principalTable: "MediaEntries",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AutoPlaylistSeries_Playlists_PlaylistId",
+                        column: x => x.PlaylistId,
+                        principalTable: "Playlists",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -765,9 +829,19 @@ namespace DustyPig.Server.Data.Migrations
                 column: "AccountId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ActivationCodes_AccountId",
+                name: "IX_ActivationCodes_ProfileId",
                 table: "ActivationCodes",
-                column: "AccountId");
+                column: "ProfileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AutoPlaylistSeries_MediaEntryId",
+                table: "AutoPlaylistSeries",
+                column: "MediaEntryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AutoPlaylistSeries_PlaylistId",
+                table: "AutoPlaylistSeries",
+                column: "PlaylistId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FCMTokens_Hash",
@@ -822,6 +896,16 @@ namespace DustyPig.Server.Data.Migrations
                 table: "Libraries",
                 columns: new[] { "AccountId", "Name" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaEntries_Added",
+                table: "MediaEntries",
+                column: "Added");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaEntries_EntryType",
+                table: "MediaEntries",
+                column: "EntryType");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaEntries_Genre_Action",
@@ -1035,6 +1119,16 @@ namespace DustyPig.Server.Data.Migrations
                 column: "MovieRating");
 
             migrationBuilder.CreateIndex(
+                name: "IX_MediaEntries_Popularity",
+                table: "MediaEntries",
+                column: "Popularity");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_MediaEntries_TMDB_EntryId",
+                table: "MediaEntries",
+                column: "TMDB_EntryId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_MediaEntries_TMDB_Id",
                 table: "MediaEntries",
                 column: "TMDB_Id");
@@ -1043,16 +1137,6 @@ namespace DustyPig.Server.Data.Migrations
                 name: "IX_MediaEntries_TVRating",
                 table: "MediaEntries",
                 column: "TVRating");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MediaPersonBridges_MediaEntryId",
-                table: "MediaPersonBridges",
-                column: "MediaEntryId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MediaPersonBridges_PersonId",
-                table: "MediaPersonBridges",
-                column: "PersonId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaSearchBridges_MediaEntryId",
@@ -1090,12 +1174,6 @@ namespace DustyPig.Server.Data.Migrations
                 column: "TitleOverrideId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_People_Hash",
-                table: "People",
-                column: "Hash",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_PlaylistItems_MediaEntryId",
                 table: "PlaylistItems",
                 column: "MediaEntryId");
@@ -1111,9 +1189,9 @@ namespace DustyPig.Server.Data.Migrations
                 column: "ProfileId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Playlists_ProfileId_Name_CurrentIndex",
+                name: "IX_Playlists_ProfileId_Name",
                 table: "Playlists",
-                columns: new[] { "ProfileId", "Name", "CurrentIndex" },
+                columns: new[] { "ProfileId", "Name" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1196,6 +1274,32 @@ namespace DustyPig.Server.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_TMDB_Entries_MediaType",
+                table: "TMDB_Entries",
+                column: "MediaType");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TMDB_Entries_TMDB_Id",
+                table: "TMDB_Entries",
+                column: "TMDB_Id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TMDB_Entries_TMDB_Id_MediaType",
+                table: "TMDB_Entries",
+                columns: new[] { "TMDB_Id", "MediaType" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TMDB_EntryPeopleBridges_TMDB_EntryId",
+                table: "TMDB_EntryPeopleBridges",
+                column: "TMDB_EntryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TMDB_EntryPeopleBridges_TMDB_PersonId",
+                table: "TMDB_EntryPeopleBridges",
+                column: "TMDB_PersonId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WatchListItems_MediaEntryId",
                 table: "WatchListItems",
                 column: "MediaEntryId");
@@ -1216,6 +1320,9 @@ namespace DustyPig.Server.Data.Migrations
                 name: "ActivationCodes");
 
             migrationBuilder.DropTable(
+                name: "AutoPlaylistSeries");
+
+            migrationBuilder.DropTable(
                 name: "FCMTokens");
 
             migrationBuilder.DropTable(
@@ -1226,9 +1333,6 @@ namespace DustyPig.Server.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Logs");
-
-            migrationBuilder.DropTable(
-                name: "MediaPersonBridges");
 
             migrationBuilder.DropTable(
                 name: "MediaSearchBridges");
@@ -1255,10 +1359,10 @@ namespace DustyPig.Server.Data.Migrations
                 name: "Subtitles");
 
             migrationBuilder.DropTable(
-                name: "WatchListItems");
+                name: "TMDB_EntryPeopleBridges");
 
             migrationBuilder.DropTable(
-                name: "People");
+                name: "WatchListItems");
 
             migrationBuilder.DropTable(
                 name: "SearchTerms");
@@ -1276,6 +1380,9 @@ namespace DustyPig.Server.Data.Migrations
                 name: "Playlists");
 
             migrationBuilder.DropTable(
+                name: "TMDB_People");
+
+            migrationBuilder.DropTable(
                 name: "MediaEntries");
 
             migrationBuilder.DropTable(
@@ -1283,6 +1390,9 @@ namespace DustyPig.Server.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Libraries");
+
+            migrationBuilder.DropTable(
+                name: "TMDB_Entries");
 
             migrationBuilder.DropTable(
                 name: "Accounts");

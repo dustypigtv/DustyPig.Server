@@ -28,7 +28,7 @@ namespace DustyPig.Server.Data.Models
 
         public void ComputeHash()
         {
-            Hash = Crypto.NormalizedHash(Token);
+            Hash = Crypto.NormalizedString(Token);
         }
     }
 }

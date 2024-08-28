@@ -5,8 +5,6 @@ using System.Collections.Generic;
 
 namespace DustyPig.Server.Data.Models
 {
-    [Index(nameof(TMDB_EntryId), IsUnique = false)]
-    [Index(nameof(TMDB_PersonId), IsUnique = false)]
     [PrimaryKey(nameof(TMDB_EntryId), nameof(TMDB_PersonId), nameof(Role))]
     public class TMDB_EntryPersonBridge : IEquatable<TMDB_EntryPersonBridge>
     {
