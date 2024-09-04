@@ -38,8 +38,13 @@ namespace DustyPig.Server
 
 
             //*** Database Connection ***
+#if DEBUG
+            string connStr = Configuration["mysql-server-v3-dev"];
+#else
             string connStr = Configuration["mysql-server-v3"];
+#endif
             AppDbContext.Configure(connStr);
+
 
 
             //*** Firebase Cloud Messaging ***
