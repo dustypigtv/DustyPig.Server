@@ -380,11 +380,15 @@ namespace DustyPig.Server.HostedServices
 
                     using MemoryStream ms = new();
 
+
+                    int outputWidth = (backdrop ? BACKDROP_WIDTH : POSTER_WIDTH) * 2;
+                    int outputHeight = (backdrop ? BACKDROP_HEIGHT : POSTER_HEIGHT) * 2;
+
                     using (Image<Rgba32> img1 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tl])))
                     using (Image<Rgba32> img2 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tr])))
                     using (Image<Rgba32> img3 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_bl])))
                     using (Image<Rgba32> img4 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_br])))
-                    using (Image<Rgba32> outputImage = new Image<Rgba32>(POSTER_WIDTH * 2, POSTER_HEIGHT * 2))
+                    using (Image<Rgba32> outputImage = new Image<Rgba32>(outputWidth, outputHeight))
                     {
                         int w = backdrop ? BACKDROP_WIDTH : POSTER_WIDTH;
                         int h = backdrop ? BACKDROP_HEIGHT : POSTER_HEIGHT;
@@ -415,12 +419,12 @@ namespace DustyPig.Server.HostedServices
                     //Do this first
                     if (backdrop)
                     {
-                        if (!string.IsNullOrWhiteSpace(playlist.BackdropUrl))
+                        if (calcArt != playlist.BackdropUrl)
                             db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.BackdropUrl });
                     }
                     else
                     {
-                        if (!string.IsNullOrWhiteSpace(playlist.ArtworkUrl))
+                        if (calcArt != playlist.ArtworkUrl)
                             db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
                     }
 
