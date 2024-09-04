@@ -12,6 +12,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 MediaType = MediaTypes.Playlist,
                 Title = self.Name,
                 ArtworkUrl = self.ArtworkUrl,
+                BackdropUrl = self.BackdropUrl,
             };
 
 
