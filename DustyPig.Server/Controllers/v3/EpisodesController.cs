@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -376,6 +377,8 @@ namespace DustyPig.Server.Controllers.v3
 
             //Don't update Added or EntryType
 
+            bool artChanged = existingEpisode.ArtworkUrl != episodeInfo.ArtworkUrl;
+
             existingEpisode.ArtworkUrl = episodeInfo.ArtworkUrl;
             existingEpisode.BifUrl = episodeInfo.BifUrl;
             existingEpisode.CreditsStartTime = episodeInfo.CreditsStartTime;
@@ -422,6 +425,21 @@ namespace DustyPig.Server.Controllers.v3
                         Name = srt.Name,
                         Url = srt.Url
                     });
+
+
+            if (artChanged)
+            {
+                var playlists = await DB.PlaylistItems
+                    .Where(item => item.MediaEntryId == episodeInfo.Id)
+                    .Include(item => item.Playlist)
+                    .Select(item => item.Playlist)
+                    .Distinct()
+                    .ToListAsync();
+
+                playlists.ForEach(item => item.ArtworkUpdateNeeded = true);
+            }
+
+
 
             //Moment of truth!
             await DB.SaveChangesAsync();
