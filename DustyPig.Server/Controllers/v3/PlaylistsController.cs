@@ -5,7 +5,6 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +49,8 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     Id = pl.Id,
                     Name = pl.Name,
-                    ArtworkUrl = pl.ArtworkUrl
+                    ArtworkUrl = pl.ArtworkUrl,
+                    BackdropUrl = pl.BackdropUrl
                 };
 
                 ret.Add(bpl);
@@ -160,6 +160,7 @@ namespace DustyPig.Server.Controllers.v3
                 CurrentItemId = playlist.CurrentItemId,
                 CurrentProgress = playlist.CurrentProgress,
                 ArtworkUrl = playlist.ArtworkUrl,
+                BackdropUrl = playlist.BackdropUrl,
                 Items = []
             };
 
@@ -271,7 +272,8 @@ namespace DustyPig.Server.Controllers.v3
             {
                 Name = info.Name,
                 ProfileId = UserProfile.Id,
-                ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE
+                ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE,
+                BackdropUrl = Constants.DEFAULT_PLAYLIST_BACKDROP
             };
 
             DB.Playlists.Add(playlist);
