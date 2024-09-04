@@ -108,6 +108,73 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return ret;
         }
 
+
+        public static DetailedSeries ToAdminDetailedSeries(this MediaEntry self)
+        {
+            var ret = new DetailedSeries
+            {
+                Added = self.Added,
+                ArtworkUrl = self.ArtworkUrl,
+                BackdropUrl = self.BackdropUrl,
+                Credits = self.GetPeople(),
+                Description = self.Description,
+                Genres = self.ToGenres(),
+                Id = self.Id,
+                LibraryId = self.LibraryId,
+                Rated = self.TVRating ?? TVRatings.None,
+                Title = self.Title,
+                TMDB_Id = self.TMDB_Id,
+            };
+
+            //Extra Search Terms
+            var allTerms = self.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
+            var coreTerms = self.Title.NormalizedQueryString().Tokenize();
+            allTerms.RemoveAll(item => coreTerms.Contains(item));
+            ret.ExtraSearchTerms = allTerms;
+            ret.CanManage = true;
+
+            return ret;
+        }
+
+        public static DetailedEpisode ToAdminDetailedEpisode(this MediaEntry self)
+        {
+            var ret = new DetailedEpisode
+            {
+                Added = self.Added,
+                ArtworkUrl = self.ArtworkUrl,
+                BifUrl = self.BifUrl,
+                CreditsStartTime = self.CreditsStartTime,
+                Date = self.Date.Value,
+                Description = self.Description,
+                EpisodeNumber = (ushort)self.Episode.Value,
+                Id = self.Id,
+                IntroEndTime = self.IntroEndTime,
+                IntroStartTime = self.IntroStartTime,
+                Length = self.Length.Value,
+                SeasonNumber = (ushort)self.Season.Value,
+                SeriesId = self.LinkedToId.Value,
+                Title = self.Title,
+                TMDB_Id = self.TMDB_Id,
+                VideoUrl = self.VideoUrl,
+            };
+
+            ret.SRTSubtitles = self.Subtitles.ToSRTSubtitleList();
+
+            return ret;
+        }
+
+        public static List<DetailedEpisode> ToAdminDetailedEpisodeList(this IEnumerable<MediaEntry> self)
+        {
+            var ret = new List<DetailedEpisode>();
+
+            foreach(var ep in self)
+                ret.Add(ep.ToAdminDetailedEpisode());
+
+            return ret;
+        }
+
+
+
         public static List<APIPerson> GetPeople(this MediaEntry self)
         {
             if (self?.TMDB_Entry?.People == null)

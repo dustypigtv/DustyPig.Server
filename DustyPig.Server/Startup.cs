@@ -38,11 +38,7 @@ namespace DustyPig.Server
 
 
             //*** Database Connection ***
-#if DEBUG
             string connStr = Configuration["mysql-server-v3"];
-#else
-            string connStr = Configuration["mysql-server-v3"];
-#endif
             AppDbContext.Configure(connStr);
 
 

@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3;
+﻿using Amazon.Runtime.Internal;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -11,10 +12,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -725,6 +728,177 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
 
             return Result.BuildSuccess();
+        }
+
+
+
+
+        
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>Designed for admin tools, this will search for any movie owned by the account</remarks>
+        [HttpPost]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedMovie>>))]
+        public async Task<Result<List<DetailedMovie>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
+        {
+            var ret = new List<DetailedMovie>();
+
+
+            if (string.IsNullOrWhiteSpace(request.Query))
+                return ret;
+
+            request.Query = StringUtils.NormalizedQueryString(request.Query);
+            if (string.IsNullOrWhiteSpace(request.Query))
+                return ret;
+
+            var terms = request.Query.Tokenize();
+
+            
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id)
+                .Where(lib => !lib.IsTV);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var q = DB.MediaEntries
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => libIds.Contains(item.LibraryId));
+
+
+            foreach (var term in terms)
+                q =
+                    from me in q
+                    join msb in DB.MediaSearchBridges
+                        .Where(item => item.SearchTerm.Term.Contains(term))
+                        on me.Id equals msb.MediaEntryId
+                    select me;
+
+            var mediaEntries = await q
+                .AsNoTracking()
+                .Include(item => item.Library)
+
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+
+                .Include(item => item.Subtitles)
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+
+            mediaEntries.Sort((x, y) =>
+            {
+                int ret = -x.QueryTitle.ICEquals(request.Query).CompareTo(y.QueryTitle.ICEquals(request.Query));
+                if (ret == 0 && x.QueryTitle.ICEquals(y.QueryTitle))
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                if (ret == 0)
+                    ret = -x.QueryTitle.ICStartsWith(request.Query).CompareTo(y.QueryTitle.ICStartsWith(request.Query));
+                if (ret == 0)
+                    ret = -x.QueryTitle.ICContains(request.Query).CompareTo(y.QueryTitle.ICContains(request.Query));
+                if (ret == 0)
+                    ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            foreach (var mediaEntry in mediaEntries)
+            {
+                var dm = mediaEntry.ToDetailedMovie(true);
+
+                //Extra Search Terms
+                var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
+                var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
+                allTerms.RemoveAll(item => coreTerms.Contains(item));
+                dm.ExtraSearchTerms = allTerms;
+
+                dm.CanManage = true;
+
+                ret.Add(dm);
+            }
+
+            return ret;
+        }
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>Designed for admin tools, this will return info on any movie owned by the account with the specified tmdb id</remarks>
+        [HttpGet]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedMovie>>))]
+        public async Task<Result<List<DetailedMovie>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
+        {
+            var ret = new List<DetailedMovie>();
+
+            if (tmdbId <= 0)
+                return ret;               
+
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id)
+                .Where(lib => !lib.IsTV);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var mediaEntries = await DB.MediaEntries
+                .AsNoTracking()
+
+                .Include(item => item.Library)
+
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+
+                .Include(item => item.Subtitles)
+
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => libIds.Contains(item.LibraryId))
+                .Where(item => item.TMDB_Id == tmdbId)
+                
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+            mediaEntries.Sort((x, y) =>
+            {
+                int ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            foreach (var mediaEntry in mediaEntries)
+            {
+                var dm = mediaEntry.ToDetailedMovie(true);
+
+                //Extra Search Terms
+                var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
+                var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
+                allTerms.RemoveAll(item => coreTerms.Contains(item));
+                dm.ExtraSearchTerms = allTerms;
+
+                dm.CanManage = true;
+
+                ret.Add(dm);
+            }
+
+            return ret;
         }
 
     }

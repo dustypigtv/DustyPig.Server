@@ -134,55 +134,10 @@ namespace DustyPig.Server.Controllers.v3
 
             return series.Select(mediaEntry =>
             {
-                var ret = new DetailedSeries
-                {
-                    Added = mediaEntry.Added,
-                    ArtworkUrl = mediaEntry.ArtworkUrl,
-                    BackdropUrl = mediaEntry.BackdropUrl,
-                    Credits = mediaEntry.GetPeople(),
-                    Description = mediaEntry.Description,
-                    Genres = mediaEntry.ToGenres(),
-                    Id = mediaEntry.Id,
-                    LibraryId = mediaEntry.LibraryId,
-                    Rated = mediaEntry.TVRating ?? TVRatings.None,
-                    Title = mediaEntry.Title,
-                    TMDB_Id = mediaEntry.TMDB_Id,
-                };
+                var ret = mediaEntry.ToAdminDetailedSeries();
 
-                ret.Episodes ??= new();
-                foreach (var dbEp in dbEps.Where(item => item.LinkedToId == mediaEntry.Id))
-                {
-                    var ep = new DetailedEpisode
-                    {
-                        Added = dbEp.Added,
-                        ArtworkUrl = dbEp.ArtworkUrl,
-                        BifUrl = dbEp.BifUrl,
-                        CreditsStartTime = dbEp.CreditsStartTime,
-                        Date = dbEp.Date.Value,
-                        Description = dbEp.Description,
-                        EpisodeNumber = (ushort)dbEp.Episode.Value,
-                        Id = dbEp.Id,
-                        IntroEndTime = dbEp.IntroEndTime,
-                        IntroStartTime = dbEp.IntroStartTime,
-                        Length = dbEp.Length.Value,
-                        SeasonNumber = (ushort)dbEp.Season.Value,
-                        SeriesId = mediaEntry.Id,
-                        Title = dbEp.Title,
-                        TMDB_Id = dbEp.TMDB_Id,
-                        VideoUrl = dbEp.VideoUrl,
-                    };
-
-                    ep.SRTSubtitles = dbEp.Subtitles.ToSRTSubtitleList();
-
-                    ret.Episodes.Add(ep);
-                }
-
-                //Extra Search Terms
-                var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-                var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
-                allTerms.RemoveAll(item => coreTerms.Contains(item));
-                ret.ExtraSearchTerms = allTerms;
-                ret.CanManage = true;
+                var seriesEps = dbEps.Where(item => item.LinkedToId == mediaEntry.Id);
+                ret.Episodes = seriesEps.ToAdminDetailedEpisodeList();
 
                 return ret;
 
@@ -307,21 +262,7 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.ValueNotFound(nameof(id));
 
             //Build the response
-            var ret = new DetailedSeries
-            {
-                Added = mediaEntry.Added,
-                ArtworkUrl = mediaEntry.ArtworkUrl,
-                BackdropUrl = mediaEntry.BackdropUrl,
-                Credits = mediaEntry.GetPeople(),
-                Description = mediaEntry.Description,
-                Genres = mediaEntry.ToGenres(),
-                Id = id,
-                LibraryId = mediaEntry.LibraryId,
-                Rated = mediaEntry.TVRating ?? TVRatings.None,
-                Title = mediaEntry.Title,
-                TMDB_Id = mediaEntry.TMDB_Id,
-            };
-
+            var ret = mediaEntry.ToAdminDetailedSeries();
 
             //Get the episodes
             var dbEps = await DB.MediaEntries
@@ -331,43 +272,7 @@ namespace DustyPig.Server.Controllers.v3
                 .OrderBy(item => item.Xid)
                 .ToListAsync();
 
-            if (dbEps.Count > 0)
-            {
-                ret.Episodes ??= new();
-                foreach (var dbEp in dbEps)
-                {
-                    var ep = new DetailedEpisode
-                    {
-                        Added = dbEp.Added,
-                        ArtworkUrl = dbEp.ArtworkUrl,
-                        BifUrl = dbEp.BifUrl,
-                        CreditsStartTime = dbEp.CreditsStartTime,
-                        Date = dbEp.Date.Value,
-                        Description = dbEp.Description,
-                        EpisodeNumber = (ushort)dbEp.Episode.Value,
-                        Id = dbEp.Id,
-                        IntroEndTime = dbEp.IntroEndTime,
-                        IntroStartTime = dbEp.IntroStartTime,
-                        Length = dbEp.Length.Value,
-                        SeasonNumber = (ushort)dbEp.Season.Value,
-                        SeriesId = id,
-                        Title = dbEp.Title,
-                        TMDB_Id = dbEp.TMDB_Id,
-                        VideoUrl = dbEp.VideoUrl,
-                    };
-
-                    ep.SRTSubtitles = dbEp.Subtitles.ToSRTSubtitleList();
-
-                    ret.Episodes.Add(ep);
-                }
-            }
-
-            //Extra Search Terms
-            var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-            var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
-            allTerms.RemoveAll(item => coreTerms.Contains(item));
-            ret.ExtraSearchTerms = allTerms;
-            ret.CanManage = true;
+            ret.Episodes = dbEps.ToAdminDetailedEpisodeList();
 
             return ret;
         }
@@ -800,5 +705,169 @@ namespace DustyPig.Server.Controllers.v3
             return Result.BuildSuccess();
         }
 
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>Designed for admin tools, this will search for any series owned by the account</remarks>
+        [HttpPost]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedSeries>>))]
+        public async Task<Result<List<DetailedSeries>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
+        {
+            var ret = new List<DetailedSeries>();
+
+
+            if (string.IsNullOrWhiteSpace(request.Query))
+                return ret;
+
+            request.Query = StringUtils.NormalizedQueryString(request.Query);
+            if (string.IsNullOrWhiteSpace(request.Query))
+                return ret;
+
+            var terms = request.Query.Tokenize();
+
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id)
+                .Where(lib => lib.IsTV);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var q = DB.MediaEntries
+                .Where(item => item.EntryType == MediaTypes.Series)
+                .Where(item => libIds.Contains(item.LibraryId));
+
+            foreach (var term in terms)
+                q =
+                    from me in q
+                    join msb in DB.MediaSearchBridges
+                        .Where(item => item.SearchTerm.Term.Contains(term))
+                        on me.Id equals msb.MediaEntryId
+                    select me;
+
+            var allSeries = await q
+                .AsNoTracking()
+                .Include(item => item.Library)
+
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+
+                .Include(item => item.Subtitles)
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+
+            allSeries.Sort((x, y) =>
+            {
+                int ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            var seriesIds = allSeries.Select(item => item.Id).Distinct().ToList();
+            var allEpisodes = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Subtitles)
+                .Where(item => item.LinkedToId.HasValue)
+                .Where(item => seriesIds.Contains(item.LinkedToId.Value))
+                .ToListAsync();
+
+
+            foreach (var series in allSeries)
+            {
+                var detailedSeries = series.ToAdminDetailedSeries();
+
+                var seriesEps = allEpisodes.Where(item => item.LinkedToId == series.Id);
+                detailedSeries.Episodes = seriesEps.ToAdminDetailedEpisodeList();
+
+                ret.Add(detailedSeries);
+            }
+
+            return ret;
+        }
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>Designed for admin tools, this will return info on any series owned by the account with the specified tmdb id</remarks>
+        [HttpGet]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedSeries>>))]
+        public async Task<Result<List<DetailedSeries>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
+        {
+            var ret = new List<DetailedSeries>();
+
+            if (tmdbId <= 0)
+                return ret;
+
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id)
+                .Where(lib => lib.IsTV);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var allSeries = await DB.MediaEntries
+                .AsNoTracking()
+
+                .Include(item => item.Library)
+
+                .Include(item => item.MediaSearchBridges)
+                .ThenInclude(item => item.SearchTerm)
+
+                .Include(item => item.TMDB_Entry)
+                .ThenInclude(item => item.People)
+                .ThenInclude(item => item.TMDB_Person)
+
+                .Where(item => item.EntryType == MediaTypes.Series)
+                .Where(item => libIds.Contains(item.LibraryId))
+                .Where(item => item.TMDB_Id == tmdbId)
+
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+            allSeries.Sort((x, y) =>
+            {
+                int ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            var seriesIds = allSeries.Select(item => item.Id).Distinct().ToList();
+            var allEpisodes = await DB.MediaEntries
+                .AsNoTracking()
+                .Include(item => item.Subtitles)
+                .Where(item => item.LinkedToId.HasValue)
+                .Where(item => seriesIds.Contains(item.LinkedToId.Value))
+                .ToListAsync();
+
+
+            foreach (var series in allSeries)
+            {
+                var detailedSeries = series.ToAdminDetailedSeries();
+
+                var seriesEps = allEpisodes.Where(item => item.LinkedToId == series.Id);
+                detailedSeries.Episodes = seriesEps.ToAdminDetailedEpisodeList();
+
+                ret.Add(detailedSeries);
+            }
+
+            return ret;
+        }
     }
 }
