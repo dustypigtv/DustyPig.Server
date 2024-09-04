@@ -61,8 +61,10 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
+#if !DEBUG
             if (!_cancellationToken.IsCancellationRequested)
                 _timer.Change(MILLISECONDS_DELAY, Timeout.Infinite);
+#endif
             return Task.CompletedTask;
         }
 
