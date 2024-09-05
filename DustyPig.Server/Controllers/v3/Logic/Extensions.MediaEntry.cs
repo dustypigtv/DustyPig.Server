@@ -75,7 +75,6 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
         public static DetailedMovie ToDetailedMovie(this MediaEntry self, bool playable)
         {
-
             //Build the response
             return new DetailedMovie
             {
@@ -99,7 +98,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = playable ? self.VideoUrl : null,
                 ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(item => item.Term).Order().ToList(),
-                SRTSubtitles = playable ? null : (self.Subtitles ?? []).ToSRTSubtitleList()
+                SRTSubtitles = playable ? (self.Subtitles ?? []).ToSRTSubtitleList() : null
             };
         }
 
