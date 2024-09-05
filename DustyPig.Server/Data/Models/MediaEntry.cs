@@ -2,6 +2,8 @@
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
+using Org.BouncyCastle.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -70,6 +72,25 @@ namespace DustyPig.Server.Data.Models
             Especially since this would be the first result after just a couple of terms
          */
         public const int MAX_SEARCH_TITLE_SIZE = 1500;
+
+        public static readonly string[] STOPWORDS =
+            [
+                "a", "about", "an", "are", "as", "at", 
+                "be", "by", 
+                "com", 
+                "de", 
+                "en", 
+                "for", "from", 
+                "how", 
+                "i", "in", "is", "it", 
+                "la", 
+                "of", "on", "or", 
+                "that", 
+                "the", "this", "to", 
+                "was", "what", "when", "where", "who", "will", "with", 
+                "und", 
+                "www"
+            ];
 
 
 
@@ -423,16 +444,13 @@ namespace DustyPig.Server.Data.Models
             if (string.IsNullOrWhiteSpace(Title))
                 throw new Exception("Title must have a value before creating the search title");
 
-            string fullTitle = Title;
-            if (EntryType == MediaTypes.Movie && Date.HasValue)
-                fullTitle += $" {Date.Value.Year}";
-
-            var terms = fullTitle.NormalizedQueryString().Tokenize();
+            
+            var terms = Title.NormalizedQueryString().Tokenize();
 
             //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
             terms.AddRange
                 (
-                    fullTitle
+                    Title
                         .Replace("-", null)
                         .Replace(".", null)
                         .NormalizedQueryString()
@@ -499,12 +517,29 @@ namespace DustyPig.Server.Data.Models
                 }
             }
 
+            ngrams = ngrams.Select(term => UnstopWord(term)).Distinct().ToList();
+
             string st = string.Join(" ", ngrams);
             if (st.Length > MAX_SEARCH_TITLE_SIZE)
                 st = st.Substring(0, MAX_SEARCH_TITLE_SIZE);
 
             SearchTitle = st;
         }
+
+        public static string BuildSearchQuery(string text)
+        {
+            return string.Join(" ",
+                StringUtils.NormalizedQueryString(text + string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(term => "+" + UnstopWord(term))
+                );
+        }
+
+        static string UnstopWord(string term) => STOPWORDS.Contains(term) ? $"xx{term}xx" : term;
+
+
+
+
 
         void SetExraSearchTerms(List<string> newTerms)
         {

@@ -577,16 +577,10 @@ namespace DustyPig.Server.Controllers.v3
         {
             var ret = new List<BasicMedia>();
 
-
-            if (string.IsNullOrWhiteSpace(request.Query))
+            request.Query = request.Query.NormalizedQueryString();
+            string boolQuery = MediaEntry.BuildSearchQuery(request.Query);
+            if (string.IsNullOrWhiteSpace(boolQuery))
                 return ret;
-
-            request.Query = StringUtils.NormalizedQueryString(request.Query);
-            if (string.IsNullOrWhiteSpace(request.Query))
-                return ret;
-
-            string boolQuery = string.Join(" ", request.Query.Split(' ').Select(_ => "+" + _));
-
 
             var libQ = DB.Libraries
                 .AsNoTracking()
