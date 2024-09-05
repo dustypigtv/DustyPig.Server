@@ -6,7 +6,6 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -85,63 +84,6 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-
-        /// <summary>
-        /// Requires main profile
-        /// </summary>
-        /// <remarks>
-        /// Returns the next 100 series based on start position. Designed for admin tools, will return all series owned by the account.
-        /// If you specify libId > 0, this will filter on series in that library
-        /// </remarks>
-        [HttpGet("{start}/{libId}")]
-        [RequireMainProfile]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
-        public async Task<Result<List<DetailedSeries>>> AdminListDetails(int start, int libId)
-        {
-            if (start < 0)
-                return CommonResponses.InvalidValue(nameof(start));
-
-            var q = DB.MediaEntries
-                .AsNoTracking()
-                .Include(Item => Item.Library)
-                .Include(item => item.ExtraSearchTerms)
-                .Include(item => item.TMDB_Entry)
-                .ThenInclude(item => item.People)
-                .ThenInclude(item => item.TMDB_Person)
-                .Where(item => item.Library.AccountId == UserAccount.Id)
-                .Where(item => item.EntryType == MediaTypes.Series);
-
-            if (libId > 0)
-                q = q.Where(item => item.LibraryId == libId);
-
-            var series = await q
-                 .AsNoTracking()
-                 .ApplySortOrder(SortOrder.Alphabetical)
-                 .Skip(start)
-                 .Take(ADMIN_LIST_SIZE)
-                 .ToListAsync();
-
-            var seriesIds = series.Select(item => item.Id).Distinct().ToList();
-
-            var dbEps = await DB.MediaEntries
-                .AsNoTracking()
-                .Include(item => item.Subtitles)
-                .Where(item => item.LinkedToId.HasValue)
-                .Where(item => seriesIds.Contains(item.LinkedToId.Value))
-                .ToListAsync();
-
-
-            return series.Select(mediaEntry =>
-            {
-                var ret = mediaEntry.ToAdminDetailedSeries();
-
-                var seriesEps = dbEps.Where(item => item.LinkedToId == mediaEntry.Id);
-                ret.Episodes = seriesEps.ToAdminDetailedEpisodeList();
-
-                return ret;
-
-            }).ToList();
-        }
 
 
 
@@ -313,7 +255,7 @@ namespace DustyPig.Server.Controllers.v3
                 Title = seriesInfo.Title,
                 TMDB_Id = seriesInfo.TMDB_Id
             };
-            
+
 
             //Dup check
             newItem.ComputeHash();
@@ -332,7 +274,7 @@ namespace DustyPig.Server.Controllers.v3
             var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Series);
             newItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, null, seriesInfo.Genres, tmdbInfo);
 
-            
+
             //Add the new item
             DB.MediaEntries.Add(newItem);
             await DB.SaveChangesAsync();
@@ -409,7 +351,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Series);
             existingItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, null, seriesInfo.Genres, tmdbInfo);
-            
+
             //Update library/rated for episodes
             List<int> playlistIds = null;
             if (library_changed || rated_changed || artwork_changed)
@@ -655,10 +597,10 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Designed for admin tools, this will search for any series owned by the account</remarks>
         [HttpPost]
         [RequireMainProfile]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedSeries>>))]
-        public async Task<Result<List<DetailedSeries>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
         {
-            var ret = new List<DetailedSeries>();
+            var ret = new List<BasicMedia>();
 
 
             if (string.IsNullOrWhiteSpace(request.Query))
@@ -668,8 +610,7 @@ namespace DustyPig.Server.Controllers.v3
             if (string.IsNullOrWhiteSpace(request.Query))
                 return ret;
 
-            var searchTerms = string.Join(" ", request.Query.Tokenize());
-
+            string boolQuery = string.Join(" ", request.Query.Split(' ').Select(_ => "+" + _));
 
             var libQ = DB.Libraries
                 .AsNoTracking()
@@ -680,42 +621,26 @@ namespace DustyPig.Server.Controllers.v3
             var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
 
 
-            var allSeries = await DB.MediaEntries
+            var mediaEntries = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.Library)
-                .Include(item => item.ExtraSearchTerms)
 
-                .Include(item => item.TMDB_Entry)
-                .ThenInclude(item => item.People)
-                .ThenInclude(item => item.TMDB_Person)
-
-                .Where(item => EF.Functions.IsMatch(item.SearchTitle, searchTerms, MySqlMatchSearchMode.NaturalLanguage))
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .Where(item => libIds.Contains(item.LibraryId))
+                .Where(item => EF.Functions.IsMatch(item.SearchTitle, boolQuery, MySqlMatchSearchMode.Boolean))
 
                 .Distinct()
                 .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync();
 
-
-            var seriesIds = allSeries.Select(item => item.Id).Distinct().ToList();
-            var allEpisodes = await DB.MediaEntries
-                .AsNoTracking()
-                .Include(item => item.Subtitles)
-                .Where(item => item.LinkedToId.HasValue)
-                .Where(item => seriesIds.Contains(item.LinkedToId.Value))
-                .ToListAsync();
-
-
-            foreach (var series in allSeries)
+            mediaEntries.Sort((x, y) =>
             {
-                var detailedSeries = series.ToAdminDetailedSeries();
+                int ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
 
-                var seriesEps = allEpisodes.Where(item => item.LinkedToId == series.Id);
-                detailedSeries.Episodes = seriesEps.ToAdminDetailedEpisodeList();
-
-                ret.Add(detailedSeries);
-            }
+            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
 
             return ret;
         }
@@ -727,10 +652,10 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Designed for admin tools, this will return info on any series owned by the account with the specified tmdb id</remarks>
         [HttpGet]
         [RequireMainProfile]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedSeries>>))]
-        public async Task<Result<List<DetailedSeries>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
         {
-            var ret = new List<DetailedSeries>();
+            var ret = new List<BasicMedia>();
 
             if (tmdbId <= 0)
                 return ret;
@@ -744,7 +669,7 @@ namespace DustyPig.Server.Controllers.v3
             var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
 
 
-            var allSeries = await DB.MediaEntries
+            var mediaEntries = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(item => item.Library)
                 .Include(item => item.ExtraSearchTerms)
@@ -761,7 +686,8 @@ namespace DustyPig.Server.Controllers.v3
                 .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync();
 
-            allSeries.Sort((x, y) =>
+
+            mediaEntries.Sort((x, y) =>
             {
                 int ret = x.SortTitle.CompareTo(y.SortTitle);
                 if (ret == 0)
@@ -769,24 +695,7 @@ namespace DustyPig.Server.Controllers.v3
                 return ret;
             });
 
-            var seriesIds = allSeries.Select(item => item.Id).Distinct().ToList();
-            var allEpisodes = await DB.MediaEntries
-                .AsNoTracking()
-                .Include(item => item.Subtitles)
-                .Where(item => item.LinkedToId.HasValue)
-                .Where(item => seriesIds.Contains(item.LinkedToId.Value))
-                .ToListAsync();
-
-
-            foreach (var series in allSeries)
-            {
-                var detailedSeries = series.ToAdminDetailedSeries();
-
-                var seriesEps = allEpisodes.Where(item => item.LinkedToId == series.Id);
-                detailedSeries.Episodes = seriesEps.ToAdminDetailedEpisodeList();
-
-                ret.Add(detailedSeries);
-            }
+            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
 
             return ret;
         }

@@ -5,8 +5,6 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -132,7 +130,7 @@ namespace DustyPig.Server.Controllers.v3
                 VideoUrl = episodeInfo.VideoUrl,
             };
 
-            
+
             //Dup check
             newItem.ComputeHash();
             var existingItem = await DB.MediaEntries
@@ -385,7 +383,7 @@ namespace DustyPig.Server.Controllers.v3
             existingEpisode.TMDB_Id = episodeInfo.TMDB_Id;
             existingEpisode.VideoUrl = episodeInfo.VideoUrl;
 
-            
+
             //Dup check
             existingEpisode.ComputeHash();
             var existingItem = await DB.MediaEntries

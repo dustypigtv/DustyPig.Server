@@ -48,10 +48,10 @@ namespace DustyPig.Server.Services
                     .Where(a => a.AccountId == accountId)
                     .Where(a => a.DeviceId == deviceId)
                     .ToListAsync();
-                _db.AccountTokens.RemoveRange(toDel);            
+                _db.AccountTokens.RemoveRange(toDel);
             }
 
-            var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken 
+            var acctToken = _db.AccountTokens.Add(new Data.Models.AccountToken
             {
                 AccountId = accountId,
                 DeviceId = deviceId

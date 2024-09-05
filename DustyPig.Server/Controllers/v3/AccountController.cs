@@ -54,7 +54,7 @@ namespace DustyPig.Server.Controllers.v3
                     Email = info.Email,
                     Password = info.Password
                 });
-                
+
                 var account = DB.Accounts.Add(new Account { FirebaseId = newUserRecord.Uid }).Entity;
                 var profile = DB.Profiles.Add(new Profile
                 {
@@ -74,7 +74,7 @@ namespace DustyPig.Server.Controllers.v3
             catch (Exception ex)
             {
                 return ex;
-            }            
+            }
         }
 
 

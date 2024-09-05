@@ -21,7 +21,6 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 SortOrder.Alphabetical => self.OrderBy(item => item.SortTitle),
                 SortOrder.Alphabetical_Descending => self.OrderByDescending(item => item.SortTitle),
                 SortOrder.Popularity => self.OrderBy(item => item.Popularity),
-                //SortOrder.Popularity_Descending => q.OrderByDescending(item => item.Popularity),
                 SortOrder.Released => self.OrderBy(item => item.Date),
                 SortOrder.Released_Descending => self.OrderByDescending(item => item.Date),
                 _ => self.OrderByDescending(item => item.Popularity)
@@ -29,7 +28,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         }
 
 
-        public static BasicMedia ToBasicMedia(this MediaEntry self, bool includeDescription=false)
+        public static BasicMedia ToBasicMedia(this MediaEntry self, bool includeDescription = false)
         {
             var ret = new BasicMedia
             {
@@ -40,7 +39,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 Title = self.Title
             };
 
-            if(includeDescription)
+            if (includeDescription)
                 ret.Description = self.Description;
 
             if (ret.MediaType == MediaTypes.Movie && self.Date.HasValue)
@@ -156,7 +155,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
             var ret = new List<DetailedEpisode>();
 
-            foreach(var ep in self)
+            foreach (var ep in self)
                 ret.Add(ep.ToAdminDetailedEpisode());
 
             return ret;
@@ -173,15 +172,15 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 return null;
 
             List<APIPerson> ret = null;
-            
-            foreach(CreditRoles role in Enum.GetValues(typeof(CreditRoles)))
+
+            foreach (CreditRoles role in Enum.GetValues(typeof(CreditRoles)))
             {
                 var bridges = self.TMDB_Entry.People
                     .Where(item => item.Role == role)
                     .OrderBy(item => item.SortOrder)
                     .ToList();
 
-                foreach(var bridge in bridges)
+                foreach (var bridge in bridges)
                 {
                     ret ??= [];
 

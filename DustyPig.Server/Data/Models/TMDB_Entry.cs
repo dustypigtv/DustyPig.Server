@@ -41,7 +41,7 @@ namespace DustyPig.Server.Data.Models
         public TVRatings? TVRating { get; set; }
 
         public DateOnly? Date { get; set; }
-                
+
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BackdropUrl { get; set; }
 

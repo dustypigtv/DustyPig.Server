@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal;
-using DustyPig.API.v3;
+﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -7,17 +6,13 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Ocsp;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -87,51 +82,6 @@ namespace DustyPig.Server.Controllers.v3
                  .ToListAsync();
 
             return movies.Select(item => item.ToBasicMedia()).ToList();
-        }
-
-
-        /// <summary>
-        /// Requires main profile
-        /// </summary>
-        /// <remarks>
-        /// Returns the next 100 movies based on start position. Designed for admin tools, will return all mvoies owned by the account.
-        /// If you specify a value > 0 for libId, it will filter on movies only in the specified library
-        /// </remarks>
-        [HttpGet("{start}/{libId}")]
-        [RequireMainProfile]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
-        public async Task<Result<List<DetailedMovie>>> AdminListDetails(int start, int libId)
-        {
-            if (start < 0)
-                return CommonResponses.InvalidValue(nameof(start));
-
-            var q = DB.MediaEntries
-                .AsNoTracking()
-                .Where(item => item.Library.AccountId == UserAccount.Id)
-                .Where(item => item.EntryType == MediaTypes.Movie);
-
-            if (libId > 0)
-                q = q.Where(item => item.LibraryId == libId);
-
-            var movies = await q
-                .AsNoTracking()
-                .Include(item => item.Library)
-                .Include(item => item.ExtraSearchTerms)
-                .Include(item => item.TMDB_Entry)
-                .ThenInclude(item => item.People)
-                .ThenInclude(item => item.TMDB_Person)
-                .Include(item => item.Subtitles)
-                .ApplySortOrder(SortOrder.Alphabetical)
-                .Skip(start)
-                .Take(ADMIN_LIST_SIZE)
-                .ToListAsync();
-
-            return movies.Select(item =>
-            {
-                var ret = item.ToDetailedMovie(true);
-                ret.CanManage = true;
-                return ret;
-            }).ToList();
         }
 
 
@@ -348,13 +298,13 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .Include(Item => Item.Library)
                 .Include(item => item.ExtraSearchTerms)
-                
+
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
 
                 .Include(item => item.Subtitles)
-                
+
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
@@ -430,12 +380,12 @@ namespace DustyPig.Server.Controllers.v3
 
             if (existingItem)
                 return $"A movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
-            
-            
+
+
             var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Movie);
             newItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.SRTSubtitles, movieInfo.Genres, tmdbInfo);
 
-           
+
             //Save
             DB.MediaEntries.Add(newItem);
             await DB.SaveChangesAsync();
@@ -554,7 +504,7 @@ namespace DustyPig.Server.Controllers.v3
             if (dup)
                 return $"A movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
 
-            
+
             var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Movie);
             existingItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.SRTSubtitles, movieInfo.Genres, tmdbInfo);
 
@@ -615,17 +565,17 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-        
+
         /// <summary>
         /// Requires main profile
         /// </summary>
         /// <remarks>Designed for admin tools, this will search for any movie owned by the account</remarks>
         [HttpPost]
         [RequireMainProfile]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedMovie>>))]
-        public async Task<Result<List<DetailedMovie>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
         {
-            var ret = new List<DetailedMovie>();
+            var ret = new List<BasicMedia>();
 
 
             if (string.IsNullOrWhiteSpace(request.Query))
@@ -649,74 +599,11 @@ namespace DustyPig.Server.Controllers.v3
 
             var mediaEntries = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.Library)
-                .Include(item => item.ExtraSearchTerms)
 
-                .Include(item => item.TMDB_Entry)
-                .ThenInclude(item => item.People)
-                .ThenInclude(item => item.TMDB_Person)
-
-                .Include(item => item.Subtitles)
-
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => libIds.Contains(item.LibraryId))
                 .Where(item => EF.Functions.IsMatch(item.SearchTitle, boolQuery, MySqlMatchSearchMode.Boolean))
-                .Where(item => item.EntryType == MediaTypes.Movie)
-                .Where(item => libIds.Contains(item.LibraryId))
 
-                .Distinct()
-                .Take(MAX_DB_LIST_SIZE)
-                .ToListAsync();
-
-
-            
-            foreach (var mediaEntry in mediaEntries)
-            {
-                var dm = mediaEntry.ToDetailedMovie(true);
-                dm.CanManage = true;
-                ret.Add(dm);
-            }
-
-            return ret;
-        }
-
-
-        /// <summary>
-        /// Requires main profile
-        /// </summary>
-        /// <remarks>Designed for admin tools, this will return info on any movie owned by the account with the specified tmdb id</remarks>
-        [HttpGet]
-        [RequireMainProfile]
-        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<DetailedMovie>>))]
-        public async Task<Result<List<DetailedMovie>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
-        {
-            var ret = new List<DetailedMovie>();
-
-            if (tmdbId <= 0)
-                return ret;               
-
-            var libQ = DB.Libraries
-                .AsNoTracking()
-                .Where(lib => lib.AccountId == UserAccount.Id)
-                .Where(lib => !lib.IsTV);
-            if (libraryId > 0)
-                libQ = libQ.Where(lib => lib.Id == libraryId);
-            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
-
-
-            var mediaEntries = await DB.MediaEntries
-                .AsNoTracking()
-                .Include(item => item.Library)
-                .Include(item => item.ExtraSearchTerms)
-
-                .Include(item => item.TMDB_Entry)
-                .ThenInclude(item => item.People)
-                .ThenInclude(item => item.TMDB_Person)
-
-                .Include(item => item.Subtitles)
-
-                .Where(item => item.EntryType == MediaTypes.Movie)
-                .Where(item => libIds.Contains(item.LibraryId))
-                .Where(item => item.TMDB_Id == tmdbId)
-                
                 .Distinct()
                 .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync();
@@ -729,12 +616,55 @@ namespace DustyPig.Server.Controllers.v3
                 return ret;
             });
 
-            foreach (var mediaEntry in mediaEntries)
+            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
+
+            return ret;
+        }
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>Designed for admin tools, this will return info on any movie owned by the account with the specified tmdb id</remarks>
+        [HttpGet]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+        public async Task<Result<List<BasicMedia>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
+        {
+            var ret = new List<BasicMedia>();
+
+            if (tmdbId <= 0)
+                return ret;
+
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id)
+                .Where(lib => !lib.IsTV);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var mediaEntries = await DB.MediaEntries
+                .AsNoTracking()
+
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => libIds.Contains(item.LibraryId))
+                .Where(item => item.TMDB_Id == tmdbId)
+
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+            mediaEntries.Sort((x, y) =>
             {
-                var dm = mediaEntry.ToDetailedMovie(true);
-                dm.CanManage = true;
-                ret.Add(dm);
-            }
+                int ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
 
             return ret;
         }

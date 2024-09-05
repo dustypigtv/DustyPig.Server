@@ -5,12 +5,8 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
-using DustyPig.TMDB;
-using DustyPig.TMDB.Models;
 using DustyPig.TMDB.Models.Common;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -130,7 +126,7 @@ namespace DustyPig.Server.Controllers.v3
             if (!seriesResponse.Success)
                 return seriesResponse.Error.Message;
             var series = seriesResponse.Data;
-            
+
             // Response
             var ret = new DetailedTMDB
             {
@@ -231,9 +227,9 @@ namespace DustyPig.Server.Controllers.v3
             CommonMediaTypes[] allowed = [CommonMediaTypes.Movie, CommonMediaTypes.TvSeries];
 
             var castList = new List<TmdbTitleDTO>();
-            if(response.Data.CombinedCredits != null)
+            if (response.Data.CombinedCredits != null)
             {
-                foreach(var item in response.Data.CombinedCredits.Cast.Where(c => !c.Adult).Where(c => allowed.Contains(c.MediaType)))
+                foreach (var item in response.Data.CombinedCredits.Cast.Where(c => !c.Adult).Where(c => allowed.Contains(c.MediaType)))
                 {
                     var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
                     castList.Add(new TmdbTitleDTO
@@ -281,7 +277,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Put in tmdb order
-            foreach(var mediaType in castList.Select(item => item.MediaType).Distinct())
+            foreach (var mediaType in castList.Select(item => item.MediaType).Distinct())
             {
                 var subLst = castList
                     .Where(item => item.MediaType == mediaType)
@@ -644,7 +640,7 @@ namespace DustyPig.Server.Controllers.v3
                         AddPersonToCredits(ret.Credits, executiveProducer, CreditRoles.ExecutiveProducer);
                     }
 
-                    foreach(string writerJob in new string[] { "Writer", "Screenplay" })
+                    foreach (string writerJob in new string[] { "Writer", "Screenplay" })
                         foreach (var writer in credits.CrewMembers.Where(item => item.Job.ICEquals(writerJob)))
                         {
                             ret.Credits ??= new();
@@ -683,14 +679,14 @@ namespace DustyPig.Server.Controllers.v3
                     Order = credits.Count(item => item.Role == role)
                 });
         }
-    
-    
+
+
         class TmdbTitleDTO
         {
             public int Id { get; set; }
             public MediaTypes MediaType { get; set; }
             public CreditRoles Role { get; set; }
         }
-    
+
     }
 }

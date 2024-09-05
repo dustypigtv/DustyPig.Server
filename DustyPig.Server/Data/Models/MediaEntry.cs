@@ -1,5 +1,4 @@
-﻿using Amazon.S3.Model;
-using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +7,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace DustyPig.Server.Data.Models
 {
@@ -400,7 +398,7 @@ namespace DustyPig.Server.Data.Models
                 Xid = null;
                 return;
             }
-            
+
             long s = Season ?? 0;
             long e = Episode ?? 0;
 
@@ -428,7 +426,7 @@ namespace DustyPig.Server.Data.Models
             string fullTitle = Title;
             if (EntryType == MediaTypes.Movie && Date.HasValue)
                 fullTitle += $" {Date.Value.Year}";
-            
+
             var terms = fullTitle.NormalizedQueryString().Tokenize();
 
             //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
@@ -578,7 +576,7 @@ namespace DustyPig.Server.Data.Models
         void SetGenreFlags(Genres? genres)
         {
             long lg = (long)Genres.Unknown;
-            if(EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series)
+            if (EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series)
                 lg = (long)(genres ?? Genres.Unknown);
 
             Genre_Action = (lg & (long)Genres.Action) != 0;
@@ -635,6 +633,6 @@ namespace DustyPig.Server.Data.Models
             ComputeXid();
             ComputeHash();
         }
-    
+
     }
 }

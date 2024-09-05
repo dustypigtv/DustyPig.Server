@@ -4,7 +4,6 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,9 +16,8 @@ namespace DustyPig.Server.Controllers.v3
         internal const int ADMIN_LIST_SIZE = 100;
         internal const int MIN_GENRE_LIST_SIZE = 10;
         internal const int MAX_DB_LIST_SIZE = 1000; //This should be approximately # of Genres flags x DEFAULT_LIST_SIZE, which is currently 950
-        
-        internal _MediaControllerBase(AppDbContext db) : base(db) { }
 
+        internal _MediaControllerBase(AppDbContext db) : base(db) { }
 
 
         internal async Task<TMDB_Entry> GetTMDBInfoAsync(int? tmdbId, TMDB_MediaTypes tmdbMediaType)
@@ -33,10 +31,6 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.MediaType == tmdbMediaType)
                 .FirstOrDefaultAsync();
         }
-
-        
-
-
 
         internal async Task<Result> DeleteMedia(int id)
         {
@@ -79,13 +73,6 @@ namespace DustyPig.Server.Controllers.v3
 
             return Result.BuildSuccess();
         }
-
-
-
-
-             
-
-
 
         internal async Task<DetailedSeries> GetSeriesDetailsAsync(int id)
         {

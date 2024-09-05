@@ -2,7 +2,6 @@
 using DustyPig.API.v3.MPAA;
 using DustyPig.REST;
 using DustyPig.Server.Data.Models;
-using DustyPig.TMDB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,12 +41,12 @@ namespace DustyPig.Server.Services
 
 
         public Task<Response<TMDB.Models.Movies.Details>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
-            Endpoints.Movies.GetDetailsAsync(id, TMDB.Models.Movies.AppendToResponse.Credits | TMDB.Models.Movies.AppendToResponse.ReleaseDates, cancellationToken:  cancellationToken);
+            Endpoints.Movies.GetDetailsAsync(id, TMDB.Models.Movies.AppendToResponse.Credits | TMDB.Models.Movies.AppendToResponse.ReleaseDates, cancellationToken: cancellationToken);
 
         public Task<Response<TMDB.Models.TvSeries.Details>> GetSeriesAsync(int id, CancellationToken cancellationToken = default) =>
             Endpoints.TvSeries.GetDetailsAsync(id, TMDB.Models.TvSeries.AppendToResponse.Credits | TMDB.Models.TvSeries.AppendToResponse.ContentRatings, cancellationToken: cancellationToken);
 
-        
+
         public static CreditRoles? GetCreditRole(string job)
         {
             if (string.IsNullOrWhiteSpace(job))
@@ -56,7 +55,7 @@ namespace DustyPig.Server.Services
             if (job.ICEquals(JOB_DIRECTOR))
                 return CreditRoles.Director;
 
-            if(job.ICEquals(JOB_PRODUCER))
+            if (job.ICEquals(JOB_PRODUCER))
                 return CreditRoles.Producer;
 
             if (job.ICEquals(JOB_EXECUTIVE_PRODUCER))

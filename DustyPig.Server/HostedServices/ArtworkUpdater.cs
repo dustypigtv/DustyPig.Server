@@ -234,8 +234,8 @@ namespace DustyPig.Server.HostedServices
                             Constants.DEFAULT_PLAYLIST_IMAGE
                         ];
                         delete = true;
-                        foreach(string defaultImg in defaultPlaylistImages)
-                            if(entry.Url.ICEquals(defaultImg))
+                        foreach (string defaultImg in defaultPlaylistImages)
+                            if (entry.Url.ICEquals(defaultImg))
                             {
                                 delete = false;
                                 break;

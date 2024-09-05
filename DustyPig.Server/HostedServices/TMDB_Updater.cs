@@ -254,12 +254,12 @@ namespace DustyPig.Server.HostedServices
             if (!response.Success)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                   await DeleteTmdbMediaEntryAsync(tmdbId, TMDB_MediaTypes.Movie);
+                    await DeleteTmdbMediaEntryAsync(tmdbId, TMDB_MediaTypes.Movie);
                 else
                     _logger.LogError(response.Error, "TMDB.Movie.{0}", tmdbId);
                 return null;
             }
-            
+
             var movie = response.Data;
             return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie));
         }
@@ -298,7 +298,7 @@ namespace DustyPig.Server.HostedServices
                 if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
                     return TMDBInfo.FromEntry(entry, false);
 
-            
+
             var backdropUrl = TMDBClient.GetPosterPath(backdropPath);
 
             bool changed = false;
@@ -457,7 +457,7 @@ namespace DustyPig.Server.HostedServices
         private async Task BridgeEntryAndPeopleAsync(int entryId, TMDB_MediaTypes mediaType, CreditsDTO credits)
         {
             //This is nothing but small lists of ints, no need to worry about memory
-            
+
             using var db = new AppDbContext();
 
             //Remove any that are no longer valid
@@ -468,9 +468,9 @@ namespace DustyPig.Server.HostedServices
                 .ToListAsync(_cancellationToken);
 
 
-            foreach(var entry in existing)
+            foreach (var entry in existing)
             {
-                if(entry.Role == CreditRoles.Cast)
+                if (entry.Role == CreditRoles.Cast)
                 {
                     var castMember = credits.CastMembers
                         .Where(item => item.Id == entry.TMDB_PersonId)
@@ -484,7 +484,7 @@ namespace DustyPig.Server.HostedServices
                         .Where(item => item.Id == entry.TMDB_PersonId)
                         .Where(item => TMDBClient.GetCreditRole(item.Job) == entry.Role)
                         .FirstOrDefault();
-                    if(crewMember == null)
+                    if (crewMember == null)
                         db.TMDB_EntryPeopleBridges.Remove(entry);
                 }
             }
@@ -543,8 +543,8 @@ namespace DustyPig.Server.HostedServices
 
             await db.SaveChangesAsync(_cancellationToken);
         }
-        
-        
+
+
 
         private static void SetCrew(AppDbContext db, List<CrewDTO> crew, List<TMDB_EntryPersonBridge> bridges, int entryId, int personId, string[] roleNames)
         {

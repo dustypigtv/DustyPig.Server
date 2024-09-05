@@ -34,7 +34,7 @@ namespace DustyPig.Server.Controllers.v3
             _jwtProvider = jwtProvider;
         }
 
-        
+
 
 
 
@@ -97,7 +97,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        
+
 
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (email.Value.ToLower().Trim() == TestAccount.Email)
                 return CommonResponses.ProhibitTestUser();
-            
+
             var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
             if (!ret.Success)
                 return ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset);
@@ -391,7 +391,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-        
+
 
 
         /// <summary>

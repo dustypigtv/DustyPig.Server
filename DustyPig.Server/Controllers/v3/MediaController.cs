@@ -8,13 +8,11 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Enum = System.Enum;
@@ -39,7 +37,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<Result<HomeScreen>> HomeScreen([FromQuery] int itemsPerSection = DEFAULT_LIST_SIZE, [FromQuery] bool includeDescription = false)
         {
             itemsPerSection = Math.Min(100, Math.Max(DEFAULT_LIST_SIZE, itemsPerSection));
-            
+
             var ret = new HomeScreen();
 
             var taskDict = new Dictionary<KeyValuePair<long, string>, Task>();
@@ -335,7 +333,7 @@ namespace DustyPig.Server.Controllers.v3
                             .Select(item => item.TMDB_Id)
                             .ToListAsync();
 
-                        if(dbPeopleIds.Count > 0)
+                        if (dbPeopleIds.Count > 0)
                         {
                             //Keep the sort order of the api request
                             ret.AvailablePeople ??= [];
