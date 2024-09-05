@@ -14,9 +14,6 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_NAME_LENGTH)]
         public string Name { get; set; }
 
-        [MaxLength(Constants.MAX_NAME_LENGTH)]
-        public string SearchName { get; set; }
-
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string AvatarUrl { get; set; }
 

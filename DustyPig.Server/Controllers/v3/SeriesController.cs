@@ -104,8 +104,7 @@ namespace DustyPig.Server.Controllers.v3
             var q = DB.MediaEntries
                 .AsNoTracking()
                 .Include(Item => Item.Library)
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
@@ -248,8 +247,7 @@ namespace DustyPig.Server.Controllers.v3
             var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(Item => Item.Library)
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
@@ -315,11 +313,10 @@ namespace DustyPig.Server.Controllers.v3
                 Title = seriesInfo.Title,
                 TMDB_Id = seriesInfo.TMDB_Id
             };
-            newItem.SetGenreFlags(seriesInfo.Genres);
-            newItem.Hash = newItem.ComputeHash();
-
+            
 
             //Dup check
+            newItem.ComputeHash();
             var existingItem = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.LibraryId == newItem.LibraryId)
@@ -331,41 +328,14 @@ namespace DustyPig.Server.Controllers.v3
             if (existingItem)
                 return $"An series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}";
 
+
+            var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Series);
+            newItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, null, seriesInfo.Genres, tmdbInfo);
+
+            
             //Add the new item
             DB.MediaEntries.Add(newItem);
             await DB.SaveChangesAsync();
-
-            //TMDB
-            if (newItem.TMDB_Id.HasValue)
-            {
-                var info = await DB.TMDB_Entries
-                    .AsNoTracking()
-                    .Where(item => item.TMDB_Id == newItem.TMDB_Id.Value)
-                    .Where(item => item.MediaType == TMDB_MediaTypes.Series)
-                    .FirstOrDefaultAsync();
-
-                if (info != null)
-                {
-                    newItem.TMDB_EntryId = info.Id;
-                    newItem.Popularity = info.Popularity;
-
-                    //backdrop
-                    if (newItem.TVRating == null || newItem.TVRating == TVRatings.None)
-                        newItem.TVRating = info.TVRating;
-
-                    if (string.IsNullOrWhiteSpace(newItem.Description))
-                        newItem.Description = info.Description;
-
-                    if (string.IsNullOrWhiteSpace(newItem.BackdropUrl))
-                        newItem.BackdropUrl = info.BackdropUrl;
-
-                    DB.MediaEntries.Update(newItem);
-                    await DB.SaveChangesAsync();
-                }
-            }
-
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, seriesInfo.ExtraSearchTerms));
 
             return newItem.Id;
         }
@@ -415,16 +385,15 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
             existingItem.BackdropUrl = seriesInfo.BackdropUrl;
             existingItem.Description = seriesInfo.Description;
-            existingItem.SetGenreFlags(seriesInfo.Genres);
             existingItem.LibraryId = seriesInfo.LibraryId;
             existingItem.TVRating = seriesInfo.Rated;
             existingItem.SortTitle = StringUtils.SortTitle(seriesInfo.Title);
             existingItem.Title = seriesInfo.Title;
             existingItem.TMDB_Id = seriesInfo.TMDB_Id;
-            existingItem.Hash = existingItem.ComputeHash();
 
 
             //Dup check
+            existingItem.ComputeHash();
             var dup = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.Id != existingItem.Id)
@@ -437,6 +406,9 @@ namespace DustyPig.Server.Controllers.v3
             if (dup)
                 return $"A series already exists with the following parameters: {nameof(seriesInfo.LibraryId)}, {nameof(seriesInfo.TMDB_Id)}, {nameof(seriesInfo.Title)}";
 
+
+            var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Series);
+            existingItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, null, seriesInfo.Genres, tmdbInfo);
             
             //Update library/rated for episodes
             List<int> playlistIds = null;
@@ -464,39 +436,9 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
+            //Save
             await DB.SaveChangesAsync();
 
-            //TMDB
-            if (existingItem.TMDB_Id.HasValue)
-            {
-                var info = await DB.TMDB_Entries
-                    .AsNoTracking()
-                    .Where(item => item.TMDB_Id == existingItem.TMDB_Id.Value)
-                    .Where(item => item.MediaType == TMDB_MediaTypes.Series)
-                    .FirstOrDefaultAsync();
-
-                if (info != null)
-                {
-                    existingItem.TMDB_EntryId = info.Id;
-                    existingItem.Popularity = info.Popularity;
-
-                    //backdrop
-                    if (existingItem.TVRating == null || existingItem.TVRating == TVRatings.None)
-                        existingItem.TVRating = info.TVRating;
-
-                    if (string.IsNullOrWhiteSpace(existingItem.Description))
-                        existingItem.Description = info.Description;
-
-                    if (string.IsNullOrWhiteSpace(existingItem.BackdropUrl))
-                        existingItem.BackdropUrl = info.BackdropUrl;
-
-                    DB.MediaEntries.Update(existingItem);
-                    await DB.SaveChangesAsync();
-                }
-            }
-
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, seriesInfo.ExtraSearchTerms));
 
             //Playlists
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
@@ -726,7 +668,8 @@ namespace DustyPig.Server.Controllers.v3
             if (string.IsNullOrWhiteSpace(request.Query))
                 return ret;
 
-            var terms = request.Query.Tokenize();
+            var searchTerms = string.Join(" ", request.Query.Tokenize());
+
 
             var libQ = DB.Libraries
                 .AsNoTracking()
@@ -737,42 +680,23 @@ namespace DustyPig.Server.Controllers.v3
             var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
 
 
-            var q = DB.MediaEntries
-                .Where(item => item.EntryType == MediaTypes.Series)
-                .Where(item => libIds.Contains(item.LibraryId));
-
-            foreach (var term in terms)
-                q =
-                    from me in q
-                    join msb in DB.MediaSearchBridges
-                        .Where(item => item.SearchTerm.Term.Contains(term))
-                        on me.Id equals msb.MediaEntryId
-                    select me;
-
-            var allSeries = await q
+            var allSeries = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(item => item.Library)
-
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
 
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
 
-                .Include(item => item.Subtitles)
+                .Where(item => EF.Functions.IsMatch(item.SearchTitle, searchTerms, MySqlMatchSearchMode.NaturalLanguage))
+                .Where(item => item.EntryType == MediaTypes.Series)
+                .Where(item => libIds.Contains(item.LibraryId))
+
                 .Distinct()
                 .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync();
 
-
-            allSeries.Sort((x, y) =>
-            {
-                int ret = x.SortTitle.CompareTo(y.SortTitle);
-                if (ret == 0)
-                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                return ret;
-            });
 
             var seriesIds = allSeries.Select(item => item.Id).Distinct().ToList();
             var allEpisodes = await DB.MediaEntries
@@ -822,11 +746,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var allSeries = await DB.MediaEntries
                 .AsNoTracking()
-
                 .Include(item => item.Library)
-
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
 
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)

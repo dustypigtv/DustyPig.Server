@@ -17,9 +17,25 @@ namespace DustyPig.Server.Controllers.v3
         internal const int ADMIN_LIST_SIZE = 100;
         internal const int MIN_GENRE_LIST_SIZE = 10;
         internal const int MAX_DB_LIST_SIZE = 1000; //This should be approximately # of Genres flags x DEFAULT_LIST_SIZE, which is currently 950
-
-
+        
         internal _MediaControllerBase(AppDbContext db) : base(db) { }
+
+
+
+        internal async Task<TMDB_Entry> GetTMDBInfoAsync(int? tmdbId, TMDB_MediaTypes tmdbMediaType)
+        {
+            if (tmdbId == null)
+                return null;
+
+            return await DB.TMDB_Entries
+                .AsNoTracking()
+                .Where(item => item.TMDB_Id == tmdbId.Value)
+                .Where(item => item.MediaType == tmdbMediaType)
+                .FirstOrDefaultAsync();
+        }
+
+        
+
 
 
         internal async Task<Result> DeleteMedia(int id)
@@ -65,59 +81,9 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        internal static List<string> GetSearchTerms(MediaEntry me, List<string> extraSearchTerms)
-        {
-            var ret = (me.Title + string.Empty).NormalizedQueryString().Tokenize();
-
-            //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
-            ret.AddRange
-                (
-                    (me.Title + string.Empty)
-                        .Replace("-", null)
-                        .Replace(".", null)
-                        .NormalizedQueryString()
-                        .Tokenize()
-                        .Where(item => !string.IsNullOrWhiteSpace(item))
-                        .Select(item => item.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
-                        .Distinct()
-                );
-
-            
-            if (extraSearchTerms != null)
-            {
-                ret.AddRange
-                    (
-                        extraSearchTerms.SelectMany(item =>
-                            (item + string.Empty)
-                            .Trim()
-                            .NormalizeMiscCharacters()
-                            .Tokenize()
-                            .Where(item2 => !string.IsNullOrWhiteSpace(item2))
-                            .Select(item2 => item2.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
-                            .Distinct()
-                    ));
 
 
-                ret.AddRange
-                    (
-                        extraSearchTerms.SelectMany(item =>
-                            (item + string.Empty)
-                            .Trim()
-                            .Replace("-", null)
-                            .Replace(".", null)
-                            .NormalizeMiscCharacters()
-                            .Tokenize()
-                            .Where(item2 => !string.IsNullOrWhiteSpace(item2))
-                            .Select(item2 => item2.Length > Constants.MAX_NAME_LENGTH ? item[..Constants.MAX_NAME_LENGTH] : item)
-                            .Distinct()
-                    ));
-            }
-
-            return ret
-                .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Distinct()
-                .ToList();
-        }
+             
 
 
 
@@ -194,7 +160,7 @@ namespace DustyPig.Server.Controllers.v3
                 CanPlay = playable,
                 Credits = media.GetPeople(),
                 Description = media.Description,
-                Genres = media.ToGenres(),
+                Genres = media.GetGenreFlags(),
                 LibraryId = media.LibraryId,
                 Rated = media.TVRating ?? TVRatings.None,
                 Title = media.Title,

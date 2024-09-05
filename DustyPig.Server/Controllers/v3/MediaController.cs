@@ -8,11 +8,13 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Enum = System.Enum;
@@ -260,43 +262,17 @@ namespace DustyPig.Server.Controllers.v3
             if (string.IsNullOrWhiteSpace(request.Query))
                 return ret;
 
+
             request.Query = StringUtils.NormalizedQueryString(request.Query);
             if (string.IsNullOrWhiteSpace(request.Query))
                 return ret;
 
-            var terms = request.Query.Tokenize();
-
-
-
-
-            /****************************************
-             * Get available items
-             ****************************************/
-            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-
-
-
-            //foreach (var term in terms)
-            //    q = q.Where(m => m.MediaSearchBridges.Any(b => b.SearchTerm.Term.Contains(term)));
-
-
-            //The above method generates sql that is literally 500 times slower than this inner join method
-            foreach (var term in terms)
-                q =
-                    from me in q
-                    join msb in DB.MediaSearchBridges
-                        .Where(item => item.SearchTerm.Term.Contains(term))
-                        on me.Id equals msb.MediaEntryId
-                    select me;
-
-
-
-
-
-            var mediaEntries = await q
+            string boolQuery = string.Join(" ", request.Query.Split(' ').Select(_ => "+" + _));
+            var mediaEntries = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
+                .Where(item => EF.Functions.IsMatch(item.SearchTitle, boolQuery, MySqlMatchSearchMode.Boolean))
                 .Distinct()
-                .Take(MAX_DB_LIST_SIZE)
+                .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync(cancellationToken);
 
 
@@ -320,7 +296,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
                 ret.Available ??= new();
-                ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()).Take(DEFAULT_LIST_SIZE));
+                ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()));
             }
 
             /****************************************

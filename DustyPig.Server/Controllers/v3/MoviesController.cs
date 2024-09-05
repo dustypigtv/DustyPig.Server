@@ -115,9 +115,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var movies = await q
                 .AsNoTracking()
-                .Include(Item => Item.Library)
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.Library)
+                .Include(item => item.ExtraSearchTerms)
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
@@ -130,15 +129,7 @@ namespace DustyPig.Server.Controllers.v3
             return movies.Select(item =>
             {
                 var ret = item.ToDetailedMovie(true);
-
-                //Extra Search Terms
-                var allTerms = item.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-                var coreTerms = item.Title.NormalizedQueryString().Tokenize();
-                allTerms.RemoveAll(item => coreTerms.Contains(item));
-                ret.ExtraSearchTerms = allTerms;
-
                 ret.CanManage = true;
-
                 return ret;
             }).ToList();
         }
@@ -356,18 +347,14 @@ namespace DustyPig.Server.Controllers.v3
             var mediaEntry = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(Item => Item.Library)
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
                 
-                //.Include(item => item.People)
-                //.ThenInclude(item => item.Person)
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
 
-                
-                
                 .Include(item => item.Subtitles)
+                
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
@@ -377,13 +364,6 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.ValueNotFound(nameof(id));
 
             var ret = mediaEntry.ToDetailedMovie(true);
-
-            //Extra Search Terms
-            var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-            var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
-            allTerms.RemoveAll(item => coreTerms.Contains(item));
-            ret.ExtraSearchTerms = allTerms;
-
             ret.CanManage = true;
 
             return ret;
@@ -434,13 +414,12 @@ namespace DustyPig.Server.Controllers.v3
                 SortTitle = StringUtils.SortTitle(movieInfo.Title),
                 Title = movieInfo.Title,
                 TMDB_Id = movieInfo.TMDB_Id,
-                VideoUrl = movieInfo.VideoUrl,
+                VideoUrl = movieInfo.VideoUrl
             };
-            newItem.SetGenreFlags(movieInfo.Genres);
-            newItem.Hash = newItem.ComputeHash();
 
 
             //Dup check
+            newItem.ComputeHash();
             var existingItem = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.LibraryId == newItem.LibraryId)
@@ -452,59 +431,15 @@ namespace DustyPig.Server.Controllers.v3
             if (existingItem)
                 return $"A movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
             
-            //Add the new item
-            DB.MediaEntries.Add(newItem);
+            
+            var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Movie);
+            newItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.SRTSubtitles, movieInfo.Genres, tmdbInfo);
 
+           
+            //Save
+            DB.MediaEntries.Add(newItem);
             await DB.SaveChangesAsync();
 
-            //TMDB
-            if (newItem.TMDB_Id.HasValue)
-            {
-                var info = await DB.TMDB_Entries
-                    .AsNoTracking()
-                    .Where(item => item.TMDB_Id == newItem.TMDB_Id.Value)
-                    .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
-                    .FirstOrDefaultAsync();
-
-                if (info != null)
-                {
-                    newItem.TMDB_EntryId = info.Id;
-                    newItem.Popularity = info.Popularity;
-
-                    //backdrop
-                    if (newItem.MovieRating == null || newItem.MovieRating == MovieRatings.None)
-                        newItem.MovieRating = info.MovieRating;
-
-                    if (string.IsNullOrWhiteSpace(newItem.Description))
-                        newItem.Description = info.Description;
-
-                    if(string.IsNullOrWhiteSpace(newItem.BackdropUrl))
-                        newItem.BackdropUrl = info.BackdropUrl;
-
-                    DB.MediaEntries.Update(newItem);
-                    await DB.SaveChangesAsync();
-                }
-            }
-
-
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(true, newItem, GetSearchTerms(newItem, movieInfo.ExtraSearchTerms));
-
-
-            //Add Subtitles
-            bool save = false;
-            if (movieInfo.SRTSubtitles != null && movieInfo.SRTSubtitles.Count > 0)
-            {
-                foreach (var srt in movieInfo.SRTSubtitles)
-                    DB.Subtitles.Add(new Subtitle
-                    {
-                        MediaEntry = newItem,
-                        Language = srt.Language,
-                        Name = srt.Name,
-                        Url = srt.Url
-                    });
-                save = true;
-            }
 
             //Notifications
             if (newItem.TMDB_Id > 0)
@@ -534,13 +469,11 @@ namespace DustyPig.Server.Controllers.v3
                         });
 
                         DB.GetRequestSubscriptions.Remove(sub);
-                        save = true;
+                        await DB.SaveChangesAsync();
                     }
                 }
             }
 
-            if (save)
-                await DB.SaveChangesAsync();
 
             return newItem.Id;
         }
@@ -559,8 +492,9 @@ namespace DustyPig.Server.Controllers.v3
             try { movieInfo.Validate(); }
             catch (ModelValidationException ex) { return ex; }
 
-
             var existingItem = await DB.MediaEntries
+                .Include(item => item.ExtraSearchTerms)
+                .Include(item => item.Subtitles)
                 .Where(item => item.Id == movieInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
                 .FirstOrDefaultAsync();
@@ -584,6 +518,8 @@ namespace DustyPig.Server.Controllers.v3
 
 
             //Update info
+            bool library_changed = existingItem.LibraryId != movieInfo.LibraryId;
+            bool rated_changed = existingItem.MovieRating != movieInfo.Rated;
             bool artwork_changed = existingItem.ArtworkUrl != movieInfo.ArtworkUrl;
 
             //Don't update Added
@@ -593,7 +529,6 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
             existingItem.Date = movieInfo.Date;
             existingItem.Description = movieInfo.Description;
-            existingItem.SetGenreFlags(movieInfo.Genres);
             existingItem.IntroEndTime = movieInfo.IntroEndTime;
             existingItem.IntroStartTime = movieInfo.IntroStartTime;
             existingItem.Length = movieInfo.Length;
@@ -604,9 +539,9 @@ namespace DustyPig.Server.Controllers.v3
             existingItem.TMDB_Id = movieInfo.TMDB_Id;
             existingItem.VideoUrl = movieInfo.VideoUrl;
 
-            existingItem.Hash = existingItem.ComputeHash();
 
             //Dup check
+            existingItem.ComputeHash();
             var dup = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.Id != existingItem.Id)
@@ -620,78 +555,25 @@ namespace DustyPig.Server.Controllers.v3
                 return $"A movie already exists with the following parameters: {nameof(movieInfo.LibraryId)}, {nameof(movieInfo.TMDB_Id)}, {nameof(movieInfo.Title)}, {nameof(movieInfo.Date)}";
 
             
+            var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Movie);
+            existingItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.SRTSubtitles, movieInfo.Genres, tmdbInfo);
+
+
+            //Save
+            await DB.SaveChangesAsync();
+
+
+            //Playlists
             List<int> playlistIds = null;
-            if (artwork_changed)
-            {
+            if (library_changed || rated_changed || artwork_changed)
                 playlistIds = await DB.PlaylistItems
                     .AsNoTracking()
                     .Where(item => item.MediaEntryId == movieInfo.Id)
                     .Select(item => item.PlaylistId)
                     .Distinct()
                     .ToListAsync();
-            }
-
-            await DB.SaveChangesAsync();
-
-            //TMDB
-            if (existingItem.TMDB_Id.HasValue)
-            {
-                var info = await DB.TMDB_Entries
-                    .AsNoTracking()
-                    .Where(item => item.TMDB_Id == existingItem.TMDB_Id.Value)
-                    .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
-                    .FirstOrDefaultAsync();
-
-                if (info != null)
-                {
-                    existingItem.TMDB_EntryId = info.Id;
-                    existingItem.Popularity = info.Popularity;
-
-                    if (existingItem.MovieRating == null || existingItem.MovieRating == MovieRatings.None)
-                        existingItem.MovieRating = info.MovieRating;
-
-                    if (string.IsNullOrWhiteSpace(existingItem.Description))
-                        existingItem.Description = info.Description;
-
-                    if (string.IsNullOrWhiteSpace(existingItem.BackdropUrl))
-                        existingItem.BackdropUrl = info.BackdropUrl;
-
-                    DB.MediaEntries.Update(existingItem);
-                    await DB.SaveChangesAsync();
-                }
-            }
-
-
-            //Search Terms
-            await MediaEntryLogic.UpdateSearchTerms(false, existingItem, GetSearchTerms(existingItem, movieInfo.ExtraSearchTerms));
-
-            //Playlists
             await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
 
-            //Redo Subtitles
-            var existingSubtitles = await DB.Subtitles
-                .Where(item => item.MediaEntryId == existingItem.Id)
-                .ToListAsync();
-
-            if (existingSubtitles.Count > 0)
-            {
-                DB.Subtitles.RemoveRange(existingSubtitles);
-                await DB.SaveChangesAsync();
-            }
-
-            if (movieInfo.SRTSubtitles != null && movieInfo.SRTSubtitles.Count > 0)
-            {
-                foreach (var srt in movieInfo.SRTSubtitles)
-                    DB.Subtitles.Add(new Subtitle
-                    {
-                        MediaEntryId = existingItem.Id,
-                        Language = srt.Language,
-                        Name = srt.Name,
-                        Url = srt.Url
-                    });
-
-                await DB.SaveChangesAsync();
-            }
 
             return Result.BuildSuccess();
         }
@@ -753,9 +635,9 @@ namespace DustyPig.Server.Controllers.v3
             if (string.IsNullOrWhiteSpace(request.Query))
                 return ret;
 
-            var terms = request.Query.Tokenize();
+            string boolQuery = string.Join(" ", request.Query.Split(' ').Select(_ => "+" + _));
 
-            
+
             var libQ = DB.Libraries
                 .AsNoTracking()
                 .Where(lib => lib.AccountId == UserAccount.Id)
@@ -765,64 +647,31 @@ namespace DustyPig.Server.Controllers.v3
             var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
 
 
-            var q = DB.MediaEntries
-                .Where(item => item.EntryType == MediaTypes.Movie)
-                .Where(item => libIds.Contains(item.LibraryId));
-
-
-            foreach (var term in terms)
-                q =
-                    from me in q
-                    join msb in DB.MediaSearchBridges
-                        .Where(item => item.SearchTerm.Term.Contains(term))
-                        on me.Id equals msb.MediaEntryId
-                    select me;
-
-            var mediaEntries = await q
+            var mediaEntries = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(item => item.Library)
-
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
 
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
 
                 .Include(item => item.Subtitles)
+
+                .Where(item => EF.Functions.IsMatch(item.SearchTitle, boolQuery, MySqlMatchSearchMode.Boolean))
+                .Where(item => item.EntryType == MediaTypes.Movie)
+                .Where(item => libIds.Contains(item.LibraryId))
+
                 .Distinct()
                 .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync();
 
 
-            mediaEntries.Sort((x, y) =>
-            {
-                int ret = -x.QueryTitle.ICEquals(request.Query).CompareTo(y.QueryTitle.ICEquals(request.Query));
-                if (ret == 0 && x.QueryTitle.ICEquals(y.QueryTitle))
-                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                if (ret == 0)
-                    ret = -x.QueryTitle.ICStartsWith(request.Query).CompareTo(y.QueryTitle.ICStartsWith(request.Query));
-                if (ret == 0)
-                    ret = -x.QueryTitle.ICContains(request.Query).CompareTo(y.QueryTitle.ICContains(request.Query));
-                if (ret == 0)
-                    ret = x.SortTitle.CompareTo(y.SortTitle);
-                if (ret == 0)
-                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                return ret;
-            });
-
+            
             foreach (var mediaEntry in mediaEntries)
             {
                 var dm = mediaEntry.ToDetailedMovie(true);
-
-                //Extra Search Terms
-                var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-                var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
-                allTerms.RemoveAll(item => coreTerms.Contains(item));
-                dm.ExtraSearchTerms = allTerms;
-
                 dm.CanManage = true;
-
                 ret.Add(dm);
             }
 
@@ -855,11 +704,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var mediaEntries = await DB.MediaEntries
                 .AsNoTracking()
-
                 .Include(item => item.Library)
-
-                .Include(item => item.MediaSearchBridges)
-                .ThenInclude(item => item.SearchTerm)
+                .Include(item => item.ExtraSearchTerms)
 
                 .Include(item => item.TMDB_Entry)
                 .ThenInclude(item => item.People)
@@ -886,15 +732,7 @@ namespace DustyPig.Server.Controllers.v3
             foreach (var mediaEntry in mediaEntries)
             {
                 var dm = mediaEntry.ToDetailedMovie(true);
-
-                //Extra Search Terms
-                var allTerms = mediaEntry.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-                var coreTerms = mediaEntry.Title.NormalizedQueryString().Tokenize();
-                allTerms.RemoveAll(item => coreTerms.Contains(item));
-                dm.ExtraSearchTerms = allTerms;
-
                 dm.CanManage = true;
-
                 ret.Add(dm);
             }
 

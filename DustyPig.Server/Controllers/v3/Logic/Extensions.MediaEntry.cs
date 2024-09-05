@@ -78,7 +78,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
         {
 
             //Build the response
-            var ret = new DetailedMovie
+            return new DetailedMovie
             {
                 Added = self.Added,
                 ArtworkUrl = self.ArtworkUrl,
@@ -88,7 +88,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 CreditsStartTime = self.CreditsStartTime,
                 Date = self.Date.Value,
                 Description = self.Description,
-                Genres = self.ToGenres(),
+                Genres = self.GetGenreFlags(),
                 Id = self.Id,
                 IntroEndTime = self.IntroEndTime,
                 IntroStartTime = self.IntroStartTime,
@@ -99,41 +99,30 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 Title = self.Title,
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = playable ? self.VideoUrl : null,
+                ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(item => item.Term).Order().ToList(),
+                SRTSubtitles = playable ? null : (self.Subtitles ?? []).ToSRTSubtitleList()
             };
-
-            //Subs
-            if (playable)
-                ret.SRTSubtitles = self.Subtitles.ToSRTSubtitleList();
-
-            return ret;
         }
 
 
         public static DetailedSeries ToAdminDetailedSeries(this MediaEntry self)
         {
-            var ret = new DetailedSeries
+            return new DetailedSeries
             {
                 Added = self.Added,
                 ArtworkUrl = self.ArtworkUrl,
                 BackdropUrl = self.BackdropUrl,
                 Credits = self.GetPeople(),
                 Description = self.Description,
-                Genres = self.ToGenres(),
+                Genres = self.GetGenreFlags(),
                 Id = self.Id,
                 LibraryId = self.LibraryId,
                 Rated = self.TVRating ?? TVRatings.None,
                 Title = self.Title,
                 TMDB_Id = self.TMDB_Id,
+                ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(_ => _.Term).Order().ToList(),
+                CanManage = true
             };
-
-            //Extra Search Terms
-            var allTerms = self.MediaSearchBridges.Select(item => item.SearchTerm.Term).ToList();
-            var coreTerms = self.Title.NormalizedQueryString().Tokenize();
-            allTerms.RemoveAll(item => coreTerms.Contains(item));
-            ret.ExtraSearchTerms = allTerms;
-            ret.CanManage = true;
-
-            return ret;
         }
 
         public static DetailedEpisode ToAdminDetailedEpisode(this MediaEntry self)

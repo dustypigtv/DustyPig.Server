@@ -132,10 +132,9 @@ namespace DustyPig.Server.Controllers.v3
                 VideoUrl = episodeInfo.VideoUrl,
             };
 
-            newItem.Hash = newItem.ComputeHash();
-            newItem.Xid = newItem.ComputeXid();
-
+            
             //Dup check
+            newItem.ComputeHash();
             var existingItem = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.LibraryId == newItem.LibraryId)
@@ -148,20 +147,13 @@ namespace DustyPig.Server.Controllers.v3
                 return $"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
+            newItem.SetOtherInfo(null, episodeInfo.SRTSubtitles, null, null);
+
+
             //Add the new item
             DB.MediaEntries.Add(newItem);
 
 
-            //Add Subtitles
-            if (episodeInfo.SRTSubtitles != null)
-                foreach (var srt in episodeInfo.SRTSubtitles)
-                    DB.Subtitles.Add(new Subtitle
-                    {
-                        MediaEntry = newItem,
-                        Language = srt.Language,
-                        Name = srt.Name,
-                        Url = srt.Url
-                    });
 
             //Notifications
             var notifiedProfiles = new List<int>();
@@ -393,10 +385,9 @@ namespace DustyPig.Server.Controllers.v3
             existingEpisode.TMDB_Id = episodeInfo.TMDB_Id;
             existingEpisode.VideoUrl = episodeInfo.VideoUrl;
 
-            existingEpisode.Hash = existingEpisode.ComputeHash();
-            existingEpisode.Xid = existingEpisode.ComputeXid();
-
+            
             //Dup check
+            existingEpisode.ComputeHash();
             var existingItem = await DB.MediaEntries
                 .AsNoTracking()
                 .Where(item => item.Id != existingEpisode.Id)
@@ -410,21 +401,7 @@ namespace DustyPig.Server.Controllers.v3
                 return $"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
-
-            //Redo Subtitles
-            var subLst = await DB.Subtitles
-                .Where(item => item.MediaEntryId == existingEpisode.Id)
-                .ToListAsync();
-            subLst.ForEach(item => DB.Subtitles.Remove(item));
-            if (episodeInfo.SRTSubtitles != null)
-                foreach (var srt in episodeInfo.SRTSubtitles)
-                    DB.Subtitles.Add(new Subtitle
-                    {
-                        MediaEntryId = existingEpisode.Id,
-                        Language = srt.Language,
-                        Name = srt.Name,
-                        Url = srt.Url
-                    });
+            existingEpisode.SetOtherInfo(null, episodeInfo.SRTSubtitles, null, null);
 
 
             if (artChanged)

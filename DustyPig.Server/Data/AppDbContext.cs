@@ -22,6 +22,7 @@ namespace DustyPig.Server.Data
         public DbSet<AccountToken> AccountTokens { get; set; }
         public DbSet<ActivationCode> ActivationCodes { get; set; }
         public DbSet<AutoPlaylistSeries> AutoPlaylistSeries { get; set; }
+        public DbSet<ExtraSearchTerm> ExtraSearchTerms { get; set; }
         public DbSet<FCMToken> FCMTokens { get; set; }
         public DbSet<Friendship> Friendships { get; set; }
         public DbSet<FriendLibraryShare> FriendLibraryShares { get; set; }
@@ -30,7 +31,6 @@ namespace DustyPig.Server.Data
         public DbSet<Library> Libraries { get; set; }
         public DbSet<LogEntry> Logs { get; set; }
         public DbSet<MediaEntry> MediaEntries { get; set; }
-        public DbSet<MediaSearchBridge> MediaSearchBridges { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Playlist> Playlists { get; set; }
         public DbSet<PlaylistItem> PlaylistItems { get; set; }
@@ -38,7 +38,6 @@ namespace DustyPig.Server.Data
         public DbSet<ProfileLibraryShare> ProfileLibraryShares { get; set; }
         public DbSet<ProfileMediaProgress> ProfileMediaProgresses { get; set; }
         public DbSet<S3ArtFileToDelete> S3ArtFilesToDelete { get; set; }
-        public DbSet<SearchTerm> SearchTerms { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<Subtitle> Subtitles { get; set; }
         public DbSet<TitleOverride> TitleOverrides { get; set; }
