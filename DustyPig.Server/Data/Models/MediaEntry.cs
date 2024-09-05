@@ -593,9 +593,9 @@ namespace DustyPig.Server.Data.Models
                         .Where(sub =>
                         {
                             return !Subtitles
-                                .Where(_ => _.Name == sub.Name)
-                                .Where(_ => _.Language == sub.Language)
-                                .Where(_ => _.Url == sub.Name)
+                                .Where(existing => existing.Name == sub.Name)
+                                .Where(existing => existing.Language == sub.Language)
+                                .Where(existing => existing.Url == sub.Url)
                                 .Any();
                         })
                         .Select(sub => new Subtitle
