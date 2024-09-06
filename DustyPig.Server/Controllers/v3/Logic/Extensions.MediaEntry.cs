@@ -36,14 +36,11 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 ArtworkUrl = self.ArtworkUrl,
                 BackdropUrl = self.BackdropUrl,
                 MediaType = self.EntryType,
-                Title = self.Title
+                Title = self.FormattedTitle()
             };
 
             if (includeDescription)
                 ret.Description = self.Description;
-
-            if (ret.MediaType == MediaTypes.Movie && self.Date.HasValue)
-                ret.Title += $" ({self.Date.Value.Year})";
 
             return ret;
         }

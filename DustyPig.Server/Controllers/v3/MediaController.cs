@@ -257,17 +257,18 @@ namespace DustyPig.Server.Controllers.v3
         {
             var ret = new SearchResults();
 
-            request.Query = request.Query.NormalizedQueryString();
-
-            string boolQuery = MediaEntry.BuildSearchQuery(request.Query);
-            if(string.IsNullOrWhiteSpace(boolQuery)) 
+            var normQuery = request.Query.NormalizedQueryString();
+            if(string.IsNullOrWhiteSpace(normQuery)) 
                 return ret;
-            
-            var mediaEntries = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+
+            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+            foreach (var term in normQuery.Tokenize().Distinct())
+                q = q.Where(me => me.SearchTitle.Contains(term));
+
+            var mediaEntries = await q
                 .AsNoTracking()
-                .Where(item => EF.Functions.IsMatch(item.SearchTitle, boolQuery, MySqlMatchSearchMode.Boolean))
                 .Distinct()
-                .Take(DEFAULT_LIST_SIZE)
+                .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync(cancellationToken);
 
 
@@ -276,13 +277,13 @@ namespace DustyPig.Server.Controllers.v3
             {
                 mediaEntries.Sort((x, y) =>
                 {
-                    int ret = -x.QueryTitle.ICEquals(request.Query).CompareTo(y.QueryTitle.ICEquals(request.Query));
+                    int ret = -x.QueryTitle.ICEquals(normQuery).CompareTo(y.QueryTitle.ICEquals(normQuery));
                     if (ret == 0 && x.QueryTitle.ICEquals(y.QueryTitle))
                         ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
                     if (ret == 0)
-                        ret = -x.QueryTitle.ICStartsWith(request.Query).CompareTo(y.QueryTitle.ICStartsWith(request.Query));
+                        ret = -x.QueryTitle.ICStartsWith(normQuery).CompareTo(y.QueryTitle.ICStartsWith(normQuery));
                     if (ret == 0)
-                        ret = -x.QueryTitle.ICContains(request.Query).CompareTo(y.QueryTitle.ICContains(request.Query));
+                        ret = -x.QueryTitle.ICContains(normQuery).CompareTo(y.QueryTitle.ICContains(normQuery));
                     if (ret == 0)
                         ret = x.SortTitle.CompareTo(y.SortTitle);
                     if (ret == 0)
@@ -291,7 +292,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
                 ret.Available ??= new();
-                ret.Available.AddRange(mediaEntries.Select(item => item.ToBasicMedia()));
+                ret.Available.AddRange(mediaEntries.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
             }
 
             /****************************************
@@ -302,7 +303,7 @@ namespace DustyPig.Server.Controllers.v3
             var searchOtherTitles = request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed;
             if (request.SearchPeople || searchOtherTitles)
             {
-                var response = await TMDBClient.DefaultInstance.Endpoints.Search.MultiAsync(request.Query, cancellationToken: cancellationToken);
+                var response = await TMDBClient.DefaultInstance.Endpoints.Search.MultiAsync(normQuery, cancellationToken: cancellationToken);
                 if (response.Success && response.Data.Results.Count > 0)
                 {
                     if (searchOtherTitles)

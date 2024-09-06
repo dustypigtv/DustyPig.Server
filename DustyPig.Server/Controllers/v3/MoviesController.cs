@@ -13,6 +13,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -573,47 +574,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpPost]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
-        public async Task<Result<List<BasicMedia>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request)
-        {
-            var ret = new List<BasicMedia>();
-
-            request.Query = request.Query.NormalizedQueryString();
-            string boolQuery = MediaEntry.BuildSearchQuery(request.Query);
-            if (string.IsNullOrWhiteSpace(boolQuery))
-                return ret;
-
-            var libQ = DB.Libraries
-                .AsNoTracking()
-                .Where(lib => lib.AccountId == UserAccount.Id)
-                .Where(lib => !lib.IsTV);
-            if (libraryId > 0)
-                libQ = libQ.Where(lib => lib.Id == libraryId);
-            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
-
-
-            var mediaEntries = await DB.MediaEntries
-                .AsNoTracking()
-
-                .Where(item => item.EntryType == MediaTypes.Movie)
-                .Where(item => libIds.Contains(item.LibraryId))
-                .Where(item => EF.Functions.IsMatch(item.SearchTitle, boolQuery, MySqlMatchSearchMode.Boolean))
-
-                .Distinct()
-                .Take(MAX_DB_LIST_SIZE)
-                .ToListAsync();
-
-            mediaEntries.Sort((x, y) =>
-            {
-                int ret = x.SortTitle.CompareTo(y.SortTitle);
-                if (ret == 0)
-                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                return ret;
-            });
-
-            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
-
-            return ret;
-        }
+        public Task<Result<List<BasicMedia>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request) =>
+            AdminSearchAsync(libraryId, request.Query, MediaTypes.Movie);
 
 
         /// <summary>
@@ -623,45 +585,8 @@ namespace DustyPig.Server.Controllers.v3
         [HttpGet]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
-        public async Task<Result<List<BasicMedia>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId)
-        {
-            var ret = new List<BasicMedia>();
-
-            if (tmdbId <= 0)
-                return ret;
-
-            var libQ = DB.Libraries
-                .AsNoTracking()
-                .Where(lib => lib.AccountId == UserAccount.Id)
-                .Where(lib => !lib.IsTV);
-            if (libraryId > 0)
-                libQ = libQ.Where(lib => lib.Id == libraryId);
-            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
-
-
-            var mediaEntries = await DB.MediaEntries
-                .AsNoTracking()
-
-                .Where(item => item.EntryType == MediaTypes.Movie)
-                .Where(item => libIds.Contains(item.LibraryId))
-                .Where(item => item.TMDB_Id == tmdbId)
-
-                .Distinct()
-                .Take(MAX_DB_LIST_SIZE)
-                .ToListAsync();
-
-            mediaEntries.Sort((x, y) =>
-            {
-                int ret = x.SortTitle.CompareTo(y.SortTitle);
-                if (ret == 0)
-                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                return ret;
-            });
-
-            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
-
-            return ret;
-        }
+        public Task<Result<List<BasicMedia>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId) =>
+            AdminSearchByTmdbIdAsync(libraryId, tmdbId, MediaTypes.Movie);
 
     }
 }

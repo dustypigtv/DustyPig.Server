@@ -4,6 +4,8 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Ocsp;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -270,6 +272,98 @@ namespace DustyPig.Server.Controllers.v3
                 if (overrideRequest != null)
                     ret.AccessRequestedStatus = overrideRequest.Status;
             }
+
+            return ret;
+        }
+    
+    
+        internal async Task<Result<List<BasicMedia>>> AdminSearchAsync(int libraryId, string query, MediaTypes mediaType)
+        {
+            var ret = new List<BasicMedia>();
+
+            var normQuery = query.NormalizedQueryString();
+            if (string.IsNullOrWhiteSpace(normQuery))
+                return ret;
+
+            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+            foreach (var term in normQuery.Tokenize().Distinct())
+                q = q.Where(me => me.SearchTitle.Contains(term));
+
+
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var mediaEntries = await q
+                .AsNoTracking()
+                .Where(item => item.EntryType == mediaType)
+                .Where(item => libIds.Contains(item.LibraryId))
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+            mediaEntries.Sort((x, y) =>
+            {
+                int ret = -x.QueryTitle.ICEquals(normQuery).CompareTo(y.QueryTitle.ICEquals(normQuery));
+                if (ret == 0 && x.QueryTitle.ICEquals(y.QueryTitle))
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                if (ret == 0)
+                    ret = -x.QueryTitle.ICStartsWith(normQuery).CompareTo(y.QueryTitle.ICStartsWith(normQuery));
+                if (ret == 0)
+                    ret = -x.QueryTitle.ICContains(normQuery).CompareTo(y.QueryTitle.ICContains(normQuery));
+                if (ret == 0)
+                    ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
+
+            return ret;
+        }
+
+
+    
+        internal async Task<Result<List<BasicMedia>>> AdminSearchByTmdbIdAsync(int libraryId, int tmdbId, MediaTypes mediaType)
+        {
+            var ret = new List<BasicMedia>();
+
+            if (tmdbId <= 0)
+                return ret;
+
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id)
+                .Where(lib => lib.IsTV);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+            var mediaEntries = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(item => item.EntryType == mediaType)
+                .Where(item => libIds.Contains(item.LibraryId))
+                .Where(item => item.TMDB_Id == tmdbId)
+                .Distinct()
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+
+            mediaEntries.Sort((x, y) =>
+            {
+                int ret = x.SortTitle.CompareTo(y.SortTitle);
+                if (ret == 0)
+                    ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
+                return ret;
+            });
+
+            ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
 
             return ret;
         }

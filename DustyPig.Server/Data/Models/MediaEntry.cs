@@ -62,36 +62,7 @@ namespace DustyPig.Server.Data.Models
     [Index(nameof(Genre_Western))]
     public class MediaEntry
     {
-        /*
-            MaxLen for the table is 65535, and doing even 2k chars here surpasses that limit.
-            
-            BUT: A google search for the longest movie title has:
-                Night of the Day of the Dawn of the Son of the Bride of the Return of the Revenge of the Terror of the Attack of the Evil Mutant Hellbound Flesh Eating Subhumanoid Zombified Living Dead Part 3
-            
-            The pseudo 2 ngrams algorithm of that title produced 1398 chars, so 1500 should always be enough. 
-            Especially since this would be the first result after just a couple of terms
-         */
-        public const int MAX_SEARCH_TITLE_SIZE = 1500;
-
-        public static readonly string[] STOPWORDS =
-            [
-                "a", "about", "an", "are", "as", "at", 
-                "be", "by", 
-                "com", 
-                "de", 
-                "en", 
-                "for", "from", 
-                "how", 
-                "i", "in", "is", "it", 
-                "la", 
-                "of", "on", "or", 
-                "that", 
-                "the", "this", "to", 
-                "was", "what", "when", "where", "who", "will", "with", 
-                "und", 
-                "www"
-            ];
-
+        public const int MAX_SEARCH_TITLE_SIZE = Constants.MAX_NAME_LENGTH * 2;
 
 
         public int Id { get; set; }
@@ -264,7 +235,35 @@ namespace DustyPig.Server.Data.Models
         public bool EverPlayed { get; set; }
 
 
+        [MaxLength(MAX_SEARCH_TITLE_SIZE)]
+        public string SearchTitle { get; set; }
 
+
+
+        
+
+
+        
+        public List<ExtraSearchTerm> ExtraSearchTerms { get; set; } = [];
+
+        public List<PlaylistItem> PlaylistItems { get; set; } = [];
+
+        public List<ProfileMediaProgress> ProfileMediaProgress { get; set; } = [];
+
+        public List<Subscription> Subscriptions { get; set; } = [];
+
+        public List<WatchlistItem> WatchlistItems { get; set; } = [];
+
+        public List<TitleOverride> TitleOverrides { get; set; } = [];
+
+        public List<Subtitle> Subtitles { get; set; } = [];
+
+
+
+
+        /// <summary>
+        /// Used for sorting search results
+        /// </summary>
         [NotMapped]
         public string QueryTitle
         {
@@ -283,31 +282,6 @@ namespace DustyPig.Server.Data.Models
 
 
 
-        /*
-            SET @@SESSION.innodb_ft_enable_stopword = 'OFF';
-            ALTER TABLE dustypig_v3_dev.MediaEntries
-                ADD COLUMN SearchTitle VARCHAR(1500) NULL;
-            ALTER TABLE dustypig_v3_dev.MediaEntries
-                ADD FULLTEXT INDEX IX_MediaEntries_SearchTitle (SearchTitle) VISIBLE;
-        */
-        [MaxLength(MAX_SEARCH_TITLE_SIZE)]
-        public string SearchTitle { get; set; }
-
-
-        public List<ExtraSearchTerm> ExtraSearchTerms { get; set; } = [];
-
-
-        public List<PlaylistItem> PlaylistItems { get; set; } = [];
-
-        public List<ProfileMediaProgress> ProfileMediaProgress { get; set; } = [];
-
-        public List<Subscription> Subscriptions { get; set; } = [];
-
-        public List<WatchlistItem> WatchlistItems { get; set; } = [];
-
-        public List<TitleOverride> TitleOverrides { get; set; } = [];
-
-        public List<Subtitle> Subtitles { get; set; } = [];
 
 
         public string FormattedTitle()
@@ -378,7 +352,6 @@ namespace DustyPig.Server.Data.Models
 
 
 
-
         void UpdateFromTMDB(TMDB_Entry info)
         {
             if (info == null)
@@ -433,7 +406,7 @@ namespace DustyPig.Server.Data.Models
             Xid = s * int.MaxValue + e;
         }
 
-        public void CreateSearchTitle()
+        void CreateSearchTitle()
         {
             if (!(EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series))
             {
@@ -455,7 +428,6 @@ namespace DustyPig.Server.Data.Models
                         .Replace(".", null)
                         .NormalizedQueryString()
                         .Tokenize()
-                        .Where(item => !string.IsNullOrWhiteSpace(item))
                         .Distinct()
                 );
 
@@ -467,9 +439,8 @@ namespace DustyPig.Server.Data.Models
                         ExtraSearchTerms.SelectMany(item =>
                             (item + string.Empty)
                             .Trim()
-                            .NormalizeMiscCharacters()
+                            .NormalizedQueryString()
                             .Tokenize()
-                            .Where(item2 => !string.IsNullOrWhiteSpace(item2))
                             .Distinct()
                     ));
 
@@ -481,9 +452,8 @@ namespace DustyPig.Server.Data.Models
                             .Trim()
                             .Replace("-", null)
                             .Replace(".", null)
-                            .NormalizeMiscCharacters()
+                            .NormalizedQueryString()
                             .Tokenize()
-                            .Where(item2 => !string.IsNullOrWhiteSpace(item2))
                             .Distinct()
                     ));
             }
@@ -494,53 +464,13 @@ namespace DustyPig.Server.Data.Models
                 .ToList();
 
 
-            //ngram(2+)
-            var ngrams = new List<string>();
-            foreach (string term in terms)
-            {
-                if (term.Length <= 2)
-                {
-                    if (!ngrams.Contains(term))
-                        ngrams.Add(term);
-                }
-                else
-                {
-                    for (int start = 0; start < term.Length; start++)
-                    {
-                        for (int end = start + 2; end <= term.Length; end++)
-                        {
-                            var ngram = term[start..end];
-                            if (!ngrams.Contains(ngram))
-                                ngrams.Add(ngram);
-                        }
-                    }
-                }
-            }
-
-            ngrams = ngrams.Select(term => UnstopWord(term)).Distinct().ToList();
-
-            string st = string.Join(" ", ngrams);
+            string st = string.Join(" ", terms);
             if (st.Length > MAX_SEARCH_TITLE_SIZE)
-                st = st.Substring(0, MAX_SEARCH_TITLE_SIZE);
+                st = st[..MAX_SEARCH_TITLE_SIZE];
 
             SearchTitle = st;
         }
-
-        public static string BuildSearchQuery(string text)
-        {
-            return string.Join(" ",
-                StringUtils.NormalizedQueryString(text + string.Empty)
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Select(term => "+" + UnstopWord(term))
-                );
-        }
-
-        static string UnstopWord(string term) => STOPWORDS.Contains(term) ? $"xx{term}xx" : term;
-
-
-
-
-
+        
         void SetExraSearchTerms(List<string> newTerms)
         {
             ExtraSearchTerms ??= [];
@@ -653,6 +583,9 @@ namespace DustyPig.Server.Data.Models
             Genre_War = (lg & (long)Genres.War) != 0;
             Genre_Western = (lg & (long)Genres.Western) != 0;
         }
+
+
+
 
 
         /// <summary>
