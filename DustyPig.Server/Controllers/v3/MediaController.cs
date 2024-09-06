@@ -275,22 +275,7 @@ namespace DustyPig.Server.Controllers.v3
             //Search sort
             if (mediaEntries.Count > 0)
             {
-                mediaEntries.Sort((x, y) =>
-                {
-                    int ret = -x.QueryTitle.ICEquals(normQuery).CompareTo(y.QueryTitle.ICEquals(normQuery));
-                    if (ret == 0 && x.QueryTitle.ICEquals(y.QueryTitle))
-                        ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                    if (ret == 0)
-                        ret = -x.QueryTitle.ICStartsWith(normQuery).CompareTo(y.QueryTitle.ICStartsWith(normQuery));
-                    if (ret == 0)
-                        ret = -x.QueryTitle.ICContains(normQuery).CompareTo(y.QueryTitle.ICContains(normQuery));
-                    if (ret == 0)
-                        ret = x.SortTitle.CompareTo(y.SortTitle);
-                    if (ret == 0)
-                        ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                    return ret;
-                });
-
+                mediaEntries.SortSearchResults(normQuery);
                 ret.Available ??= new();
                 ret.Available.AddRange(mediaEntries.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
             }

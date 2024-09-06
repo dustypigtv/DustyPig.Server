@@ -261,27 +261,6 @@ namespace DustyPig.Server.Data.Models
 
 
 
-        /// <summary>
-        /// Used for sorting search results
-        /// </summary>
-        [NotMapped]
-        public string QueryTitle
-        {
-            get
-            {
-                if (_queryTitle == null || _lastTitle != Title)
-                {
-                    _lastTitle = Title;
-                    _queryTitle = Title.NormalizedQueryString();
-                }
-                return _queryTitle;
-            }
-        }
-        private string _lastTitle;
-        private string _queryTitle;
-
-
-
 
 
         public string FormattedTitle()
