@@ -355,6 +355,7 @@ namespace DustyPig.Server.Controllers.v3
             var existingEpisode = await DB.MediaEntries
                 .Include(item => item.LinkedTo)
                 .ThenInclude(item => item.Library)
+                .Include(item => item.Subtitles)
                 .Where(item => item.Id == episodeInfo.Id)
                 .SingleOrDefaultAsync();
 
