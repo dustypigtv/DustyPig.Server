@@ -4,7 +4,7 @@
 		<TargetFramework>net9</TargetFramework>
 		<LangVersion>Latest</LangVersion>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<NoWarn>$(NoWarn);1591,1570,CS1573,IDE0090</NoWarn>
+		<NoWarn>$(NoWarn);1591,1579,CS1573,IDE0090</NoWarn>
 
 		<!-- Leave the revision as zero, it will be set by github actions -->
 		<Version>3.4.0.0</Version>
@@ -28,7 +28,7 @@
 		<PackageReference Include="DustyPig.TMDB" Version="3.3.0.32" />
 		<PackageReference Include="FirebaseAdmin" Version="3.1.0" />
 		<PackageReference Include="Krypto.WonderDog" Version="22.4.24.4" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
