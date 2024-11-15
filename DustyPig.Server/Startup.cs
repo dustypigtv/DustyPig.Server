@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using DustyPig.Server.Data;
 using DustyPig.Server.HostedServices;
+using DustyPig.Server.Middleware;
 using DustyPig.Server.Services;
 using DustyPig.Server.SwaggerHelpers;
 using FirebaseAdmin;
@@ -322,6 +323,8 @@ namespace DustyPig.Server
             services.AddControllersWithViews();
             services.AddRazorPages();
 
+            //Raw data
+            services.AddMvc(o => o.InputFormatters.Insert(0, new RawRequestBodyFormatter()));
 
 
             //*** Dependency Injection ***

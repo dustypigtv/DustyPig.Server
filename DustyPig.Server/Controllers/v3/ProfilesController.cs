@@ -224,9 +224,9 @@ namespace DustyPig.Server.Controllers.v3
         /// This method uses a the entire body of the request as a binary file</remarks>
         [HttpPut("{id}")]
         [ProhibitTestUser]
-        [RequestSizeLimit(1048576)] //Set to 1 MB
+        [RequestSizeLimit(5242880)] //Set to 5MB
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-        public async Task<Result<string>> SetProfileAvatarBinary(int id)
+        public async Task<Result<string>> SetProfileAvatarBinary(int id, [FromBody] byte[] data)
         {
             if (id != UserProfile.Id)
                 if (UserProfile.IsMain)
@@ -236,12 +236,15 @@ namespace DustyPig.Server.Controllers.v3
             var profile = UserAccount.Profiles.Single(item => item.Id == id);
 
             using var ms = new MemoryStream();
-            await Request.Body.CopyToAsync(ms);
+            ms.Write(data, 0, data.Length);
 
-            if (!IsJpeg(ms))
-                return Result<string>.BuildError("File does not appear to be a jpeg file");
 
-            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
+            bool jpg = IsJpeg(ms);
+            if (!(jpg || IsPng(ms)))
+                return Result<string>.BuildError("File does not appear to be a jpeg or png file");
+
+            var ext = jpg ? "jpg" : "png";
+            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.{ext}";
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
             string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
 
@@ -267,7 +270,7 @@ namespace DustyPig.Server.Controllers.v3
         /// This method uses the multipart upload</remarks>
         [HttpPut("{id}")]
         [ProhibitTestUser]
-        [RequestSizeLimit(1048676)] //Set to 1 MB, with an extra 100 kb leeway for multipart encoding
+        [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 100 kb leeway for multipart encoding
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
         public async Task<Result<string>> SetProfileAvatarMultipart(int id)
         {
@@ -286,15 +289,18 @@ namespace DustyPig.Server.Controllers.v3
 
             var file = Request.Form.Files[0];
             if (!string.IsNullOrWhiteSpace(file.ContentType))
-                if (file.ContentType != "image/jpeg")
-                    return Result<string>.BuildError("Content-Type does not match image/jpeg");
-
+            {
+                if (file.ContentType != "image/jpeg" && file.ContentType != "image/png")
+                    return Result<string>.BuildError("Content-Type does not match image/jpeg or image/png");
+            }
             var stream = file.OpenReadStream();
-            if (!IsJpeg(stream))
-                return Result<string>.BuildError("File does not appear to be a jpeg file");
+            
+            bool jpg = IsJpeg(stream);
+            if (!(jpg || IsPng(stream)))
+                return Result<string>.BuildError("File does not appear to be a jpeg or png file");
 
-
-            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.jpg";
+            var ext = jpg ? "jpg" : "png";
+            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.{ext}";
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
             string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
 
@@ -416,13 +422,46 @@ namespace DustyPig.Server.Controllers.v3
 
         static bool IsJpeg(Stream stream)
         {
+            const int MIN_JPG_LENGTH = 107;
+
+            if (stream.Length < MIN_JPG_LENGTH)
+                return false;
+
             var pos = stream.Position;
             stream.Seek(0, SeekOrigin.Begin);
-            var ret = stream.ReadByte() == 0xFF && stream.ReadByte() == 0xD8;
+            
+            var ret = 
+                stream.ReadByte() == 0xFF && 
+                stream.ReadByte() == 0xD8;
+            
             stream.Seek(pos, SeekOrigin.Begin);
             return ret;
         }
 
+
+        static bool IsPng(Stream stream)
+        {
+            const int MIN_PNG_LENGTH = 67;
+
+            if (stream.Length < MIN_PNG_LENGTH)
+                return false;
+
+            var pos = stream.Position;
+            stream.Seek(0, SeekOrigin.Begin);
+            
+            var ret = 
+                stream.ReadByte() == 0x89 &&
+                stream.ReadByte() == 0x50 &&
+                stream.ReadByte() == 0x4E &&
+                stream.ReadByte() == 0x47 &&
+                stream.ReadByte() == 0x0D &&
+                stream.ReadByte() == 0x0A &&
+                stream.ReadByte() == 0x1A &&
+                stream.ReadByte() == 0x0A;
+            
+            stream.Seek(pos, SeekOrigin.Begin);
+            return ret;
+        }
 
     }
 }
