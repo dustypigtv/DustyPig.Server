@@ -1,11 +1,14 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
+using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +27,12 @@ namespace DustyPig.Server.Controllers.v3
     [ExceptionLogger(typeof(AccountController))]
     public class AccountController : _BaseController
     {
-        public AccountController(AppDbContext db) : base(db) { }
+        private readonly FirebaseAuthClient _firebaseAuthClient;
+
+        public AccountController(AppDbContext db, FirebaseAuthClient firebaseAuthClient) : base(db) 
+        {
+            _firebaseAuthClient = firebaseAuthClient;
+        }
 
 
         /// <summary>
@@ -85,8 +93,12 @@ namespace DustyPig.Server.Controllers.v3
         [HttpDelete]
         [Authorize]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<Result> Delete()
+        public async Task<ActionResult<Result>> Delete(DeleteAccountRequest data)
         {
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return Result.BuildError(ex); }
+
             var (account, profile) = await User.VerifyAsync();
 
             if (account.Id == TestAccount.AccountId)
@@ -97,6 +109,21 @@ namespace DustyPig.Server.Controllers.v3
 
             if (!profile.IsMain)
                 return CommonResponses.RequireMainProfile();
+
+
+            var signInResponse = await _firebaseAuthClient.SignInWithEmailPasswordAsync(data.Email, data.Password);
+            if (!signInResponse.Success)
+                return Result.BuildError("Invalid credentials");
+
+            var user = await FirebaseAuth.DefaultInstance.GetUserAsync(signInResponse.Data.LocalId);
+            var account2 = await DB.Accounts
+               .AsNoTracking()
+               .Include(item => item.Profiles)
+               .Where(item => item.FirebaseId == user.Uid)
+               .FirstOrDefaultAsync();
+
+            if (account.Id != account2.Id)
+                return Result.BuildError("Invalid credentials");
 
             //Images to cleanup from Wasabi
             var profileIds = account.Profiles.Select(item => item.Id).ToList();
@@ -140,40 +167,100 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires main profile
         /// </summary>
         /// <remarks>Change the password for the account</remarks>
-        /// <param name="newPassword"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [Authorize]
         [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public async Task<ActionResult<Result>> ChangePassword(StringValue newPassword)
+        public async Task<ActionResult<Result>> ChangePassword(ChangePasswordRequest data)
         {
-            if (string.IsNullOrWhiteSpace(newPassword.Value))
-                return CommonResponses.RequiredValueMissing(nameof(newPassword.Value));
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return Result.BuildError(ex); }
 
             var (account, profile) = await User.VerifyAsync();
             if (profile == null)
                 return Unauthorized();
 
-            if (profile.Locked)
-                return CommonResponses.ProfileIsLocked();
+            if (account.Id == TestAccount.AccountId)
+                return CommonResponses.ProhibitTestUser();
 
             if (!profile.IsMain)
                 return CommonResponses.RequireMainProfile();
 
+            var signInResponse = await _firebaseAuthClient.SignInWithEmailPasswordAsync(data.EmailAddress, data.Password);
+            if (!signInResponse.Success)
+                return Result.BuildError("Invalid credentials");
+
+            var user = await FirebaseAuth.DefaultInstance.GetUserAsync(signInResponse.Data.LocalId);
+            var account2 = await DB.Accounts
+               .AsNoTracking()
+               .Include(item => item.Profiles)
+               .Where(item => item.FirebaseId == user.Uid)
+               .FirstOrDefaultAsync();
+
+            if (account.Id != account2.Id)
+                return Result.BuildError("Invalid credentials");
+
+
             var fbUser = await FirebaseAuth.DefaultInstance.GetUserAsync(account.FirebaseId);
             await FirebaseAuth.DefaultInstance.UpdateUserAsync(new UserRecordArgs
             {
-                Disabled = false,
-                DisplayName = fbUser.DisplayName,
-                Email = fbUser.Email,
-                EmailVerified = fbUser.EmailVerified,
-                Password = newPassword.Value,
-                PhoneNumber = fbUser.PhoneNumber,
-                PhotoUrl = fbUser.PhotoUrl,
+                Password = data.NewPassword,
                 Uid = fbUser.Uid
             });
 
 
+            return Result.BuildSuccess();
+        }
+
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        /// <remarks>Change the email address for the account</remarks>
+        [HttpPost]
+        [Authorize]
+        [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<ActionResult<Result>> ChangeEmailAddress(ChangeEmailAddressRequest data)
+        {
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return Result.BuildError(ex); }
+
+            var (account, profile) = await User.VerifyAsync();
+            if (profile == null)
+                return Unauthorized();
+
+            if (account.Id == TestAccount.AccountId)
+                return CommonResponses.ProhibitTestUser();
+
+            if (!profile.IsMain)
+                return CommonResponses.RequireMainProfile();
+
+            var signInResponse = await _firebaseAuthClient.SignInWithEmailPasswordAsync(data.EmailAddress, data.Password);
+            if (!signInResponse.Success)
+                return Result.BuildError("Invalid credentials");
+
+            var user = await FirebaseAuth.DefaultInstance.GetUserAsync(signInResponse.Data.LocalId);
+            var account2 = await DB.Accounts
+               .AsNoTracking()
+               .Include(item => item.Profiles)
+               .Where(item => item.FirebaseId == user.Uid)
+               .FirstOrDefaultAsync();
+
+            if (account.Id != account2.Id)
+                return Result.BuildError("Invalid credentials");
+
+            var fbUser = await FirebaseAuth.DefaultInstance.GetUserAsync(account.FirebaseId);
+            await FirebaseAuth.DefaultInstance.UpdateUserAsync(new UserRecordArgs
+            {
+                Email = data.NewEmailAddress,
+                Uid = fbUser.Uid
+            });
+
+            
             return Result.BuildSuccess();
         }
 
