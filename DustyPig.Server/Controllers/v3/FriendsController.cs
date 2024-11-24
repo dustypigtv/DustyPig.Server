@@ -148,7 +148,15 @@ namespace DustyPig.Server.Controllers.v3
                 .SingleOrDefaultAsync();
 
             if (friendAccount == null)
-                return "Account does not exist";
+            {
+                using var db2 = new AppDbContext();
+                friendAccount = await db2.GetOrCreateAccountAsync(fbRec.Uid, email.Value);
+
+                if (friendAccount == null)
+                    return "Account does not exist";
+            }
+
+
 
             if (friendAccount.Id == UserAccount.Id)
                 return "Cannot friend yourself";
@@ -182,13 +190,21 @@ namespace DustyPig.Server.Controllers.v3
             }).Entity;
 
             //Notification
+            //Make sure friend account has a main profile (prev beta version created a scenario with an account but no profile)
+            var friendMainProfile = friendAccount.Profiles.FirstOrDefault(item => item.IsMain);
+            if (friendMainProfile == null)
+            {
+                using var db2 = new AppDbContext();
+                friendMainProfile = await db2.GetOrCreateMainProfileAsync(friendAccount, email.Value);
+            }
+
             DB.Notifications.Add(new Data.Models.Notification
             {
                 Friendship = friendship,
                 Title = "Friend Request",
                 Message = $"{UserProfile.Name} has sent you a friend request",
                 NotificationType = NotificationTypes.FriendshipInvited,
-                ProfileId = friendAccount.Profiles.Single(item => item.IsMain).Id,
+                ProfileId = friendMainProfile.Id,
                 Timestamp = DateTime.UtcNow
             });
 

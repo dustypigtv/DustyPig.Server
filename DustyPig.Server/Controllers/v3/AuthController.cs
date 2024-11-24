@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace DustyPig.Server.Controllers.v3
 {
@@ -56,7 +57,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (credentials.Password != TestAccount.Password)
                     return "Invalid credentials";
 
-                account = await GetOrCreateAccountAsync(TestAccount.FirebaseId, null, TestAccount.Email, null);
+                account = await DB.GetOrCreateAccountAsync(TestAccount.FirebaseId, TestAccount.Email);
             }
             else
             {
@@ -65,7 +66,7 @@ namespace DustyPig.Server.Controllers.v3
                     return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
 
                 var user = await FirebaseAuth.DefaultInstance.GetUserAsync(signInResponse.Data.LocalId);
-                account = await GetOrCreateAccountAsync(user.Uid, user.DisplayName, user.Email, user.PhotoUrl);
+                account = await DB.GetOrCreateAccountAsync(user.Uid, user.Email);
             }
 
             var profiles = account.Profiles.Select(p => p.ToBasicProfileInfo()).ToList();
@@ -511,42 +512,10 @@ namespace DustyPig.Server.Controllers.v3
             return true;
         }
 
-        private async Task<Account> GetOrCreateAccountAsync(string localId, string name, string email, string photoUrl)
-        {
-            var account = await DB.Accounts
-                .AsNoTracking()
-                .Include(item => item.Profiles)
-                .Where(item => item.FirebaseId == localId)
-                .FirstOrDefaultAsync();
-
-            if (account == null)
-            {
-                account = new Account { FirebaseId = localId };
-                DB.Accounts.Add(account);
-
-                DB.Profiles.Add(new Profile
-                {
-                    Account = account,
-                    MaxMovieRating = MovieRatings.Unrated,
-                    MaxTVRating = TVRatings.NotRated,
-                    AvatarUrl = LogicUtils.EnsureProfilePic(photoUrl),
-                    IsMain = true,
-                    Name = LogicUtils.Coalesce(name, email[..email.IndexOf("@")]),
-                    TitleRequestPermission = TitleRequestPermissions.Enabled
-                });
-
-                await DB.SaveChangesAsync();
-            }
-
-            return account;
-        }
-
         static T GetFBClaim<T>(IReadOnlyDictionary<string, object> claims, string key, T defVal)
         {
             try { return (T)claims.First(item => item.Key == key).Value; }
             catch { return defVal; }
         }
-
-
     }
 }
