@@ -51,7 +51,6 @@ namespace DustyPig.Server.Data
         {
             base.OnConfiguring(optionsBuilder);
             optionsBuilder
-                //.UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql))
                 .UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql), opts =>
                 {
                     opts.EnableRetryOnFailure();
