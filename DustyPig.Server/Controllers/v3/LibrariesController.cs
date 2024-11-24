@@ -307,8 +307,41 @@ namespace DustyPig.Server.Controllers.v3
                 ProfileId = UserProfile.Id
             });
 
+            if(info.ProfileIds != null)
+            {
+                foreach (var profileId in info.ProfileIds.Distinct())
+                    if (profileId != UserProfile.Id)
+                        if (UserAccount.Profiles.Any(_ => _.Id == profileId))
+                            DB.ProfileLibraryShares.Add(new ProfileLibraryShare
+                            {
+                                Library = lib,
+                                ProfileId = profileId
+                            });
+            }
+
             await DB.SaveChangesAsync();
 
+
+            if (info.FriendIds != null && info.FriendIds.Count > 0)
+            {
+                var friends = await DB.Friendships
+                    .AsNoTracking()
+                    .Include(item => item.Account1)
+                    .Include(item => item.Account2)
+                    .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                    .Select(item => item.Id)
+                    .ToListAsync();
+
+                foreach(var friendId in info.FriendIds)
+                    if(friends.Any(item => item == friendId))
+                        DB.FriendLibraryShares.Add(new FriendLibraryShare
+                        {
+                            FriendshipId = friendId,
+                            Library = lib
+                        });
+            }
+
+            
             return lib.Id;
         }
 
@@ -350,7 +383,90 @@ namespace DustyPig.Server.Controllers.v3
             lib.IsTV = info.IsTV;
             lib.Name = info.Name;
 
+            bool updatePlaylists = false;
+
+            if (info.ProfileIds != null)
+            {
+                var profileLibraryShares = await DB.ProfileLibraryShares
+                    .AsNoTracking()
+                    .Where(item => item.LibraryId == info.Id)
+                    .ToListAsync();
+
+                foreach (var pls in profileLibraryShares)
+                    if (UserAccount.Profiles.Any(item => item.Id == pls.ProfileId))
+                        if (!info.ProfileIds.Contains(pls.ProfileId))
+                        {
+                            updatePlaylists = true;
+                            DB.ProfileLibraryShares.Remove(pls);
+                        }
+
+                foreach (var profileId in info.ProfileIds.Distinct())
+                    if (profileId != UserProfile.Id)
+                        if (UserAccount.Profiles.Any(_ => _.Id == profileId))
+                        {
+                            updatePlaylists = true;
+                            DB.ProfileLibraryShares.Add(new ProfileLibraryShare
+                            {
+                                Library = lib,
+                                ProfileId = profileId
+                            });
+                        }
+            }
+
+            if (info.FriendIds != null)
+            {
+                var friends = await DB.Friendships
+                    .AsNoTracking()
+                    .Include(item => item.Account1)
+                    .Include(item => item.Account2)
+                    .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                    .Select(item => item.Id)
+                    .ToListAsync();
+
+                foreach (var friendId in friends)
+                    if (!info.FriendIds.Contains(friendId))
+                    {
+                        updatePlaylists = true;
+                        DB.FriendLibraryShares.Remove(new FriendLibraryShare
+                        {
+                            FriendshipId = friendId,
+                            LibraryId = lib.Id
+                        });
+                    }
+
+
+                foreach (var friendId in info.FriendIds)
+                    if (friends.Any(item => item == friendId))
+                    {
+                        updatePlaylists = true;
+                        DB.FriendLibraryShares.Add(new FriendLibraryShare
+                        {
+                            FriendshipId = friendId,
+                            Library = lib
+                        });
+                    }
+            }
+
+
             await DB.SaveChangesAsync();
+
+
+
+            if (updatePlaylists)
+            {
+                var playlistIds = await DB.Playlists
+                    .AsNoTracking()
+                    .Where(item => item.PlaylistItems.Any(item2 => item2.MediaEntry.LibraryId == lib.Id))
+                    .Select(item => item.Id)
+                    .Distinct()
+                    .ToListAsync();
+
+                if (playlistIds.Count > 0)
+                    await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
+            }
+
+
+
             return Result.BuildSuccess();
         }
 

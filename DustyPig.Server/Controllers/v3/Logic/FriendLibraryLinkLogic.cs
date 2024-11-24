@@ -93,7 +93,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 .FirstOrDefaultAsync();
 
 
-        static Task<List<int>> GetPlaylistIds(AppDbContext db, Account account, Friendship friend, int libraryId)
+        public static Task<List<int>> GetPlaylistIds(AppDbContext db, Account account, Friendship friend, int libraryId)
         {
             var friendAcct = friend.Account1Id == account.Id ? friend.Account2 : friend.Account1;
 

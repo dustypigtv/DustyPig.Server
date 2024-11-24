@@ -8,6 +8,7 @@ using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Ocsp;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -206,7 +207,29 @@ namespace DustyPig.Server.Controllers.v3
                 profile.MaxMovieRating = info.MaxMovieRating;
                 profile.Locked = info.Locked;
                 profile.TitleRequestPermission = info.TitleRequestPermissions;
+
+                if (info.LibraryIds != null && info.LibraryIds.Count > 0)
+                {
+                    var profLibShares = DB.ProfileLibraryShares
+                        .AsNoTracking()
+                        .Where(item => item.ProfileId == info.Id)
+                        .ToList();
+
+                    foreach (var pls in profLibShares)
+                        if (!info.LibraryIds.Contains(pls.LibraryId))
+                            DB.ProfileLibraryShares.Remove(pls);
+
+                    var libs = await DB.GetLibraryIdsAccessableByAccount(UserAccount.Id);
+                    foreach (var libId in info.LibraryIds)
+                        if (libs.Contains(libId))
+                            DB.ProfileLibraryShares.Add(new ProfileLibraryShare
+                            {
+                                Profile = profile,
+                                LibraryId = libId
+                            });
+                }
             }
+
 
             DB.Profiles.Update(profile);
             await DB.SaveChangesAsync();
@@ -330,8 +353,6 @@ namespace DustyPig.Server.Controllers.v3
             try { info.Validate(); }
             catch (ModelValidationException ex) { return ex; }
 
-
-
             bool nameExists = UserAccount.Profiles
                 .Where(item => item.Name.ICEquals(info.Name))
                 .Any();
@@ -350,6 +371,19 @@ namespace DustyPig.Server.Controllers.v3
                 PinNumber = info.Pin,
                 TitleRequestPermission = info.TitleRequestPermissions
             };
+
+            if (info.LibraryIds != null && info.LibraryIds.Count > 0)
+            {
+                var libs = await DB.GetLibraryIdsAccessableByAccount(UserAccount.Id);
+
+                foreach (var libId in info.LibraryIds)
+                    if (libs.Contains(libId))
+                        DB.ProfileLibraryShares.Add(new ProfileLibraryShare
+                        {
+                            Profile = profile,
+                            LibraryId = libId
+                        });
+            }
 
             DB.Profiles.Add(profile);
             await DB.SaveChangesAsync();
