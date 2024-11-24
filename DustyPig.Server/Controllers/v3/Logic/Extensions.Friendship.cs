@@ -24,7 +24,9 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 Id = self.Id,
                 DisplayName = displayName,
                 Initials = displayName.GetInitials(),
-                AvatarUrl = self.GetFriendAvatar(accountId)
+                AvatarUrl = self.GetFriendAvatar(accountId),
+                Accepted = self.Accepted,
+                FriendRequestDirection = self.Account1Id == accountId ? RequestDirection.Sent : RequestDirection.Received
             };
         }
 

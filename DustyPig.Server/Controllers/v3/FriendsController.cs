@@ -9,6 +9,7 @@ using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NuGet.Common;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -78,11 +79,14 @@ namespace DustyPig.Server.Controllers.v3
             if (friend == null)
                 return CommonResponses.ValueNotFound(nameof(id));
 
+            var displayName = friend.GetFriendDisplayNameForAccount(UserAccount.Id);
             var ret = new DetailedFriend
             {
                 Id = id,
                 Accepted = friend.Accepted,
-                DisplayName = friend.GetFriendDisplayNameForAccount(UserAccount.Id),
+                FriendRequestDirection = friend.Account1Id == UserAccount.Id ? RequestDirection.Sent : RequestDirection.Received,
+                DisplayName = displayName,
+                Initials = displayName.GetInitials(),
                 AvatarUrl = friend.GetFriendAvatar(UserAccount.Id)
             };
             ret.Initials = ret.DisplayName.GetInitials();
