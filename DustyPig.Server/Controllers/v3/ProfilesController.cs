@@ -90,13 +90,24 @@ namespace DustyPig.Server.Controllers.v3
             };
 
             //Get all owned libraries the profile has access to
-            var libs = await DB.ProfileLibraryShares
-                .AsNoTracking()
-                .Include(item => item.Library)
-                .Where(item => item.ProfileId == id)
-                .Select(item => item.Library)
-                .Where(item => item.AccountId == UserAccount.Id)
-                .ToListAsync();
+            List<Library> libs;
+            if (profile.IsMain)
+            {
+                libs = await DB.Libraries
+                    .AsNoTracking()
+                    .Where(item => item.AccountId == profile.AccountId)
+                    .ToListAsync();
+            }
+            else
+            {
+                libs = await DB.ProfileLibraryShares
+                    .AsNoTracking()
+                    .Include(item => item.Library)
+                    .Where(item => item.ProfileId == id)
+                    .Select(item => item.Library)
+                    .Where(item => item.AccountId == UserAccount.Id)
+                    .ToListAsync();
+            }
 
             if (libs.Count > 0)
             {
@@ -108,35 +119,69 @@ namespace DustyPig.Server.Controllers.v3
 
             //Libs shared with account
             var ownedLibraryIds = libs.Select(item => item.Id).ToList();
-            var shares = await DB.ProfileLibraryShares
+            List<FriendLibraryShare> shares;
+            if (profile.IsMain)
+            {
+                shares = await DB.FriendLibraryShares
+                    .AsNoTracking()
 
-                .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares)
-                .ThenInclude(item => item.Friendship)
-                .ThenInclude(item => item.Account1)
-                .ThenInclude(item => item.Profiles)
+                    .Include(item => item.Library)
+                    .ThenInclude(item => item.FriendLibraryShares)
+                    .ThenInclude(item => item.Friendship)
+                    .ThenInclude(item => item.Account1)
 
-                .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares)
-                .ThenInclude(item => item.Friendship)
-                .ThenInclude(item => item.Account2)
-                .ThenInclude(item => item.Profiles)
+                    .Include(item => item.Library)
+                    .ThenInclude(item => item.FriendLibraryShares)
+                    .ThenInclude(item => item.Friendship)
+                    .ThenInclude(item => item.Account2)
 
-                .Include(item => item.Library)
-                .ThenInclude(item => item.FriendLibraryShares)
-                .ThenInclude(item => item.Library)
+                    .Include(item => item.Library)
+                    .ThenInclude(item => item.FriendLibraryShares)
+                    .ThenInclude(item => item.Library)
 
-                .Where(item => item.ProfileId == id)
-                .Where(item => !ownedLibraryIds.Contains(item.LibraryId))
+                    .Where(item => item.Friendship.Account1Id == UserAccount.Id || item.Friendship.Account2Id == UserAccount.Id)
+                    .Where(item => !ownedLibraryIds.Contains(item.LibraryId))
 
-                .Select(item => item.Library)
-                .SelectMany(item => item.FriendLibraryShares)
+                    .Select(item => item.Library)
+                    .SelectMany(item => item.FriendLibraryShares)
 
-                .Where(item => item.Friendship.Accepted)
+                    .Where(item => item.Friendship.Accepted)
 
-                .Distinct()
-                .ToListAsync();
+                    .Distinct()
+                    .ToListAsync();
+            }
+            else
+            {
+                shares = await DB.ProfileLibraryShares
+                    .AsNoTracking()
 
+                    .Include(item => item.Library)
+                    .ThenInclude(item => item.FriendLibraryShares)
+                    .ThenInclude(item => item.Friendship)
+                    .ThenInclude(item => item.Account1)
+                    .ThenInclude(item => item.Profiles)
+
+                    .Include(item => item.Library)
+                    .ThenInclude(item => item.FriendLibraryShares)
+                    .ThenInclude(item => item.Friendship)
+                    .ThenInclude(item => item.Account2)
+                    .ThenInclude(item => item.Profiles)
+
+                    .Include(item => item.Library)
+                    .ThenInclude(item => item.FriendLibraryShares)
+                    .ThenInclude(item => item.Library)
+
+                    .Where(item => item.ProfileId == id)
+                    .Where(item => !ownedLibraryIds.Contains(item.LibraryId))
+
+                    .Select(item => item.Library)
+                    .SelectMany(item => item.FriendLibraryShares)
+
+                    .Where(item => item.Friendship.Accepted)
+
+                    .Distinct()
+                    .ToListAsync();
+            }
 
 
             if (shares.Count > 0)
@@ -145,6 +190,9 @@ namespace DustyPig.Server.Controllers.v3
                 foreach (var share in shares)
                     ret.AvailableLibraries.Add(share.ToBasicLibraryInfo(UserAccount.Id));
             }
+
+            if (ret.AvailableLibraries != null)
+                ret.AvailableLibraries.Sort();
 
             return ret;
         }
