@@ -127,18 +127,16 @@ namespace DustyPig.Server.HostedServices
                         {
                             var msgData = new Dictionary<string, string>
                             {
-                                { "id", notification.Id.ToString() },
-                                { "title", notification.Title },
-                                { "message", notification.Message },
-                                { "profile_id", notification.ProfileId.ToString() },
-                                { "notificaiton_type", ((int)notification.NotificationType).ToString() }
+                                { "dp.id", notification.Id.ToString() },
+                                { "dp.profile_id", notification.ProfileId.ToString() },
+                                { "dp.notificaiton_type", ((int)notification.NotificationType).ToString() }
                             };
 
 
                             if (notification.MediaEntry != null)
                             {
-                                msgData.Add("media_id", notification.MediaEntry.Id.ToString());
-                                msgData.Add("media_type", ((int)notification.MediaEntry.EntryType).ToString());
+                                msgData.Add("dp.media_id", notification.MediaEntry.Id.ToString());
+                                msgData.Add("dp.media_type", ((int)notification.MediaEntry.EntryType).ToString());
                             }
                             else
                             {
@@ -150,23 +148,16 @@ namespace DustyPig.Server.HostedServices
                                 };
 
                                 if (newMediaNotificationTypes.Contains(notification.NotificationType))
-                                    msgData.Add("media_id", notification.GetRequest.TMDB_Id.ToString());
+                                    msgData.Add("dp.media_id", notification.GetRequest.TMDB_Id.ToString());
                             }
 
                             if (notification.Friendship != null)
-                                msgData.Add("friendship_id", notification.FriendshipId.ToString());
+                                msgData.Add("dp.friendship_id", notification.FriendshipId.ToString());
 
                             var msg = new Message
                             {
                                 Token = fcmToken.Token,
-                                Data = new Dictionary<string, string>
-                                {
-                                    { "id", notification.Id.ToString() },
-                                    { "profile_id", notification.ProfileId.ToString() },
-                                    { "title", notification.Title },
-                                    { "message", notification.Message },
-                                    { "notificaiton_type", ((int)notification.NotificationType).ToString() },
-                                },
+                                Data = msgData,
                                 Notification = new FirebaseAdmin.Messaging.Notification
                                 {
                                     Title = notification.Title,
