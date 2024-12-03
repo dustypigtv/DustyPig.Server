@@ -166,6 +166,11 @@ namespace DustyPig.Server.HostedServices
                                     { "title", notification.Title },
                                     { "message", notification.Message },
                                     { "notificaiton_type", ((int)notification.NotificationType).ToString() },
+                                },
+                                Notification = new FirebaseAdmin.Messaging.Notification
+                                {
+                                    Title = notification.Title,
+                                    Body = notification.Message
                                 }
                             };
 
