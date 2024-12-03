@@ -127,16 +127,16 @@ namespace DustyPig.Server.HostedServices
                         {
                             var msgData = new Dictionary<string, string>
                             {
-                                { "dp.id", notification.Id.ToString() },
-                                { "dp.profile_id", notification.ProfileId.ToString() },
-                                { "dp.notificaiton_type", ((int)notification.NotificationType).ToString() }
+                                { Constants.FCM_KEY_ID, notification.Id.ToString() },
+                                { Constants.FCM_KEY_PROFILE_ID, notification.ProfileId.ToString() },
+                                { Constants.FCM_KEY_NOTIFICATION_TYPE, ((int)notification.NotificationType).ToString() }
                             };
 
 
                             if (notification.MediaEntry != null)
                             {
-                                msgData.Add("dp.media_id", notification.MediaEntry.Id.ToString());
-                                msgData.Add("dp.media_type", ((int)notification.MediaEntry.EntryType).ToString());
+                                msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.MediaEntry.Id.ToString());
+                                msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.MediaEntry.EntryType).ToString());
                             }
                             else
                             {
@@ -148,11 +148,11 @@ namespace DustyPig.Server.HostedServices
                                 };
 
                                 if (newMediaNotificationTypes.Contains(notification.NotificationType))
-                                    msgData.Add("dp.media_id", notification.GetRequest.TMDB_Id.ToString());
+                                    msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.GetRequest.TMDB_Id.ToString());
                             }
 
                             if (notification.Friendship != null)
-                                msgData.Add("dp.friendship_id", notification.FriendshipId.ToString());
+                                msgData.Add(Constants.FCM_KEY_FRIENDSHIP_ID, notification.FriendshipId.ToString());
 
                             var msg = new Message
                             {
