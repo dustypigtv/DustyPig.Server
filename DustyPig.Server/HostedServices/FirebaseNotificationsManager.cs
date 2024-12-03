@@ -148,7 +148,10 @@ namespace DustyPig.Server.HostedServices
                                 };
 
                                 if (newMediaNotificationTypes.Contains(notification.NotificationType))
+                                {
                                     msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.GetRequest.TMDB_Id.ToString());
+                                    msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.GetRequest.EntryType).ToString());
+                                }
                             }
 
                             if (notification.Friendship != null)
