@@ -111,6 +111,7 @@ namespace DustyPig.Server.HostedServices
                     .Where(item => item.Sent == false)
                     .Where(item => item.Seen == false)
                     .OrderBy(item => item.ProfileId)
+                    .ThenBy(item => item.Timestamp)
                     .Skip(start)
                     .Take(CHUNK_SIZE)
                     .ToListAsync(_cancellationToken);
