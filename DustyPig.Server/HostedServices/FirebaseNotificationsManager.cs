@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -109,23 +110,22 @@ namespace DustyPig.Server.HostedServices
                     .Include(item => item.Friendship)
                     .Where(item => item.Sent == false)
                     .Where(item => item.Seen == false)
-                    .OrderBy(item => item.Id)
+                    .OrderBy(item => item.ProfileId)
                     .Skip(start)
                     .Take(CHUNK_SIZE)
                     .ToListAsync(_cancellationToken);
 
                 if (notifications.Count == 0)
                     return;
+                
 
                 var msgs = new List<Message>();
                 var dict = new Dictionary<int, Data.Models.Notification>();
                 foreach (var notification in notifications)
                 {
-                    if (!(notification.Sent || notification.Seen))
+                    foreach (var fcmToken in notification.Profile.FCMTokens)
                     {
-                        foreach (var fcmToken in notification.Profile.FCMTokens)
-                        {
-                            var msgData = new Dictionary<string, string>
+                        var msgData = new Dictionary<string, string>
                             {
                                 { Constants.FCM_KEY_ID, notification.Id.ToString() },
                                 { Constants.FCM_KEY_PROFILE_ID, notification.ProfileId.ToString() },
@@ -133,49 +133,65 @@ namespace DustyPig.Server.HostedServices
                             };
 
 
-                            if (notification.MediaEntry != null)
+                        if (notification.MediaEntry != null)
+                        {
+                            msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.MediaEntry.Id.ToString());
+                            msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.MediaEntry.EntryType).ToString());
+                        }
+                        else
+                        {
+                            var newMediaNotificationTypes = new NotificationTypes[]
                             {
-                                msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.MediaEntry.Id.ToString());
-                                msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.MediaEntry.EntryType).ToString());
-                            }
-                            else
-                            {
-                                var newMediaNotificationTypes = new NotificationTypes[]
-                                {
                                     NotificationTypes.NewMediaPending,
                                     NotificationTypes.NewMediaRejected,
                                     NotificationTypes.NewMediaRequested
-                                };
-
-                                if (newMediaNotificationTypes.Contains(notification.NotificationType))
-                                {
-                                    msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.GetRequest.TMDB_Id.ToString());
-                                    msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.GetRequest.EntryType).ToString());
-                                }
-                            }
-
-                            if (notification.Friendship != null)
-                                msgData.Add(Constants.FCM_KEY_FRIENDSHIP_ID, notification.FriendshipId.ToString());
-
-                            var msg = new Message
-                            {
-                                Token = fcmToken.Token,
-                                Data = msgData,
-                                Notification = new FirebaseAdmin.Messaging.Notification
-                                {
-                                    Title = notification.Title,
-                                    Body = notification.Message
-                                }
                             };
 
-
-                            msgs.Add(msg);
-                            dict.Add(msgs.Count - 1, notification);
-
-                            if (msgs.Count == 500)
-                                await SendBatchOfNotificationsAsync(msgs, dict, db);
+                            if (newMediaNotificationTypes.Contains(notification.NotificationType))
+                            {
+                                msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.GetRequest.TMDB_Id.ToString());
+                                msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.GetRequest.EntryType).ToString());
+                            }
                         }
+
+                        if (notification.Friendship != null)
+                            msgData.Add(Constants.FCM_KEY_FRIENDSHIP_ID, notification.FriendshipId.ToString());
+
+                        var msg = new Message
+                        {
+                            Token = fcmToken.Token,
+                            Data = msgData,
+                            Notification = new FirebaseAdmin.Messaging.Notification
+                            {
+                                Title = notification.Title,
+                                Body = notification.Message
+                            },
+                            Apns = new ApnsConfig
+                            {
+                                Aps = new Aps 
+                                {
+                                    Badge = notifications.Count(n => n.ProfileId == notification.ProfileId)
+                                }
+                            },
+                            Android = new AndroidConfig
+                            {
+                                Priority = Priority.High,
+                                Notification = new AndroidNotification
+                                {
+                                    Color = Constants.FCM_KEY_ANDROID_COLOR,
+                                    Icon = Constants.FCM_KEY_ANDROID_ICON
+                                }
+                            }
+                        };
+
+
+                        msgs.Add(msg);
+                        dict.Add(msgs.Count - 1, notification);
+
+                        if (msgs.Count == 500)
+                            await SendBatchOfNotificationsAsync(msgs, dict, db);
                     }
+
                 }
 
                 if (msgs.Count > 0)
