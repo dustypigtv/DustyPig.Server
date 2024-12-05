@@ -58,7 +58,7 @@ namespace DustyPig.Server.Controllers.v3
                     MediaId = item.MediaEntryId,
                     MediaType = item.NotificationType switch
                     {
-                        NotificationTypes.NewMediaAvailable => MediaTypes.Series,
+                        NotificationTypes.NewMediaAvailable => MediaTypes.Episode,
                         NotificationTypes.NewMediaFulfilled => item.MediaEntry.EntryType,
                         NotificationTypes.NewMediaPending => item.GetRequest.EntryType == TMDB_MediaTypes.Series ? MediaTypes.Series : MediaTypes.Movie,
                         NotificationTypes.NewMediaRejected => item.GetRequest.EntryType == TMDB_MediaTypes.Series ? MediaTypes.Series : MediaTypes.Movie,
