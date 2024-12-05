@@ -38,7 +38,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Include(item => item.MediaEntry)
                 .Include(item => item.GetRequest)
                 .Where(item => item.ProfileId == UserProfile.Id)
-                .OrderBy(item => item.Timestamp)
+                .OrderByDescending(item => item.Timestamp)
                 .Skip(start)
                 .Take(LIST_SIZE)
                 .ToListAsync();
