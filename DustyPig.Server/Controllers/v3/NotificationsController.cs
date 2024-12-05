@@ -94,7 +94,6 @@ namespace DustyPig.Server.Controllers.v3
                 return Result.BuildSuccess();
 
             dbNotification.Seen = true;
-            dbNotification.Timestamp = DateTime.UtcNow;
             await DB.SaveChangesAsync();
 
             return Result.BuildSuccess();
