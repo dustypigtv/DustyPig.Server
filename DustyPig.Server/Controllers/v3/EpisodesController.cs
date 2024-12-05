@@ -95,8 +95,8 @@ namespace DustyPig.Server.Controllers.v3
             //Make sure the series is owned
             var ownedSeries = await DB.MediaEntries
                 .Include(item => item.Library)
-                .ThenInclude(item => item.ProfileLibraryShares)
                 .Include(item => item.Subscriptions)
+                .ThenInclude(item => item.Profile)
                 .Where(item => item.Id == episodeInfo.SeriesId)
                 .SingleOrDefaultAsync();
 
@@ -173,7 +173,7 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         DB.Notifications.Add(new Data.Models.Notification
                         {
-                            MediaEntry = newItem,
+                            MediaEntryId = episodeInfo.SeriesId,
                             Message = "\"" + ownedSeries.Title + "\" is now availble!",
                             NotificationType = NotificationTypes.NewMediaFulfilled,
                             ProfileId = sub.ProfileId,
@@ -187,19 +187,25 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
-            foreach (var subscription in ownedSeries.Subscriptions)
-                if (ownedSeries.Library.ProfileLibraryShares.Any(item => item.ProfileId == subscription.ProfileId))
-                    if (!notifiedProfiles.Contains(subscription.ProfileId))
-                        DB.Notifications.Add(new Data.Models.Notification
-                        {
-                            MediaEntry = newItem,
-                            Message = $"{ownedSeries.Title} - s{episodeInfo.SeasonNumber:00}e{episodeInfo.EpisodeNumber:00} is now available",
-                            NotificationType = NotificationTypes.NewMediaAvailable,
-                            ProfileId = subscription.ProfileId,
-                            Timestamp = DateTime.UtcNow,
-                            Title = "New Episode Available"
-                        });
+            foreach (var subscription in ownedSeries.Subscriptions.Where(s => !notifiedProfiles.Contains(s.ProfileId)))
+            {
+                var seriesPlayable = await DB.WatchableSeriesByProfileQuery(subscription.Profile)
+                    .AsNoTracking()
+                    .Where(m => m.Id == episodeInfo.SeriesId)
+                    .AnyAsync();
+               
 
+                if (seriesPlayable)
+                    DB.Notifications.Add(new Data.Models.Notification
+                    {
+                        MediaEntry = newItem,
+                        Message = $"{ownedSeries.Title} - s{episodeInfo.SeasonNumber:00}e{episodeInfo.EpisodeNumber:00} is now available",
+                        NotificationType = NotificationTypes.NewMediaAvailable,
+                        ProfileId = subscription.ProfileId,
+                        Timestamp = DateTime.UtcNow,
+                        Title = "New Episode Available"
+                    });
+            }
 
             //Updating the Added field of the series MediaEntry allows the RecentlyAdded query to run far more efficently
             ownedSeries.Added = newItem.Added;
@@ -219,42 +225,12 @@ namespace DustyPig.Server.Controllers.v3
             var playlistsToUpdate = new List<int>();
             foreach (var aps in apsSubs)
             {
-                var seriesPlayable = await DB.MediaEntries
-                    .Where(m => m.EntryType == MediaTypes.Series)
-
-                    .Where(m =>
-                        m.TitleOverrides
-                            .Where(t => t.ProfileId == aps.Playlist.ProfileId)
-                            .Where(t => t.State == OverrideState.Allow)
-                            .Any()
-                        ||
-                        (
-                            aps.Playlist.Profile.IsMain
-                            &&
-                            (
-                                m.Library.AccountId == aps.Playlist.Profile.AccountId
-                                ||
-                                (
-                                    m.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == aps.Playlist.Profile.AccountId || f.Friendship.Account2Id == aps.Playlist.Profile.AccountId)
-                                    && !m.TitleOverrides
-                                        .Where(t => t.ProfileId == aps.Playlist.ProfileId)
-                                        .Where(t => t.State == OverrideState.Block)
-                                        .Any()
-                                )
-                            )
-                        )
-                        ||
-                        (
-                            m.Library.ProfileLibraryShares.Any(p => p.ProfileId == aps.Playlist.ProfileId)
-                            && aps.Playlist.Profile.MaxTVRating >= (m.TVRating ?? TVRatings.NotRated)
-                            && !m.TitleOverrides
-                                .Where(t => t.ProfileId == aps.Playlist.ProfileId)
-                                .Where(t => t.State == OverrideState.Block)
-                                .Any()
-                        )
-                    )
+                var seriesPlayable = await DB.WatchableSeriesByProfileQuery(aps.Playlist.Profile)
+                    .AsNoTracking()
+                    .Where(s => s.Id == episodeInfo.SeriesId)
                     .AnyAsync();
-
+                
+                
                 if (seriesPlayable)
                 {
                     DB.PlaylistItems.Add(new Data.Models.PlaylistItem
