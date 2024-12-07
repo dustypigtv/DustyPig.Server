@@ -11,9 +11,12 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +33,7 @@ namespace DustyPig.Server.HostedServices
 
 
         //15 Seconds
-        const int MILLISECONDS_DELAY = 1000 * 15;
+        const int ONE_SECOND = 1000;
 
 
         class ArtDTO
@@ -44,11 +47,22 @@ namespace DustyPig.Server.HostedServices
 
         readonly ILogger<ArtworkUpdater> _logger;
         private readonly Timer _timer;
-        private CancellationToken _cancellationToken = default;
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
+        private readonly CancellationToken _cancellationToken;
+
+
+        //Reduce polling the database by only polling on startup, then using a queue
+        bool _processFirstRun = true;
+        static readonly ConcurrentQueue<int> _processQueue = new();
+        
+        bool _deleteFirstRun = true;
+        static readonly ConcurrentQueue<int> _deleteQueue = new();
+
 
         public ArtworkUpdater(ILogger<ArtworkUpdater> logger)
         {
             _logger = logger;
+            _cancellationToken = _cancellationTokenSource.Token;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
         }
 
@@ -60,16 +74,13 @@ namespace DustyPig.Server.HostedServices
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
-#if !DEBUG
-            _timer.Change(MILLISECONDS_DELAY, Timeout.Infinite);
-#endif
+            _timer.Change(ONE_SECOND, Timeout.Infinite);
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
+            _cancellationTokenSource.Cancel();
             return Task.CompletedTask;
         }
 
@@ -80,8 +91,11 @@ namespace DustyPig.Server.HostedServices
         {
             try
             {
-                await ProcessNextAsync();
-                await DeleteNextAsync();
+                if(_processFirstRun || !_processQueue.IsEmpty)
+                    await ProcessNextAsync();
+
+                if(_deleteFirstRun || !_deleteQueue.IsEmpty)
+                    await DeleteNextAsync();
             }
             catch (OperationCanceledException)
             {
@@ -92,22 +106,38 @@ namespace DustyPig.Server.HostedServices
             }
 
             if (!_cancellationToken.IsCancellationRequested)
-                _timer.Change(MILLISECONDS_DELAY, Timeout.Infinite);
+                try { _timer.Change(ONE_SECOND, Timeout.Infinite); }
+                catch { }
         }
 
 
         private async Task ProcessNextAsync()
         {
+            int pid = -1;
+            if (!_processFirstRun)
+                if (!_processQueue.TryDequeue(out pid))
+                    return;
+
             using var db = new AppDbContext();
 
-            var playlist = await db.Playlists
+            var query = db.Playlists
                 .Include(item => item.Profile)
                 .Include(item => item.PlaylistItems)
-                .Where(item => item.ArtworkUpdateNeeded)
+                .Where(item => item.ArtworkUpdateNeeded);
+
+            if (!_processFirstRun)
+                query = query.Where(p => p.Id == pid);
+
+            var playlist = await query
                 .FirstOrDefaultAsync(_cancellationToken);
 
             if (playlist == null)
+            {
+                _processFirstRun = false;
                 return;
+            }
+
+
 
             try
             {
@@ -208,7 +238,7 @@ namespace DustyPig.Server.HostedServices
             {
                 //Otherwise, the next playlist in the database will never get updated
                 playlist.ArtworkUpdateNeeded = false;
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(_cancellationToken);
 
                 _logger.LogError(ex, ex.Message);
             }
@@ -218,10 +248,23 @@ namespace DustyPig.Server.HostedServices
         {
             try
             {
+                int did = -1;
+                if (!_deleteFirstRun)
+                    if (!_deleteQueue.TryDequeue(out did))
+                        return;
+
                 using var db = new AppDbContext();
-                var entry = await db.S3ArtFilesToDelete.FirstOrDefaultAsync();
+
+                var query = db.S3ArtFilesToDelete.AsQueryable();
+                if (!_deleteFirstRun)
+                    query = query.Where(d => d.Id == did);
+
+                var entry = await query.FirstOrDefaultAsync(_cancellationToken);
                 if (entry == null)
+                {
+                    _deleteFirstRun = false;
                     return;
+                }
 
                 if (!string.IsNullOrWhiteSpace(entry.Url))
                 {
@@ -284,6 +327,7 @@ namespace DustyPig.Server.HostedServices
             using var db = new AppDbContext();
             string query = $"UPDATE {nameof(db.Playlists)} SET {nameof(Data.Models.Playlist.ArtworkUpdateNeeded)} = 1 WHERE {nameof(Data.Models.Playlist.Id)} = {id}";
             await db.Database.ExecuteSqlRawAsync(query);
+            _processQueue.Enqueue(id);
         }
 
 
@@ -295,17 +339,58 @@ namespace DustyPig.Server.HostedServices
             if (ids == null || ids.Count == 0)
                 return;
 
+            var copy = ids.ToList();
+
             using var db = new AppDbContext();
 
-            while (ids.Count > 100)
+            while (copy.Count > 0)
             {
-                string idStr = string.Join(',', ids.Take(100));
-                ids = ids.Skip(100).ToList();
+                string idStr = string.Join(',', copy.Take(100));
                 string query = $"UPDATE {nameof(db.Playlists)} SET {nameof(Data.Models.Playlist.ArtworkUpdateNeeded)} = 1 WHERE {nameof(Data.Models.Playlist.Id)} IN ({idStr})";
                 await db.Database.ExecuteSqlRawAsync(query);
+
+                copy = copy.Skip(100).ToList();
+                if (copy.Count > 0)
+                    await Task.Delay(ONE_SECOND);
             }
+
+            foreach (var id in ids)
+                _processQueue.Enqueue(id);
         }
 
+
+
+        public static async Task SetNeedsDeletionAsync(string url)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(url))
+                    return;
+
+                using var db = new AppDbContext();
+                var entity = db.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url }).Entity;
+                await db.SaveChangesAsync();
+                _deleteQueue.Enqueue(entity.Id);
+            }
+            catch { }
+        }
+
+        public static async Task SetNeedsDeletionAsync(IEnumerable<string> urls)
+        {
+            try
+            {
+                if (urls == null || !urls.Any(u => !string.IsNullOrWhiteSpace(u)))
+                    return;
+
+                using var db = new AppDbContext();
+                var entities = new List<S3ArtFileToDelete>();
+                foreach (var url in urls.Where(u => !string.IsNullOrWhiteSpace(u)))
+                    entities.Add(db.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url }).Entity);
+                await db.SaveChangesAsync();
+                entities.ForEach(e => _deleteQueue.Enqueue(e.Id));
+            }
+            catch { }
+        }
 
 
 
@@ -421,12 +506,12 @@ namespace DustyPig.Server.HostedServices
                     if (backdrop)
                     {
                         if (calcArt != playlist.BackdropUrl)
-                            db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.BackdropUrl });
+                            await SetNeedsDeletionAsync(playlist.BackdropUrl);
                     }
                     else
                     {
                         if (calcArt != playlist.ArtworkUrl)
-                            db.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
+                            await SetNeedsDeletionAsync(playlist.ArtworkUrl);
                     }
 
 

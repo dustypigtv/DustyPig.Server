@@ -4,6 +4,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -322,7 +323,7 @@ namespace DustyPig.Server.Controllers.v3
             await S3.UploadAvatarAsync(ms, keyPath, default);
 
             //Swap
-            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
+            await ArtworkUpdater.SetNeedsDeletionAsync(profile.AvatarUrl);
             profile.AvatarUrl = urlPath;
             DB.Profiles.Update(profile);
 
@@ -378,7 +379,7 @@ namespace DustyPig.Server.Controllers.v3
             await S3.UploadAvatarAsync(stream, keyPath, default);
 
             //Swap
-            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
+            await ArtworkUpdater.SetNeedsDeletionAsync(profile.AvatarUrl);
             profile.AvatarUrl = urlPath;
             DB.Profiles.Update(profile);
 
@@ -457,20 +458,19 @@ namespace DustyPig.Server.Controllers.v3
             if (profile.IsMain)
                 return "Cannot delete main profile";
 
-            var playlistArtworkUrls = await DB.Playlists
+            var artworkToDelete = await DB.Playlists
                 .AsNoTracking()
                 .Where(item => item.ProfileId == id)
                 .Select(item => item.ArtworkUrl)
                 .ToListAsync();
 
-            foreach (string url in playlistArtworkUrls)
-                if (!string.IsNullOrWhiteSpace(url))
-                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = url });
-
-            DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = profile.AvatarUrl });
+            artworkToDelete.Add(profile.AvatarUrl);
+            
             DB.Profiles.Remove(profile);
 
             await DB.SaveChangesAsync();
+
+            await ArtworkUpdater.SetNeedsDeletionAsync(artworkToDelete);
 
             return Result.BuildSuccess();
         }

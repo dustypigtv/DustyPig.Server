@@ -342,8 +342,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (playlist != null)
             {
-                DB.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.ArtworkUrl });
-                DB.S3ArtFilesToDelete.Add(new Data.Models.S3ArtFileToDelete { Url = playlist.BackdropUrl });
+                await ArtworkUpdater.SetNeedsDeletionAsync([playlist.ArtworkUrl, playlist.BackdropUrl]);
                 DB.Playlists.Remove(playlist);
                 await DB.SaveChangesAsync();
             }

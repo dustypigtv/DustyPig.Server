@@ -19,10 +19,12 @@ namespace DustyPig.Server.HostedServices
 {
     public class TMDB_Updater : IHostedService, IDisposable
     {
-        private const int MILLISECONDS_PER_MINUTE = 1000 * 60;
+        private const int ONE_MINUTE = 1000 * 60;
+        private const int CHUNK_SIZE = 1000;
 
         private readonly Timer _timer;
-        private CancellationToken _cancellationToken = default;
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
+        private readonly CancellationToken _cancellationToken;
         private readonly ILogger<TMDB_Updater> _logger;
         private static readonly TMDBClient _client = new()
         {
@@ -33,6 +35,7 @@ namespace DustyPig.Server.HostedServices
 
         public TMDB_Updater(ILogger<TMDB_Updater> logger)
         {
+            _cancellationToken = _cancellationTokenSource.Token;
             _logger = logger;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
         }
@@ -47,16 +50,13 @@ namespace DustyPig.Server.HostedServices
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
-#if !DEBUG
             _timer.Change(0, Timeout.Infinite);
-#endif
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
+            _cancellationTokenSource.Cancel();
             return Task.CompletedTask;
         }
 
@@ -74,7 +74,8 @@ namespace DustyPig.Server.HostedServices
             }
 
             if (!_cancellationToken.IsCancellationRequested)
-                _timer.Change(MILLISECONDS_PER_MINUTE, Timeout.Infinite);
+                try { _timer.Change(ONE_MINUTE, Timeout.Infinite); }
+                catch { }
         }
 
 
@@ -85,48 +86,67 @@ namespace DustyPig.Server.HostedServices
 
             //Get tmdb_ids from MediaEntries that have not yet been linked to a TMDB_Entry.
             //These are newly added and should update first
-            await Task.Delay(100, _cancellationToken);
-            var toDoList1 = await db.MediaEntries
-                .AsNoTracking()
-                .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
-                .Where(m => m.TMDB_EntryId == null)
-                .Where(m => m.TMDB_Id.HasValue)
-                .Where(m => m.TMDB_Id > 0)
-                .OrderBy(m => m.Added)
-                .Select(m => new
-                {
-                    m.TMDB_Id,
-                    m.EntryType
-                })
-                .Distinct()
-                .ToListAsync(_cancellationToken);
-
-            foreach (var item in toDoList1)
+            int start = 0;
+            while (true)
             {
-                var tmdbType = item.EntryType == MediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series;
-                await DoUpdateAsync(item.TMDB_Id.Value, tmdbType, true);
+                var newItemsLst = await db.MediaEntries
+                    .AsNoTracking()
+                    .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
+                    .Where(m => m.TMDB_EntryId == null)
+                    .Where(m => m.TMDB_Id.HasValue)
+                    .Where(m => m.TMDB_Id > 0)
+                    .OrderBy(m => m.Added)
+                    .Skip(start)
+                    .Take(CHUNK_SIZE)
+                    .Select(m => new
+                    {
+                        m.TMDB_Id,
+                        m.EntryType
+                    })
+                    .Distinct()
+                    .ToListAsync(_cancellationToken);
+
+                if (newItemsLst.Count == 0)
+                    break;
+
+                foreach (var item in newItemsLst)
+                {
+                    var tmdbType = item.EntryType == MediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series;
+                    await DoUpdateAsync(item.TMDB_Id.Value, tmdbType, true);
+                }
+
+                start += CHUNK_SIZE;
             }
 
 
+            start = 0;
+            while (true)
+            {
+                //Now get any existing tmdb entries that are due to update
+                await Task.Delay(100, _cancellationToken);
+                var updateItemsLst = await db.TMDB_Entries
+                    .AsNoTracking()
+                    .Where(m => m.LastUpdated < DateTime.UtcNow.AddDays(-1))
+                    .OrderBy(m => m.LastUpdated)
+                    .Skip(start)
+                    .Take(CHUNK_SIZE)
+                    .Select(m => new
+                    {
+                        m.TMDB_Id,
+                        m.MediaType
+                    })
+                    .Distinct()
+                    .ToListAsync(_cancellationToken);
 
-            //Now get any existing tmdb entries that are due to update
-            await Task.Delay(100, _cancellationToken);
-            var toDoList2 = await db.TMDB_Entries
-                .AsNoTracking()
-                .Where(m => m.LastUpdated < DateTime.UtcNow.AddDays(-1))
-                .OrderBy(m => m.LastUpdated)
-                .Select(m => new
-                {
-                    m.TMDB_Id,
-                    m.MediaType
-                })
-                .Distinct()
-                .ToListAsync(_cancellationToken);
+                if (updateItemsLst.Count == 0)
+                    break;
 
-            foreach (var item in toDoList2)
-                await DoUpdateAsync(item.TMDB_Id, item.MediaType, false);
+                foreach (var item in updateItemsLst)
+                    await DoUpdateAsync(item.TMDB_Id, item.MediaType, false);
+
+                start += CHUNK_SIZE;
+            }
         }
-
 
 
         /// <param name="forceUpdate">For when the tmdbId came from an unlinked MediaEntry</param>

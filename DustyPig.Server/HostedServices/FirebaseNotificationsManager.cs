@@ -25,7 +25,8 @@ namespace DustyPig.Server.HostedServices
 
 
         private readonly Timer _timer;
-        private CancellationToken _cancellationToken = default;
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
+        private readonly CancellationToken _cancellationToken;
         private readonly ILogger<FirebaseNotificationsManager> _logger;
 
         //To reduce polling the DB:
@@ -39,6 +40,7 @@ namespace DustyPig.Server.HostedServices
 
         public FirebaseNotificationsManager(ILogger<FirebaseNotificationsManager> logger)
         {
+            _cancellationToken = _cancellationTokenSource.Token;
             _logger = logger;
             _timer = new Timer(new TimerCallback(TimerTickedAsync), null, Timeout.Infinite, Timeout.Infinite);
         }
@@ -50,14 +52,13 @@ namespace DustyPig.Server.HostedServices
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
             _timer.Change(0, Timeout.Infinite);
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _cancellationToken = cancellationToken;
+            _cancellationTokenSource.Cancel();
             return Task.CompletedTask;
         }
 

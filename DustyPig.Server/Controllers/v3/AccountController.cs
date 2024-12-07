@@ -6,6 +6,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
@@ -127,16 +128,16 @@ namespace DustyPig.Server.Controllers.v3
 
             //Images to cleanup from Wasabi
             var profileIds = account.Profiles.Select(item => item.Id).ToList();
-            var profileAvatars = account.Profiles.Select(item => item.AvatarUrl).ToList();
-            var playlistArtworkUrls = new List<string>();
+            var artToDelete = account.Profiles.Select(item => item.AvatarUrl).ToList();
             try
             {
-                playlistArtworkUrls = await DB.Playlists
+                var playlistArtworkUrls = await DB.Playlists
                     .AsNoTracking()
                     .Where(item => profileIds.Contains(item.ProfileId))
                     .Where(item => item.ArtworkUrl != Constants.DEFAULT_PLAYLIST_IMAGE)
                     .Select(item => item.ArtworkUrl)
                     .ToListAsync();
+                artToDelete.AddRange(playlistArtworkUrls);
             }
             catch { }
 
@@ -147,17 +148,7 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
 
             //Try to clean up, but ok if it fails
-            try
-            {
-                foreach (var avatar in profileAvatars)
-                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = avatar });
-
-                foreach (var playlistArtworkUrl in playlistArtworkUrls.Where(item => !string.IsNullOrWhiteSpace(item)))
-                    DB.S3ArtFilesToDelete.Add(new S3ArtFileToDelete { Url = playlistArtworkUrl });
-
-                await DB.SaveChangesAsync();
-            }
-            catch { }
+            await ArtworkUpdater.SetNeedsDeletionAsync(artToDelete);
 
             return Result.BuildSuccess();
         }
