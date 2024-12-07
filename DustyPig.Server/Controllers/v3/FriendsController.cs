@@ -214,6 +214,8 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
+            FirebaseNotificationsManager.QueueProfileForNotifications(friendMainProfile.Id);
+
             return Result.BuildSuccess();
         }
 
@@ -254,18 +256,19 @@ namespace DustyPig.Server.Controllers.v3
             if (friendship.Accepted && !info.Accepted)
                 return "Cannot go from Accepted to Invited. Please use the delete method";
 
-
+            int notifyProfileId = -1;
             if (info.Accepted && !friendship.Accepted)
             {
                 friendship.Accepted = true;
 
+                notifyProfileId = friendship.Account1.Profiles.Single(item => item.IsMain).Id;
                 DB.Notifications.Add(new Data.Models.Notification
                 {
                     FriendshipId = friendship.Id,
                     Title = "You have a new friend!",
                     Message = $"{UserProfile.Name} has accepted your friend request",
                     NotificationType = NotificationTypes.FriendshipAccepted,
-                    ProfileId = friendship.Account1.Profiles.Single(item => item.IsMain).Id,
+                    ProfileId = notifyProfileId,
                     Timestamp = DateTime.UtcNow
                 });
 
@@ -279,6 +282,9 @@ namespace DustyPig.Server.Controllers.v3
                 friendship.DisplayName1 = info.DisplayName;
 
             await DB.SaveChangesAsync();
+
+            if(notifyProfileId > 0)
+                FirebaseNotificationsManager.QueueProfileForNotifications(notifyProfileId);
 
             return Result.BuildSuccess();
         }

@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -193,9 +194,10 @@ namespace DustyPig.Server.Controllers.v3
                     .AsNoTracking()
                     .Where(m => m.Id == episodeInfo.SeriesId)
                     .AnyAsync();
-               
+
 
                 if (seriesPlayable)
+                {
                     DB.Notifications.Add(new Data.Models.Notification
                     {
                         MediaEntry = newItem,
@@ -205,6 +207,9 @@ namespace DustyPig.Server.Controllers.v3
                         Timestamp = DateTime.UtcNow,
                         Title = "New Episode Available"
                     });
+             
+                    notifiedProfiles.Add(subscription.ProfileId);
+                }
             }
 
             //Updating the Added field of the series MediaEntry allows the RecentlyAdded query to run far more efficently
@@ -249,6 +254,10 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
 
             await HostedServices.ArtworkUpdater.SetNeedsUpdateAsync(playlistsToUpdate);
+
+            //Queue notifications
+            foreach(int profileId in notifiedProfiles.Distinct())
+                FirebaseNotificationsManager.QueueProfileForNotifications(profileId);
 
             return newItem.Id;
         }

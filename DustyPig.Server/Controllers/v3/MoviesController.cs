@@ -420,8 +420,11 @@ namespace DustyPig.Server.Controllers.v3
                         });
 
                         DB.GetRequestSubscriptions.Remove(sub);
-                        await DB.SaveChangesAsync();
                     }
+                    
+                    await DB.SaveChangesAsync();
+                    foreach (var sub in getRequest.NotificationSubscriptions)
+                        FirebaseNotificationsManager.QueueProfileForNotifications(sub.ProfileId);
                 }
             }
 

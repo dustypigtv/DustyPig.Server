@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using DustyPig.TMDB.Models.Common;
 using Microsoft.AspNetCore.Http;
@@ -431,6 +432,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(item => item.EntryType == data.MediaType)
                 .FirstOrDefaultAsync();
 
+            bool notifyProfile = false;
             if (existingReq != null)
             {
                 //Subscribe
@@ -459,7 +461,7 @@ namespace DustyPig.Server.Controllers.v3
                         _ => throw new Exception("Imposible value for existingReq.Status")
                     };
 
-
+                    notifyProfile = true;
                     DB.Notifications.Add(new Data.Models.Notification
                     {
                         GetRequestId = existingReq.Id,
@@ -494,6 +496,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
                 //Notification
+                notifyProfile = true;
                 DB.Notifications.Add(new Data.Models.Notification
                 {
                     GetRequest = newReq,
@@ -509,6 +512,9 @@ namespace DustyPig.Server.Controllers.v3
 
 
             await DB.SaveChangesAsync();
+
+            if (notifyProfile)
+                FirebaseNotificationsManager.QueueProfileForNotifications(targetAcct.Profiles.First(item => item.IsMain).Id);
 
             return Result.BuildSuccess();
         }

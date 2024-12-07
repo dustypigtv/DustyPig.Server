@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -588,6 +589,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
             }
 
+            int notifyProfileId = UserAccount.Profiles.First(item => item.IsMain).Id;
             if (existingOverride != null)
             {
                 existingOverride.Status = OverrideRequestStatus.Requested;
@@ -599,7 +601,7 @@ namespace DustyPig.Server.Controllers.v3
                     TitleOverrideId = existingOverride.Id,
                     Message = $"{UserProfile.Name} has requsted access to \"{mediaEntry.FormattedTitle()}\"",
                     NotificationType = NotificationTypes.OverrideMediaRequested,
-                    ProfileId = UserAccount.Profiles.First(item => item.IsMain).Id,
+                    ProfileId = notifyProfileId,
                     Title = "Access Request",
                     Timestamp = DateTime.UtcNow
                 });
@@ -620,13 +622,15 @@ namespace DustyPig.Server.Controllers.v3
                     TitleOverride = request,
                     Message = $"{UserProfile.Name} has requsted access to \"{mediaEntry.FormattedTitle()}\"",
                     NotificationType = NotificationTypes.OverrideMediaRequested,
-                    ProfileId = UserAccount.Profiles.First(item => item.IsMain).Id,
+                    ProfileId = notifyProfileId,
                     Title = "Access Request",
                     Timestamp = DateTime.UtcNow
                 });
             }
 
             await DB.SaveChangesAsync();
+
+            FirebaseNotificationsManager.QueueProfileForNotifications(notifyProfileId);
 
             return Result.BuildSuccess();
         }
@@ -955,6 +959,8 @@ namespace DustyPig.Server.Controllers.v3
                 .FirstOrDefault();
 
 
+            bool doNotification = false;
+
             if (overrideEntity == null)
             {
                 bool addOverride = false;
@@ -1020,7 +1026,7 @@ namespace DustyPig.Server.Controllers.v3
                 }
                 else
                 {
-                    bool doNotification = overrideEntity.Status == OverrideRequestStatus.Requested;
+                    doNotification = overrideEntity.Status == OverrideRequestStatus.Requested;
 
                     overrideEntity.Status = info.OverrideState == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied;
                     overrideEntity.State = info.OverrideState;
@@ -1079,6 +1085,9 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             await DB.SaveChangesAsync();
+
+            if (doNotification)
+                FirebaseNotificationsManager.QueueProfileForNotifications(info.ProfileId);
 
             return Result.BuildSuccess();
         }
