@@ -1,14 +1,15 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Services;
 using FirebaseAdmin.Messaging;
+using Google.Cloud.Firestore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,7 +20,9 @@ namespace DustyPig.Server.HostedServices
         private const int CHUNK_SIZE = 1000;
 
         //About once/minute check for and send any new notifications
-        private const int MILLISECONDS_PER_MINUTE = 1000 * 60;
+        private const int ONE_SECOND = 1000;
+        private const int ONE_MINUTE = ONE_SECOND * 60;
+
 
         private readonly Timer _timer;
         private CancellationToken _cancellationToken = default;
@@ -39,11 +42,7 @@ namespace DustyPig.Server.HostedServices
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _cancellationToken = cancellationToken;
-
-#if !DEBUG
             _timer.Change(0, Timeout.Infinite);
-#endif
-
             return Task.CompletedTask;
         }
 
@@ -67,7 +66,7 @@ namespace DustyPig.Server.HostedServices
             }
 
             if (!_cancellationToken.IsCancellationRequested)
-                _timer.Change(MILLISECONDS_PER_MINUTE, Timeout.Infinite);
+                _timer.Change(ONE_MINUTE, Timeout.Infinite);
         }
 
 
@@ -80,7 +79,7 @@ namespace DustyPig.Server.HostedServices
 
 
             //Now do the notifications
-            await SendNotificationsAsync();
+            await SendNotifications2Async();
         }
 
 
@@ -93,134 +92,155 @@ namespace DustyPig.Server.HostedServices
 
 
 
-
-
-        private async Task SendNotificationsAsync()
+        private async Task SendNotifications2Async()
         {
             using var db = new AppDbContext();
 
-            int start = 0;
             while (true)
             {
-                var notifications = await db.Notifications
-                    .Include(item => item.Profile)
-                    .ThenInclude(item => item.FCMTokens)
-                    .Include(item => item.MediaEntry)
-                    .Include(item => item.GetRequest)
-                    .Include(item => item.Friendship)
-                    .Where(item => item.Sent == false)
-                    .Where(item => item.Seen == false)
-                    .OrderBy(item => item.ProfileId)
-                    .ThenBy(item => item.Timestamp)
-                    .Skip(start)
-                    .Take(CHUNK_SIZE)
-                    .ToListAsync(_cancellationToken);
-
-                if (notifications.Count == 0)
-                    return;
+                //Throttle
+                await Task.Delay(ONE_SECOND, _cancellationToken);
                 
+                //Get a profile with unseen/unsent notifications
+                var profile = await db.Profiles
+                    .AsNoTracking()
 
-                var msgs = new List<Message>();
-                var dict = new Dictionary<int, Data.Models.Notification>();
-                foreach (var notification in notifications)
+                    .Include(p => p.FCMTokens)
+
+                    .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
+                    .ThenInclude(n => n.MediaEntry)
+
+                    .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
+                    .ThenInclude(n => n.GetRequest)
+
+                    .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
+                    .ThenInclude(n => n.Friendship)
+
+                    .Where(p => p.Notifications.Any(n => !(n.Sent || n.Seen)))
+
+                    .OrderBy(p => p.Notifications.Select(n => n.Timestamp).OrderBy(t => t).First())
+                    
+                    .FirstOrDefaultAsync(_cancellationToken);
+
+                if (profile == null)
+                    return;
+
+
+                // Update Firestore to let mobile listeners know to update their list of notifications
+                try
                 {
-                    foreach (var fcmToken in notification.Profile.FCMTokens)
+                    DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profile.Id.ToString());
+                    
+                    //The clients only look for a change to the document, not what the changes are
+                    //A 1-char key and 8 byte timestamp is small, fast and always updates
+                    Dictionary<string, object> data = new Dictionary<string, object>
                     {
-                        var msgData = new Dictionary<string, string>
-                            {
-                                { Constants.FCM_KEY_ID, notification.Id.ToString() },
-                                { Constants.FCM_KEY_PROFILE_ID, notification.ProfileId.ToString() },
-                                { Constants.FCM_KEY_NOTIFICATION_TYPE, ((int)notification.NotificationType).ToString() }
-                            };
+                        { "t", DateTime.UtcNow.Ticks }
+                    };
+                    await docRef.SetAsync(data);
 
-
-                        if (notification.MediaEntry != null)
+                    //If there are not FCM tokens to send pushes to, consider all notifications sent
+                    if (profile.FCMTokens.Count == 0)
+                    {
+                        foreach (var n in profile.Notifications)
                         {
-                            msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.MediaEntry.Id.ToString());
-                            msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.MediaEntry.EntryType).ToString());
+                            n.Sent = true;
+                            db.Notifications.Update(n);
                         }
-                        else
-                        {
-                            var newMediaNotificationTypes = new NotificationTypes[]
-                            {
-                                    NotificationTypes.NewMediaPending,
-                                    NotificationTypes.NewMediaRejected,
-                                    NotificationTypes.NewMediaRequested
-                            };
-
-                            if (newMediaNotificationTypes.Contains(notification.NotificationType))
-                            {
-                                msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.GetRequest.TMDB_Id.ToString());
-                                msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.GetRequest.EntryType).ToString());
-                            }
-                        }
-
-                        if (notification.Friendship != null)
-                            msgData.Add(Constants.FCM_KEY_FRIENDSHIP_ID, notification.FriendshipId.ToString());
-
-                        var msg = new Message
-                        {
-                            Token = fcmToken.Token,
-                            Data = msgData,
-                            Notification = new FirebaseAdmin.Messaging.Notification
-                            {
-                                Title = notification.Title,
-                                Body = notification.Message
-                            },
-                            Apns = new ApnsConfig
-                            {
-                                Aps = new Aps 
-                                {
-                                    Badge = notifications.Count(n => n.ProfileId == notification.ProfileId)
-                                }
-                            },
-                            Android = new AndroidConfig
-                            {
-                                Priority = Priority.High,
-                                Notification = new AndroidNotification
-                                {
-                                    Color = Constants.FCM_KEY_ANDROID_COLOR,
-                                    Icon = Constants.FCM_KEY_ANDROID_ICON
-                                }
-                            }
-                        };
-
-
-                        msgs.Add(msg);
-                        dict.Add(msgs.Count - 1, notification);
-
-                        if (msgs.Count == 500)
-                            await SendBatchOfNotificationsAsync(msgs, dict, db);
                     }
-
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating alerts in Firestore");
                 }
 
-                if (msgs.Count > 0)
-                    await SendBatchOfNotificationsAsync(msgs, dict, db);
+                //Push any notifications to mobile devices
+                if (profile.FCMTokens.Count > 0)
+                {
+                    foreach (var notification in profile.Notifications)
+                    {
+                        foreach (var fcmToken in notification.Profile.FCMTokens)
+                        {
+                            var msgData = new Dictionary<string, string>
+                                {
+                                    { Constants.FCM_KEY_ID, notification.Id.ToString() },
+                                    { Constants.FCM_KEY_PROFILE_ID, notification.ProfileId.ToString() },
+                                    { Constants.FCM_KEY_NOTIFICATION_TYPE, ((int)notification.NotificationType).ToString() }
+                                };
 
-                if (notifications.Count < CHUNK_SIZE)
-                    return;
 
-                start += CHUNK_SIZE;
+                            if (notification.MediaEntry != null)
+                            {
+                                msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.MediaEntry.Id.ToString());
+                                msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.MediaEntry.EntryType).ToString());
+                            }
+                            else
+                            {
+                                var newMediaNotificationTypes = new NotificationTypes[]
+                                {
+                                        NotificationTypes.NewMediaPending,
+                                        NotificationTypes.NewMediaRejected,
+                                        NotificationTypes.NewMediaRequested
+                                };
+
+                                if (newMediaNotificationTypes.Contains(notification.NotificationType))
+                                {
+                                    msgData.Add(Constants.FCM_KEY_MEDIA_ID, notification.GetRequest.TMDB_Id.ToString());
+                                    msgData.Add(Constants.FCM_KEY_MEDIA_TYPE, ((int)notification.GetRequest.EntryType).ToString());
+                                }
+                            }
+
+                            if (notification.Friendship != null)
+                                msgData.Add(Constants.FCM_KEY_FRIENDSHIP_ID, notification.FriendshipId.ToString());
+
+                            var msg = new Message
+                            {
+                                Token = fcmToken.Token,
+                                Data = msgData,
+                                Notification = new FirebaseAdmin.Messaging.Notification
+                                {
+                                    Title = notification.Title,
+                                    Body = notification.Message
+                                },
+                                Apns = new ApnsConfig
+                                {
+                                    Aps = new Aps
+                                    {
+                                        Badge = profile.Notifications.Count > 0 ? profile.Notifications.Count : null
+                                    }
+                                },
+                                Android = new AndroidConfig
+                                {
+                                    Priority = Priority.High,
+                                    Notification = new AndroidNotification
+                                    {
+                                        Color = Constants.FCM_KEY_ANDROID_COLOR,
+                                        Icon = Constants.FCM_KEY_ANDROID_ICON
+                                    }
+                                }
+                            };
+
+                            try
+                            {
+                                var msgId = await FirebaseMessaging.DefaultInstance.SendAsync(msg);
+                                if (!string.IsNullOrWhiteSpace(msgId))
+                                {
+                                    notification.Sent = true;
+                                    db.Notifications.Update(notification);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, ex.Message);
+                            }
+                        }
+
+                    }
+                }
+
+
+                await db.SaveChangesAsync(_cancellationToken);
             }
-        }
-
-        private async Task SendBatchOfNotificationsAsync(List<Message> msgs, Dictionary<int, Data.Models.Notification> dict, AppDbContext db)
-        {
-            if (_cancellationToken.IsCancellationRequested)
-                return;
-
-            //Deprecated
-            //var response = await FirebaseMessaging.DefaultInstance.SendAllAsync(msgs, _cancellationToken);
-            var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(msgs, _cancellationToken);
-
-            for (int i = 0; i < response.Responses.Count; i++)
-                if (response.Responses[i].IsSuccess)
-                    dict[i].Sent = true;
-
-            msgs.Clear();
-            dict.Clear();
-            await db.SaveChangesAsync(_cancellationToken);
-        }
+        }        
     }
 }

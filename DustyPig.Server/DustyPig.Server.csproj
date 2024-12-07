@@ -22,11 +22,12 @@
 		<PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
 		<PackageReference Include="AsyncAwaitBestPractices" Version="9.0.0" />
 		<PackageReference Include="AWSSDK.S3" Version="3.7.410.1" />
-		<PackageReference Include="DustyPig.API" Version="3.6.1.267" />
+		<PackageReference Include="DustyPig.API" Version="3.6.1.268" />
 		<PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.21" />
 		<PackageReference Include="DustyPig.SimpleDownloader" Version="3.2.0.16" />
 		<PackageReference Include="DustyPig.TMDB" Version="3.3.0.32" />
 		<PackageReference Include="FirebaseAdmin" Version="3.1.0" />
+		<PackageReference Include="Google.Cloud.Firestore" Version="3.9.0" />
 		<PackageReference Include="Krypto.WonderDog" Version="22.4.24.4" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">

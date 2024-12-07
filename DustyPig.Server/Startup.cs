@@ -6,6 +6,7 @@ using DustyPig.Server.Services;
 using DustyPig.Server.SwaggerHelpers;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -54,6 +55,11 @@ namespace DustyPig.Server
             {
                 Credential = GoogleCredential.FromJson(Configuration["firebase-config"])
             });
+
+
+            //*** Firebase Firestore DB
+            FDB.Configure(Configuration["firebase-config"]);
+
 
 
             //*** TMDB ***
