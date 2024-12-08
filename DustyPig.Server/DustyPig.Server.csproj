@@ -22,7 +22,7 @@
 		<PackageReference Include="Asp.Versioning.Mvc" Version="8.1.0" />
 		<PackageReference Include="AsyncAwaitBestPractices" Version="9.0.0" />
 		<PackageReference Include="AWSSDK.S3" Version="3.7.410.1" />
-		<PackageReference Include="DustyPig.API" Version="3.6.1.269" />
+		<PackageReference Include="DustyPig.API" Version="3.6.1.270" />
 		<PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.21" />
 		<PackageReference Include="DustyPig.SimpleDownloader" Version="3.2.0.16" />
 		<PackageReference Include="DustyPig.TMDB" Version="3.3.0.33" />

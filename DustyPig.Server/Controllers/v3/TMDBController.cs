@@ -66,6 +66,26 @@ namespace DustyPig.Server.Controllers.v3
                     c.AvatarUrl = Constants.DEFAULT_PROFILE_IMAGE_GREY;
             });
 
+            if (UserProfile.IsMain)
+            {
+                var getRequests = await DB.GetRequests
+                    .AsNoTracking()
+                    .Include(g => g.NotificationSubscriptions)
+                    .ThenInclude(n => n.Profile)
+                    .Where(g => g.AccountId == UserAccount.Id)
+                    .Where(g => g.TMDB_Id == id)
+                    .Where(g => g.EntryType == TMDB_MediaTypes.Movie)
+                    .Where(g => g.Status == RequestStatus.RequestSentToAccount || g.Status == RequestStatus.RequestSentToMain)
+                    .ToListAsync();
+
+                if (getRequests.Count > 0)
+                {
+                    ret.RequestedOfThisProfile = true;
+                    ret.Requestors = getRequests.SelectMany(g => g.NotificationSubscriptions.Select(n => n.Profile.Name)).ToList();
+                }
+            }
+            
+
             var available = await DB.MediaEntries
                 .AsNoTracking()
                 .Include(m => m.Library)
@@ -157,6 +177,26 @@ namespace DustyPig.Server.Controllers.v3
                 if (string.IsNullOrWhiteSpace(c.AvatarUrl))
                     c.AvatarUrl = Constants.DEFAULT_PROFILE_IMAGE_GREY;
             });
+
+
+            if (UserProfile.IsMain)
+            {
+                var getRequests = await DB.GetRequests
+                    .AsNoTracking()
+                    .Include(g => g.NotificationSubscriptions)
+                    .ThenInclude(n => n.Profile)
+                    .Where(g => g.AccountId == UserAccount.Id)
+                    .Where(g => g.TMDB_Id == id)
+                    .Where(g => g.EntryType == TMDB_MediaTypes.Series)
+                    .Where(g => g.Status == RequestStatus.RequestSentToAccount || g.Status == RequestStatus.RequestSentToMain)
+                    .ToListAsync();
+
+                if (getRequests.Count > 0)
+                {
+                    ret.RequestedOfThisProfile = true;
+                    ret.Requestors = getRequests.SelectMany(g => g.NotificationSubscriptions.Select(n => n.Profile.Name)).ToList();
+                }
+            }
 
             var available = await DB.MediaEntries
                 .AsNoTracking()
@@ -542,7 +582,6 @@ namespace DustyPig.Server.Controllers.v3
 
             var req = await DB.GetRequestSubscriptions
                 .AsNoTracking()
-                .Include(item => item.GetRequest)
                 .Where(item => item.GetRequest.TMDB_Id == data.TMDB_Id)
                 .Where(item => item.GetRequest.EntryType == data.MediaType)
                 .Where(item => item.ProfileId == UserProfile.Id)
