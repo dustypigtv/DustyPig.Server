@@ -60,7 +60,11 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Genres = string.Join(",", movie.Genres.Select(item => item.Name)).ToGenres();
 
             FillCredits(GetCommonCredits(movie), ret);
-
+            ret.Credits?.ForEach(c =>
+            {
+                if(string.IsNullOrWhiteSpace(c.AvatarUrl))
+                    c.AvatarUrl = Constants.DEFAULT_PROFILE_IMAGE_GREY;
+            });
 
             var available = await DB.MediaEntries
                 .AsNoTracking()
@@ -148,7 +152,11 @@ namespace DustyPig.Server.Controllers.v3
                 ret.Genres = string.Join(",", series.Genres.Select(item => item.Name)).ToGenres();
 
             FillCredits(GetCommonCredits(series), ret);
-
+            ret.Credits?.ForEach(c =>
+            {
+                if (string.IsNullOrWhiteSpace(c.AvatarUrl))
+                    c.AvatarUrl = Constants.DEFAULT_PROFILE_IMAGE_GREY;
+            });
 
             var available = await DB.MediaEntries
                 .AsNoTracking()
@@ -310,7 +318,6 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
-
         /// <summary>
         /// Requires profile
         /// </summary>
@@ -321,6 +328,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = await CalculateTitleRequestPermissionsAsync();
             return ret;
         }
+
 
 
         /// <summary>
@@ -520,6 +528,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+
         /// <summary>
         /// Requires profile
         /// </summary>
@@ -549,6 +558,58 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+
+        /// <summary>
+        /// Requires profile
+        /// </summary>
+        [HttpGet]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<TitleRequestSource>>))]
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<Result<List<TitleRequestSource>>> ListTitleRequestSources()
+        {
+            if (UserProfile.TitleRequestPermission == TitleRequestPermissions.Disabled)
+                return CommonResponses.Forbid();
+
+            var mainProfile = UserAccount.Profiles.First(p => p.IsMain);
+
+            var ret = new List<TitleRequestSource>();
+            
+            if(!UserProfile.IsMain)
+                ret.Add(new TitleRequestSource
+                {
+                    Name = mainProfile.Name,
+                    AvatarUrl = mainProfile.AvatarUrl
+                });
+
+            if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)
+            {
+                var friends = await DB.Friendships
+                    .AsNoTracking()
+
+                    .Include(item => item.Account1)
+                    .ThenInclude(item => item.Profiles)
+
+                    .Include(item => item.Account2)
+                    .ThenInclude(item => item.Profiles)
+
+                    .Where(item => item.Account1Id == UserAccount.Id || item.Account2Id == UserAccount.Id)
+                    .Where(Item => Item.Accepted == true)
+                    .ToListAsync();
+
+                var bfl = friends.Select(item => item.ToBasicFriendInfo(UserAccount.Id)).ToList();
+                bfl.Sort();
+
+                foreach (var bf in bfl)
+                    ret.Add(new TitleRequestSource
+                    {
+                        FriendId = bf.Id,
+                        Name = bf.DisplayName,
+                        AvatarUrl = bf.AvatarUrl
+                    });
+            }
+
+            return ret;
+        }
 
 
 
