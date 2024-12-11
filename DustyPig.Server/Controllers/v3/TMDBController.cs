@@ -463,6 +463,9 @@ namespace DustyPig.Server.Controllers.v3
                 if (!response.Success)
                     return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
                 title = response.Data.Title;
+                var dt = TryGetMovieDate(response.Data);
+                if (dt.HasValue)
+                    title += $" ({dt.Value.Year})";
             }
             else
             {
@@ -701,6 +704,9 @@ namespace DustyPig.Server.Controllers.v3
                 if (!response.Success)
                     return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
                 title = response.Data.Title;
+                var dt = TryGetMovieDate(response.Data);
+                if (dt.HasValue)
+                    title += $" ({dt.Value.Year})";
             }
             else
             {
