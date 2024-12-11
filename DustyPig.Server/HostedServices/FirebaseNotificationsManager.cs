@@ -157,9 +157,9 @@ namespace DustyPig.Server.HostedServices
                 //The clients only look for a change to the document, not what the changes are
                 //A 1-char key and 8 byte timestamp is small, fast and always updates
                 Dictionary<string, object> data = new Dictionary<string, object>
-                    {
-                        { "t", DateTime.UtcNow.Ticks }
-                    };
+                {
+                    { "t", DateTime.UtcNow.Ticks }
+                };
                 await docRef.SetAsync(data);
 
                 //If there are not FCM tokens to send pushes to, consider all notifications sent
@@ -187,11 +187,11 @@ namespace DustyPig.Server.HostedServices
                     foreach (var fcmToken in notification.Profile.FCMTokens)
                     {
                         var msgData = new Dictionary<string, string>
-                                {
-                                    { Constants.FCM_KEY_ID, notification.Id.ToString() },
-                                    { Constants.FCM_KEY_PROFILE_ID, notification.ProfileId.ToString() },
-                                    { Constants.FCM_KEY_NOTIFICATION_TYPE, ((int)notification.NotificationType).ToString() }
-                                };
+                        {
+                            { Constants.FCM_KEY_ID, notification.Id.ToString() },
+                            { Constants.FCM_KEY_PROFILE_ID, notification.ProfileId.ToString() },
+                            { Constants.FCM_KEY_NOTIFICATION_TYPE, ((int)notification.NotificationType).ToString() }
+                        };
 
 
                         if (notification.MediaEntry != null)
@@ -203,9 +203,9 @@ namespace DustyPig.Server.HostedServices
                         {
                             var newMediaNotificationTypes = new NotificationTypes[]
                             {
-                                        NotificationTypes.NewMediaPending,
-                                        NotificationTypes.NewMediaRejected,
-                                        NotificationTypes.NewMediaRequested
+                                NotificationTypes.NewMediaPending,
+                                NotificationTypes.NewMediaRejected,
+                                NotificationTypes.NewMediaRequested
                             };
 
                             if (newMediaNotificationTypes.Contains(notification.NotificationType))

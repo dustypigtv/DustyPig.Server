@@ -11,6 +11,7 @@ using DustyPig.TMDB.Models.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NuGet.DependencyResolver;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -597,6 +598,27 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        [HttpPost]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> DenyTitleRequest(TitleRequest data) => HandleTitleRequestAsync(data, false);
+
+
+
+
+
+        /// <summary>
+        /// Requires main profile
+        /// </summary>
+        [HttpPost]
+        [RequireMainProfile]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public Task<Result> GrantTitleRequest(TitleRequest data) => HandleTitleRequestAsync(data, true);
+
+
 
         /// <summary>
         /// Requires profile
@@ -651,6 +673,116 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+
+
+
+
+        private async Task<Result> HandleTitleRequestAsync(TitleRequest data, bool granted)
+        {
+            //Validate
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return ex; }
+
+            var requests = await DB.GetRequests
+                .Include(item => item.NotificationSubscriptions)
+                .ThenInclude(item => item.Profile)
+                .Where(item => item.TMDB_Id == data.TMDB_Id)
+                .Where(item => item.EntryType == data.MediaType)
+                .Where(item => item.AccountId == UserAccount.Id)
+                .ToListAsync();
+
+            if (requests.Count == 0)
+                return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
+
+            string title = null;
+            if (data.MediaType == TMDB_MediaTypes.Movie)
+            {
+                var response = await TMDBClient.DefaultInstance.GetMovieAsync(data.TMDB_Id);
+                if (!response.Success)
+                    return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
+                title = response.Data.Title;
+            }
+            else
+            {
+                var response = await TMDBClient.DefaultInstance.GetSeriesAsync(data.TMDB_Id);
+                if (!response.Success)
+                    return CommonResponses.ValueNotFound(nameof(data.TMDB_Id));
+                title = response.Data.Name;
+            }
+
+            //Profiles requesting the title from this acccount
+            var notifyProfileIds = requests.SelectMany(r => r.NotificationSubscriptions).Select(n => n.ProfileId).Distinct().ToList();
+
+
+            //Get all relevent friends at once
+            var friends = new List<Friendship>();
+            bool loadFriends = false;
+            foreach (var n in notifyProfileIds)
+                if (!UserAccount.Profiles.Any(p => p.Id == n))
+                {
+                    loadFriends = true;
+                    break;
+                }
+            if (loadFriends)
+            {
+                var friendProfileIds = notifyProfileIds.Where(p => !UserAccount.Profiles.Any(mp => mp.Id == p)).ToList();
+                friends = await DB.Friendships
+                    .AsNoTracking()
+                    .Include(f => f.Account1)
+                    .ThenInclude(a => a.Profiles)
+                    .Include(f => f.Account2)
+                    .ThenInclude(a => a.Profiles)
+                    .Where(f => f.Account1Id == UserAccount.Id || f.Account2Id == UserAccount.Id)
+                    .Where(f => f.Account1.Profiles.Any(p => friendProfileIds.Contains(p.Id)) || f.Account2.Profiles.Any(p => friendProfileIds.Contains(p.Id)))
+                    .ToListAsync();
+            }
+
+
+            //Update status and send notifications
+            foreach (var req in requests)
+            {
+                req.Status = granted ? RequestStatus.Pending : RequestStatus.Denied;
+                foreach (var s in req.NotificationSubscriptions)
+                {
+                    string msg = UserProfile.Name;
+                    if (!UserAccount.Profiles.Any(p => p.Id == s.ProfileId))
+                    {
+                        var friend = friends
+                            .Where(f => f.Account1.Profiles.Any(p => p.Id == s.ProfileId) || f.Account2.Profiles.Any(p => p.Id == s.ProfileId))
+                            .FirstOrDefault();
+
+                        if (friend != null)
+                        {
+                            //Display name from other person's pov
+                            var accountId = friend.Account1Id == UserAccount.Id ? friend.Account2Id : friend.Account1Id;
+                            msg = friend.GetFriendDisplayNameForAccount(accountId);
+                        }
+                    }
+
+                    var action = granted ? "granted" : "denied";
+                    msg += $" has {action} your request for {title}";
+                    if (granted)
+                        msg += ". You will be notified again when it's available";
+
+                    action = granted ? "Granted" : "Denied";
+                    DB.Notifications.Add(new Data.Models.Notification
+                    {
+                        GetRequestId = req.Id,
+                        Message = msg,
+                        NotificationType = granted ? NotificationTypes.NewMediaPending : NotificationTypes.NewMediaRejected,
+                        ProfileId = s.ProfileId,
+                        Timestamp = DateTime.UtcNow,
+                        Title = $"Request {action}"
+                    });
+
+                }
+            }
+
+            await DB.SaveChangesAsync();
+            notifyProfileIds.ForEach(p => FirebaseNotificationsManager.QueueProfileForNotifications(p));
+
+            return Result.BuildSuccess();
+        }
 
 
         private async Task<TitleRequestPermissions> CalculateTitleRequestPermissionsAsync()
@@ -779,6 +911,7 @@ namespace DustyPig.Server.Controllers.v3
                     Order = credits.Count(item => item.Role == role)
                 });
         }
+
 
 
         class TmdbTitleDTO
