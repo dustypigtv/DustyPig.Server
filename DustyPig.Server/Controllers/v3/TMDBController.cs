@@ -688,7 +688,7 @@ namespace DustyPig.Server.Controllers.v3
         private async Task<(RequestStatus Status, TitleRequestPermissions Permission)> CalculateTitleRequestStatusAsync(int id, TMDB_MediaTypes mediaType)
         {
             RequestStatus status = RequestStatus.NotRequested;
-            TitleRequestPermissions permission = TitleRequestPermissions.Disabled;
+            TitleRequestPermissions permission = await CalculateTitleRequestPermissionsAsync();
 
             //Get request status
             var existingRequest = await DB.GetRequestSubscriptions
@@ -701,15 +701,9 @@ namespace DustyPig.Server.Controllers.v3
 
 
             if (existingRequest == null)
-            {
                 status = RequestStatus.NotRequested;
-                permission = await CalculateTitleRequestPermissionsAsync();
-            }
             else
-            {
                 status = existingRequest.GetRequest.Status;
-                permission = TitleRequestPermissions.Disabled;
-            }
 
             return (status, permission);
         }
