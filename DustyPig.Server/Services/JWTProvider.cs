@@ -36,7 +36,7 @@ namespace DustyPig.Server.Services
 
         public async Task<string> CreateTokenAsync(int accountId, int? profileId, int? fcmTokenId, string deviceId)
         {
-            if (profileId == null || string.IsNullOrWhiteSpace(deviceId))
+            if (string.IsNullOrWhiteSpace(deviceId))
             {
                 deviceId = null;
             }

@@ -254,7 +254,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Cannot go from Accepted to Invited
             if (friendship.Accepted && !info.Accepted)
-                return "Cannot go from Accepted to Invited. Please use the delete method";
+                return "Cannot go from Accepted to Invited. Please use the Unfriend method";
 
             int notifyProfileId = -1;
             if (info.Accepted && !friendship.Accepted)
