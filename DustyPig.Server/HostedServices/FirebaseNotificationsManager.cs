@@ -182,9 +182,10 @@ namespace DustyPig.Server.HostedServices
             //Push any notifications to mobile devices
             if (profile.FCMTokens.Count > 0)
             {
+                var deletedTokens = new List<int>();
                 foreach (var notification in profile.Notifications)
                 {
-                    foreach (var fcmToken in notification.Profile.FCMTokens)
+                    foreach (var fcmToken in notification.Profile.FCMTokens.Where(_token => !deletedTokens.Contains(_token.Id)))
                     {
                         var msgData = new Dictionary<string, string>
                         {
@@ -253,6 +254,14 @@ namespace DustyPig.Server.HostedServices
                                 notification.Sent = true;
                                 db.Notifications.Update(notification);
                             }
+                        }
+                        catch (FirebaseMessagingException ex)
+                        {
+                            _logger.LogError(ex, ex.Message);
+
+                            //If the FCM Token no longer exists, remove from the database
+                            if(ex.ErrorCode == FirebaseAdmin.ErrorCode.NotFound)
+                                db.FCMTokens.Remove(fcmToken);
                         }
                         catch (Exception ex)
                         {
