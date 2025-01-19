@@ -18,8 +18,8 @@ namespace DustyPig.Server.Services
         public const string AUDIENCE = "dusty-pig-clients";
         public const string CLAIM_ACCOUNT_ID = "account_id";
         public const string CLAIM_PROFILE_ID = "profile_id";
-        public const string CLAIM_AUTH_TOKEN_ID = "token_id";
-        public const string CLAIM_FCM_TOKEN_ID = "device_token_id";
+        public const string CLAIM_AUTH_TOKEN_ID = "auth_token_id";
+        public const string CLAIM_FCM_TOKEN_ID = "fcm_token_id";
 
         public static SymmetricSecurityKey SigningKey { get; private set; }
         private static SigningCredentials _signingCredentials = null;
