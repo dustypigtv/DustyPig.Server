@@ -2,6 +2,7 @@
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
+using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -95,6 +96,7 @@ namespace DustyPig.Server.Controllers.v3
 
             dbNotification.Seen = true;
             await DB.SaveChangesAsync();
+            FirebaseNotificationsManager.QueueProfileForNotifications(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
@@ -116,7 +118,9 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.Notifications.Remove(dbNotification);
                 await DB.SaveChangesAsync();
+                FirebaseNotificationsManager.QueueProfileForNotifications(UserProfile.Id);
             }
+
             return Result.BuildSuccess();
         }
     }

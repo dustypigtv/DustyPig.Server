@@ -18,8 +18,6 @@ namespace DustyPig.Server.HostedServices
 {
     public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     {
-        private const int CHUNK_SIZE = 1000;
-
         //About once/second check for and send any new notifications
         private const int ONE_SECOND = 1000;
 
@@ -260,7 +258,7 @@ namespace DustyPig.Server.HostedServices
                             _logger.LogError(ex, ex.Message);
 
                             //If the FCM Token no longer exists, remove from the database
-                            if(ex.ErrorCode == FirebaseAdmin.ErrorCode.NotFound)
+                            if (ex.ErrorCode == FirebaseAdmin.ErrorCode.NotFound)
                                 db.FCMTokens.Remove(fcmToken);
                         }
                         catch (Exception ex)
@@ -274,6 +272,6 @@ namespace DustyPig.Server.HostedServices
 
 
             await db.SaveChangesAsync(_cancellationToken);
-        }
+        }    
     }
 }
