@@ -11,6 +11,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -88,6 +89,7 @@ namespace DustyPig.Server.HostedServices
             {
                 await RemoveOldFCMTokensAsync();
                 _lastTokenDelete = DateTime.Now;
+                _firstRun = true;
             }
 
             //Now do the notifications
@@ -105,12 +107,18 @@ namespace DustyPig.Server.HostedServices
 
 
 
+
+
         private async Task SendNotificationsAsync()
         {
             int pid = -1;
             if (!_firstRun)
                 if (!_queue.TryDequeue(out pid))
                     return;
+
+
+            if (pid > 0)
+                await UpdateFirestoreAsync(pid);
 
             using var db = new AppDbContext();
 
@@ -145,41 +153,22 @@ namespace DustyPig.Server.HostedServices
                 return;
             }
 
+            if (profile.Id != pid)
+                await UpdateFirestoreAsync(profile.Id);
 
 
-            // Update Firestore to let mobile listeners know to update their list of notifications
-            try
+            //If there are not FCM tokens to send pushes to, consider all notifications sent
+            if (profile.FCMTokens.Count == 0)
             {
-                DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profile.Id.ToString());
-
-                //The clients only look for a change to the document, not what the changes are
-                //A 1-char key and 8 byte timestamp is small, fast and always updates
-                Dictionary<string, object> data = new Dictionary<string, object>
+                foreach (var n in profile.Notifications)
                 {
-                    { "t", DateTime.UtcNow.Ticks }
-                };
-                await docRef.SetAsync(data);
-
-                //If there are not FCM tokens to send pushes to, consider all notifications sent
-                if (profile.FCMTokens.Count == 0)
-                {
-                    foreach (var n in profile.Notifications)
-                    {
-                        n.Sent = true;
-                        db.Notifications.Update(n);
-                    }
+                    n.Sent = true;
+                    db.Notifications.Update(n);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Error updating alerts in Firestore");
-            }
-
-
-
-            //Push any notifications to mobile devices
-            if (profile.FCMTokens.Count > 0)
-            {
+                //Push any notifications to mobile devices
                 var deletedTokens = new List<int>();
                 foreach (var notification in profile.Notifications)
                 {
@@ -272,6 +261,30 @@ namespace DustyPig.Server.HostedServices
 
 
             await db.SaveChangesAsync(_cancellationToken);
-        }    
+        }
+
+        private async Task UpdateFirestoreAsync(int profileId)
+        {
+            if (profileId < 1)
+                return;
+
+            // Update Firestore to let mobile listeners know to update their list of notifications
+            try
+            {
+                DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profileId.ToString());
+
+                //The clients only look for a change to the document, not what the changes are
+                //A 1-char key and 8 byte timestamp is small, fast and always updates
+                Dictionary<string, object> data = new Dictionary<string, object>
+                {
+                    { "t", DateTime.UtcNow.Ticks }
+                };
+                await docRef.SetAsync(data, cancellationToken: _cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating alerts in Firestore");
+            }
+        }
     }
 }
