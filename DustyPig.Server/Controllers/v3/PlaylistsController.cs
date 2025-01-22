@@ -371,11 +371,14 @@ namespace DustyPig.Server.Controllers.v3
             if (playlist == null)
                 return CommonResponses.ValueNotFound(nameof(info.Id));
 
-            if (playlist.CurrentItemId != info.Id || playlist.CurrentProgress != info.Seconds)
+            if (info.AsOfUTC > playlist.ProgressTimestamp)
             {
-                playlist.CurrentItemId = info.Id;
-                playlist.CurrentProgress = info.Seconds;
-                await DB.SaveChangesAsync();
+                if (playlist.CurrentItemId != info.Id || playlist.CurrentProgress != info.Seconds)
+                {
+                    playlist.CurrentItemId = info.Id;
+                    playlist.CurrentProgress = info.Seconds;
+                    await DB.SaveChangesAsync();
+                }
             }
 
             return Result.BuildSuccess();

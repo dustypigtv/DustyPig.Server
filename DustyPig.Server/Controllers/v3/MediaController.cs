@@ -456,23 +456,26 @@ namespace DustyPig.Server.Controllers.v3
                     MediaEntryId = mediaEntry.Id,
                     ProfileId = UserProfile.Id,
                     Played = Math.Max(0, newProgress.Seconds),
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = newProgress.AsOfUTC,
                     Xid = maybeEpisode.Xid
                 });
             }
             else
             {
-                if (mediaEntry.EntryType == MediaTypes.Movie && (newProgress.Seconds < 1 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
+                if (newProgress.AsOfUTC > existingProgress.Timestamp)
                 {
-                    DB.ProfileMediaProgresses.Remove(existingProgress);
-                }
-                else
-                {
-                    //Update
-                    existingProgress.Played = Math.Max(0, newProgress.Seconds);
-                    existingProgress.Timestamp = DateTime.UtcNow;
-                    existingProgress.Xid = maybeEpisode.Xid;
-                    DB.ProfileMediaProgresses.Update(existingProgress);
+                    if (mediaEntry.EntryType == MediaTypes.Movie && (newProgress.Seconds < 1 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
+                    {
+                        DB.ProfileMediaProgresses.Remove(existingProgress);
+                    }
+                    else
+                    {
+                        //Update
+                        existingProgress.Played = Math.Max(0, newProgress.Seconds);
+                        existingProgress.Timestamp = newProgress.AsOfUTC;
+                        existingProgress.Xid = maybeEpisode.Xid;
+                        DB.ProfileMediaProgresses.Update(existingProgress);
+                    }
                 }
             }
 

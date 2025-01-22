@@ -1,6 +1,7 @@
 ﻿
 using DustyPig.API.v3.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -28,6 +29,13 @@ namespace DustyPig.Server.Data.Models
 
 
         public double CurrentProgress { get; set; }
+
+        /// <summary>
+        /// UTC of when progress was last updated
+        /// </summary>
+        public DateTime ProgressTimestamp { get; set; }
+
+
 
         [Required]
         [DefaultValue(Constants.DEFAULT_PLAYLIST_IMAGE)]
