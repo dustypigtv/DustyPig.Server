@@ -200,7 +200,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     DB.Notifications.Add(new Data.Models.Notification
                     {
-                        MediaEntry = newItem,
+                        MediaEntryId = episodeInfo.SeriesId,
                         Message = $"{ownedSeries.Title} - s{episodeInfo.SeasonNumber:00}e{episodeInfo.EpisodeNumber:00} is now available",
                         NotificationType = NotificationTypes.NewMediaAvailable,
                         ProfileId = subscription.ProfileId,
