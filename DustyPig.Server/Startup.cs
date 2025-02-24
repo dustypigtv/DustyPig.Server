@@ -196,7 +196,6 @@ namespace DustyPig.Server
                 {
                     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
                     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
                 });
 
 
