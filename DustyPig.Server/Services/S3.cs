@@ -27,10 +27,7 @@ namespace DustyPig.Server.Services
 
             if (!url.ToLower().StartsWith("http://") && !url.ToLower().StartsWith("https://"))
                 url = "https://" + url;
-
-            key = "3H29DVSF76YUMVQYPC0U";
-            secret = "l44YplDg1gPJrkf2DynR6z9YcimDu31Cq9dZMVLw";
-
+           
             _client = new AmazonS3Client(key, secret, new AmazonS3Config { ServiceURL = url });
             _transferUtility = new TransferUtility(_client);
         }
