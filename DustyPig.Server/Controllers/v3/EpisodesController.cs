@@ -174,7 +174,7 @@ namespace DustyPig.Server.Controllers.v3
                     {
                         DB.Notifications.Add(new Data.Models.Notification
                         {
-                            MediaEntryId = episodeInfo.SeriesId,
+                            MediaEntry = newItem,
                             Message = "\"" + ownedSeries.Title + "\" is now availble!",
                             NotificationType = NotificationTypes.NewMediaFulfilled,
                             ProfileId = sub.ProfileId,

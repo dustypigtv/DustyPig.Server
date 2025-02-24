@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.Models;
+﻿using Amazon.S3.Model;
+using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -120,6 +121,51 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Notifications.Remove(dbNotification);
                 await DB.SaveChangesAsync();
                 FirebaseNotificationsManager.QueueProfileForNotifications(UserProfile.Id);
+            }
+
+            return Result.BuildSuccess();
+        }
+
+
+        /// <summary>
+        /// Requires profile
+        /// </summary>
+        [HttpGet]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> MarkAllRead()
+        {
+            var dbNotifications = await DB.Notifications
+                .Where(item => item.ProfileId != UserProfile.Id)
+                .Where(item => item.Seen == false)
+                .ToListAsync();
+
+            if (dbNotifications.Count > 0)
+            {
+                foreach (var dbNotification in dbNotifications)
+                    dbNotification.Seen = true;
+                await DB.SaveChangesAsync();
+            }
+
+            return Result.BuildSuccess();
+        }
+
+
+        /// <summary>
+        /// Requires profile
+        /// </summary>
+        [HttpDelete]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+        public async Task<Result> DeleteAll()
+        {
+            var dbNotifications = await DB.Notifications
+                .Where(item => item.ProfileId != UserProfile.Id)
+                .ToListAsync();
+
+            if (dbNotifications.Count > 0)
+            {
+                foreach (var dbNotification in dbNotifications)
+                    DB.Notifications.Remove(dbNotification);
+                await DB.SaveChangesAsync();
             }
 
             return Result.BuildSuccess();
