@@ -135,14 +135,17 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<Result> MarkAllRead()
         {
             var dbNotifications = await DB.Notifications
-                .Where(item => item.ProfileId != UserProfile.Id)
+                .Where(item => item.ProfileId == UserProfile.Id)
                 .Where(item => item.Seen == false)
                 .ToListAsync();
 
             if (dbNotifications.Count > 0)
             {
                 foreach (var dbNotification in dbNotifications)
+                {
+                    dbNotification.Sent = true;
                     dbNotification.Seen = true;
+                }
                 await DB.SaveChangesAsync();
             }
 
@@ -158,7 +161,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<Result> DeleteAll()
         {
             var dbNotifications = await DB.Notifications
-                .Where(item => item.ProfileId != UserProfile.Id)
+                .Where(item => item.ProfileId == UserProfile.Id)
                 .ToListAsync();
 
             if (dbNotifications.Count > 0)
