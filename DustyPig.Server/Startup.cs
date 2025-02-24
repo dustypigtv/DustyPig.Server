@@ -221,7 +221,7 @@ namespace DustyPig.Server
                 options.SwaggerDoc("v3", new OpenApiInfo
                 {
                     Version = $"v3",
-                    Title = "Dusty Pig API - BETA",
+                    Title = "Dusty Pig API",
                     Description = "API for the Dusty Pig. Each method is marked with a level:<br /><p>" +
                     "Requires no authorization: No authentication needed<br />" +
                     "Requires account: User must present an account token from either Auth/LoginWithFirebaseToken or Auth/PasswordLogin<br />" +
@@ -286,14 +286,6 @@ namespace DustyPig.Server
                 {
                     if (!desc.TryGetMethodInfo(out var methodInfo))
                         return false;
-
-
-                    //var versions = methodInfo
-                    //   .DeclaringType?
-                    //   .GetCustomAttributes(true)
-                    //   .OfType<ApiVersionAttribute>()
-                    //   .SelectMany(attr => attr.Versions)
-                    //   .ToList();
 
 
                     //Since I have base controllers that implement the version #, drill down
