@@ -1,4 +1,5 @@
 ﻿using Amazon.S3;
+using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using DustyPig.API.v3.Models;
 using System;
@@ -27,20 +28,26 @@ namespace DustyPig.Server.Services
             if (!url.ToLower().StartsWith("http://") && !url.ToLower().StartsWith("https://"))
                 url = "https://" + url;
 
+            key = "3H29DVSF76YUMVQYPC0U";
+            secret = "l44YplDg1gPJrkf2DynR6z9YcimDu31Cq9dZMVLw";
+
             _client = new AmazonS3Client(key, secret, new AmazonS3Config { ServiceURL = url });
             _transferUtility = new TransferUtility(_client);
         }
 
-        public static Task UploadFileAsync(Stream ms, string key, CancellationToken cancellationToken)
+        public static Task UploadFileAsync(MemoryStream ms, string key, CancellationToken cancellationToken)
         {
-            ms.Seek(0, SeekOrigin.Begin);
             var req = new TransferUtilityUploadRequest
             {
                 BucketName = Constants.DEFAULT_HOST,
                 InputStream = ms,
                 Key = key,
-                AutoCloseStream = false
+                AutoResetStreamPosition = true,
+                AutoCloseStream = true,
+                DisablePayloadSigning = true,
+                DisableDefaultChecksumValidation = true,
             };
+
             return _transferUtility.UploadAsync(req, cancellationToken);
         }
 
@@ -49,13 +56,15 @@ namespace DustyPig.Server.Services
         {
             //Since avatars now have unique filenames, add Cache-Control: max-age=10000000
 
-            ms.Seek(0, SeekOrigin.Begin);
             var req = new TransferUtilityUploadRequest
             {
                 BucketName = Constants.DEFAULT_HOST,
                 InputStream = ms,
                 Key = key,
-                AutoCloseStream = false
+                AutoResetStreamPosition = true,
+                AutoCloseStream = true,
+                DisablePayloadSigning = true,
+                DisableDefaultChecksumValidation = true,
             };
             req.Headers.CacheControl = "max-age=10000000";
             return _transferUtility.UploadAsync(req, cancellationToken);
