@@ -279,11 +279,18 @@ namespace DustyPig.Server.Controllers.v3
             var castList = new List<TmdbTitleDTO>();
             if (response.Data.CombinedCredits != null)
             {
-                foreach (var item in response.Data.CombinedCredits.Cast.Where(c => !c.Adult).Where(c => allowed.Contains(c.MediaType)))
+                var castQ = response.Data.CombinedCredits.Cast
+                    .Where(c => !c.Adult)
+                    .Where(c => allowed.Contains(c.MediaType));
+
+                foreach (var item in castQ)
                 {
                     var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
 
-                    bool exists = castList.Where(_ => _.Id == item.Id).Where(_ => _.MediaType == mt).Any();
+                    bool exists = castList
+                        .Where(_ => _.Id == item.Id)
+                        .Where(_ => _.MediaType == mt)
+                        .Any();
                     if (!exists)
                     {
                         castList.Add(new TmdbTitleDTO
@@ -303,12 +310,18 @@ namespace DustyPig.Server.Controllers.v3
                     }
                 }
 
-                foreach (var item in response.Data.CombinedCredits.Crew.Where(c => !c.Adult).Where(c => allowed.Contains(c.MediaType)))
+                var crewQ = response.Data.CombinedCredits.Crew
+                    .Where(c => !c.Adult)
+                    .Where(c => allowed.Contains(c.MediaType));
+                foreach (var item in crewQ)
                 {
                     if (TMDBClient.CrewJobs.ICContains(item.Job))
                     {
                         var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
-                        bool exists = castList.Where(_ => _.Id == item.Id).Where(_ => _.MediaType == mt).Any();
+                        bool exists = castList
+                            .Where(_ => _.Id == item.Id)
+                            .Where(_ => _.MediaType == mt)
+                            .Any();
                         if (!exists)
                         {
                             castList.Add(new TmdbTitleDTO

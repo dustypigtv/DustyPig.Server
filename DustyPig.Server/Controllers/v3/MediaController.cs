@@ -289,7 +289,7 @@ namespace DustyPig.Server.Controllers.v3
                 ret.OtherTitlesAllowed = false;
 
 
-            var searchOtherTitles = request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed;
+            var searchOtherTitles = request.SearchTMDB && ret.OtherTitlesAllowed;
             if (request.SearchPeople || searchOtherTitles)
             {
                 var response = await TMDBClient.DefaultInstance.Endpoints.Search.MultiAsync(normQuery, cancellationToken: cancellationToken);
@@ -302,6 +302,7 @@ namespace DustyPig.Server.Controllers.v3
                             (
                                 response.Data.Results
                                     .Where(item => item.MediaType != TMDB.Models.Common.CommonMediaTypes.Person)
+                                    .Where(item => !string.IsNullOrWhiteSpace(item.PosterPath))
                                     .Select(item => item.ToBasicTMDBInfo())
                                     .Take(DEFAULT_LIST_SIZE)
                             );
@@ -312,12 +313,16 @@ namespace DustyPig.Server.Controllers.v3
                         var apiPeopleIds = response.Data.Results
                             .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
                             .Select(item => item.Id)
+                            .Distinct()
+                            .Take(DEFAULT_LIST_SIZE)
                             .ToList();
 
                         var dbPeopleIds = await DB.TMDB_People
                             .AsNoTracking()
                             .Where(item => apiPeopleIds.Contains(item.TMDB_Id))
                             .Select(item => item.TMDB_Id)
+                            .Distinct()
+                            .Take(DEFAULT_LIST_SIZE)
                             .ToListAsync();
 
                         if (dbPeopleIds.Count > 0)
