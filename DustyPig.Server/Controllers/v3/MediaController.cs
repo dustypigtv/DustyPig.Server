@@ -285,6 +285,9 @@ namespace DustyPig.Server.Controllers.v3
              * Search online databases
              ****************************************/
             ret.OtherTitlesAllowed = UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled;
+            if (UserProfile.Id == TestAccount.ProfileId)
+                ret.OtherTitlesAllowed = false;
+
 
             var searchOtherTitles = request.SearchTMDB && UserAccount.Id != TestAccount.AccountId && ret.OtherTitlesAllowed;
             if (request.SearchPeople || searchOtherTitles)
