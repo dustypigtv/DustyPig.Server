@@ -286,6 +286,12 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+        /// <summary>
+        /// Requires profile
+        /// </summary>
+        /// <remarks>Only the main profile on the account or the profile owner can update a profile.
+        /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and Avatar. 
+        /// If the profile being updated is the main profile, it cannot be locked</remarks>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
         public async Task<Result<string>> ResetAvatar()
@@ -302,12 +308,21 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
+        /// <summary>
+        /// Requires profile
+        /// </summary>
+        /// <remarks>Only the main profile on the account or the profile owner can update a profile.
+        /// The base64 encoded image size must be less than 5 MB
+        /// </remarks>
         [HttpPost]
         [ProhibitTestUser]
         [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 100 kb leeway for multipart encoding
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
         public async Task<Result<string>> SetProfileAvatar(UpdateProfileAvatar data)
         {
+            try { data.Validate(); }
+            catch (ModelValidationException ex) { return ex; }
+
             if (data.Id != UserProfile.Id)
                 if (UserProfile.IsMain)
                     if (!UserAccount.Profiles.Any(item => item.Id == data.Id))
