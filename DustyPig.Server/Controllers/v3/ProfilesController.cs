@@ -203,7 +203,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         /// <remarks>Only the main profile on the account or the profile owner can update a profile.
         /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and Avatar. 
-        /// If the profile being updated is the main profile, it cannot be locked</remarks>
+        /// If the profile being updated is not the main profile, it cannot be locked</remarks>
         [HttpPost]
         [ProhibitTestUser]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -289,16 +289,19 @@ namespace DustyPig.Server.Controllers.v3
         /// <summary>
         /// Requires profile
         /// </summary>
-        /// <remarks>Only the main profile on the account or the profile owner can update a profile.
-        /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and Avatar. 
-        /// If the profile being updated is the main profile, it cannot be locked</remarks>
-        [HttpGet]
+        /// <remarks>Reset's the profiles avatar</remarks>
+        [HttpGet("{id}")]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-        public async Task<Result<string>> ResetAvatar()
+        public async Task<Result<string>> ResetAvatar(int id)
         {
+            if (id != UserProfile.Id)
+                if (UserProfile.IsMain)
+                    if (!UserAccount.Profiles.Any(item => item.Id == id))
+                        return CommonResponses.ValueNotFound(nameof(id));
+
             var dbProfile = await DB
                 .Profiles
-                .Where(p => p.Id == UserProfile.Id)
+                .Where(p => p.Id == id)
                 .FirstAsync();
 
             dbProfile.AvatarUrl = LogicUtils.EnsureProfilePic(null);
