@@ -9,7 +9,6 @@ using DustyPig.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Ocsp;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -287,92 +286,42 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-        /// <summary>
-        /// Requires profile
-        /// </summary>
-        /// <returns>Url to the new avatar</returns>
-        /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
-        /// The body of this request should be a jpeg file, no more than 1 MB in size. 
-        /// This method uses a the entire body of the request as a binary file</remarks>
-        [HttpPut("{id}")]
-        [ProhibitTestUser]
-        [RequestSizeLimit(5242880)] //Set to 5MB
+        [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-        public async Task<Result<string>> SetProfileAvatarBinary(int id, [FromBody] byte[] data)
+        public async Task<Result<string>> ResetAvatar()
         {
-            if (id != UserProfile.Id)
-                if (UserProfile.IsMain)
-                    if (!UserAccount.Profiles.Any(item => item.Id == id))
-                        return CommonResponses.ValueNotFound(nameof(id));
+            var dbProfile = await DB
+                .Profiles
+                .Where(p => p.Id == UserProfile.Id)
+                .FirstAsync();
 
-            var profile = UserAccount.Profiles.Single(item => item.Id == id);
-
-            using var ms = new MemoryStream();
-            ms.Write(data, 0, data.Length);
-
-
-            bool jpg = IsJpeg(ms);
-            if (!(jpg || IsPng(ms)))
-                return Result<string>.BuildError("File does not appear to be a jpeg or png file");
-
-            var ext = jpg ? "jpg" : "png";
-            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.{ext}";
-            string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
-            string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
-
-            await S3.UploadAvatarAsync(ms, keyPath, default);
-
-            //Swap
-            await ArtworkUpdater.SetNeedsDeletionAsync(profile.AvatarUrl);
-            profile.AvatarUrl = urlPath;
-            DB.Profiles.Update(profile);
-
+            dbProfile.AvatarUrl = LogicUtils.EnsureProfilePic(null);
             await DB.SaveChangesAsync();
-
-            return Result<string>.BuildSuccess(urlPath);
+           
+            return Result<string>.BuildSuccess(dbProfile.AvatarUrl);
         }
 
 
-        /// <summary>
-        /// Requires profile
-        /// </summary>
-        /// <returns>Url to the new avatar</returns>
-        /// <remarks>Only the main profile on the account or the profile owner can set the avatar. 
-        /// The body of this request should be a jpeg file, no more than 1 MB in size. 
-        /// This method uses the multipart upload</remarks>
-        [HttpPut("{id}")]
+        [HttpPost]
         [ProhibitTestUser]
         [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 100 kb leeway for multipart encoding
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-        public async Task<Result<string>> SetProfileAvatarMultipart(int id)
+        public async Task<Result<string>> SetProfileAvatar(UpdateProfileAvatar data)
         {
-            if (id != UserProfile.Id)
+            if (data.Id != UserProfile.Id)
                 if (UserProfile.IsMain)
-                    if (!UserAccount.Profiles.Any(item => item.Id == id))
-                        return CommonResponses.ValueNotFound(nameof(id));
+                    if (!UserAccount.Profiles.Any(item => item.Id == data.Id))
+                        return CommonResponses.ValueNotFound(nameof(data.Id));
 
-            var profile = UserAccount.Profiles.Single(item => item.Id == id);
+            var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
 
-            if (!Request.Form.Files.Any())
-                return Result<string>.BuildError("Missing File");
-
-            if (Request.Form.Files.Count > 1)
-                return Result<string>.BuildError("Only 1 file allowed");
-
-            var file = Request.Form.Files[0];
-            if (!string.IsNullOrWhiteSpace(file.ContentType))
-            {
-                if (file.ContentType != "image/jpeg" && file.ContentType != "image/png")
-                    return Result<string>.BuildError("Content-Type does not match image/jpeg or image/png");
-            }
-            var stream = file.OpenReadStream();
-            
+            var stream = new MemoryStream(Convert.FromBase64String(data.Base64Image));
             bool jpg = IsJpeg(stream);
             if (!(jpg || IsPng(stream)))
                 return Result<string>.BuildError("File does not appear to be a jpeg or png file");
 
             var ext = jpg ? "jpg" : "png";
-            string fileName = $"{id}.{Guid.NewGuid().ToString("N")}.{ext}";
+            string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
             string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
 
@@ -387,7 +336,6 @@ namespace DustyPig.Server.Controllers.v3
 
             return Result<string>.BuildSuccess(urlPath);
         }
-
 
 
         /// <summary>
@@ -511,11 +459,11 @@ namespace DustyPig.Server.Controllers.v3
 
             var pos = stream.Position;
             stream.Seek(0, SeekOrigin.Begin);
-            
-            var ret = 
-                stream.ReadByte() == 0xFF && 
+
+            var ret =
+                stream.ReadByte() == 0xFF &&
                 stream.ReadByte() == 0xD8;
-            
+
             stream.Seek(pos, SeekOrigin.Begin);
             return ret;
         }
@@ -530,8 +478,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var pos = stream.Position;
             stream.Seek(0, SeekOrigin.Begin);
-            
-            var ret = 
+
+            var ret =
                 stream.ReadByte() == 0x89 &&
                 stream.ReadByte() == 0x50 &&
                 stream.ReadByte() == 0x4E &&
@@ -540,10 +488,9 @@ namespace DustyPig.Server.Controllers.v3
                 stream.ReadByte() == 0x0A &&
                 stream.ReadByte() == 0x1A &&
                 stream.ReadByte() == 0x0A;
-            
+
             stream.Seek(pos, SeekOrigin.Begin);
             return ret;
         }
-
     }
 }
