@@ -20,14 +20,13 @@ namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
     [ExceptionLogger(typeof(FriendsController))]
-    [RequireMainProfile]
     public class FriendsController : _BaseProfileController
     {
         public FriendsController(AppDbContext db) : base(db) { }
 
 
         /// <summary>
-        /// Requires main profile
+        /// Requires profile
         /// </summary>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicFriend>>))]
@@ -57,6 +56,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpGet("{id}")]
         [ProhibitTestUser]
+        [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<DetailedFriend>))]
         public async Task<Result<DetailedFriend>> Details(int id)
         {
@@ -120,6 +120,7 @@ namespace DustyPig.Server.Controllers.v3
         /// <param name="email"># This _MUST_ be a JSON encoded string</param>
         [HttpPost]
         [ProhibitTestUser]
+        [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
         public async Task<Result> Invite(StringValue email)
         {
@@ -227,6 +228,7 @@ namespace DustyPig.Server.Controllers.v3
         /// <remarks>Use this to accept friend requests and update display names</remarks>
         [HttpPost]
         [ProhibitTestUser]
+        [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
         public async Task<Result> Update(UpdateFriend info)
         {
@@ -295,6 +297,7 @@ namespace DustyPig.Server.Controllers.v3
         /// Requires main profile
         /// </summary>
         [HttpDelete("{id}")]
+        [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
         public async Task<Result> Unfriend(int id)
         {
@@ -331,6 +334,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
+        [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
         public Task<Result> ShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
@@ -341,6 +345,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </summary>
         [HttpPost]
         [ProhibitTestUser]
+        [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
         public Task<Result> UnShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
