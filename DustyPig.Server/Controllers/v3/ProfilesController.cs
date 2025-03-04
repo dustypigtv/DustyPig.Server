@@ -333,12 +333,12 @@ namespace DustyPig.Server.Controllers.v3
 
             var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
 
-            var stream = new MemoryStream(Convert.FromBase64String(data.Base64Image));
-            bool jpg = IsJpeg(stream);
-            if (!(jpg || IsPng(stream)))
-                return Result<string>.BuildError("File does not appear to be a jpeg or png file");
+            var bytes = Convert.FromBase64String(data.Base64Image);
+            var stream = new MemoryStream(bytes);
 
-            var ext = jpg ? "jpg" : "png";
+            bool isPng = UpdateProfileAvatar.IsPng(bytes);
+            
+            var ext = isPng ? "png" : "jpg";
             string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
             string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
@@ -443,7 +443,89 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
+        /// <summary>
+        /// Requires profile
+        /// </summary>
+        [HttpGet]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+        public async Task<Result<DetailedProfile>> GetMainProfileDetails()
+        {
+            var profile = UserAccount.Profiles.SingleOrDefault(item => item.IsMain);
+            
 
+            var ret = new DetailedProfile
+            {
+                AvatarUrl = profile.AvatarUrl,
+                Id = profile.Id,
+                IsMain = profile.IsMain,
+                Locked = profile.Locked,
+                MaxMovieRating = profile.MaxMovieRating,
+                MaxTVRating = profile.MaxTVRating,
+                Name = profile.Name,
+                Initials = profile.Name.GetInitials(),
+                HasPin = profile.PinNumber != null,
+                TitleRequestPermissions = profile.TitleRequestPermission
+            };
+
+            //Get all owned libraries the profile has access to
+            List<Library> libs = await DB.Libraries
+                .AsNoTracking()
+                .Where(item => item.AccountId == profile.AccountId)
+                .ToListAsync();
+            
+
+            if (libs.Count > 0)
+            {
+                ret.AvailableLibraries ??= new();
+                foreach (var lib in libs)
+                    ret.AvailableLibraries.Add(lib.ToBasicLibraryInfo());
+            }
+
+
+            //Libs shared with account
+            var ownedLibraryIds = libs.Select(item => item.Id).ToList();
+            List<FriendLibraryShare>  shares = await DB.FriendLibraryShares
+                .AsNoTracking()
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account1)
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Friendship)
+                .ThenInclude(item => item.Account2)
+
+                .Include(item => item.Library)
+                .ThenInclude(item => item.FriendLibraryShares)
+                .ThenInclude(item => item.Library)
+
+                .Where(item => item.Friendship.Account1Id == UserAccount.Id || item.Friendship.Account2Id == UserAccount.Id)
+                .Where(item => !ownedLibraryIds.Contains(item.LibraryId))
+
+                .Select(item => item.Library)
+                .SelectMany(item => item.FriendLibraryShares)
+
+                .Where(item => item.Friendship.Accepted)
+
+                .Distinct()
+                .ToListAsync();
+           
+
+
+            if (shares.Count > 0)
+            {
+                ret.AvailableLibraries ??= new();
+                foreach (var share in shares)
+                    ret.AvailableLibraries.Add(share.ToBasicLibraryInfo(UserAccount.Id));
+            }
+
+            if (ret.AvailableLibraries != null)
+                ret.AvailableLibraries.Sort();
+
+            return ret;
+        }
 
 
 
@@ -468,47 +550,6 @@ namespace DustyPig.Server.Controllers.v3
         public Task<Result> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
-        static bool IsJpeg(Stream stream)
-        {
-            const int MIN_JPG_LENGTH = 107;
-
-            if (stream.Length < MIN_JPG_LENGTH)
-                return false;
-
-            var pos = stream.Position;
-            stream.Seek(0, SeekOrigin.Begin);
-
-            var ret =
-                stream.ReadByte() == 0xFF &&
-                stream.ReadByte() == 0xD8;
-
-            stream.Seek(pos, SeekOrigin.Begin);
-            return ret;
-        }
-
-
-        static bool IsPng(Stream stream)
-        {
-            const int MIN_PNG_LENGTH = 67;
-
-            if (stream.Length < MIN_PNG_LENGTH)
-                return false;
-
-            var pos = stream.Position;
-            stream.Seek(0, SeekOrigin.Begin);
-
-            var ret =
-                stream.ReadByte() == 0x89 &&
-                stream.ReadByte() == 0x50 &&
-                stream.ReadByte() == 0x4E &&
-                stream.ReadByte() == 0x47 &&
-                stream.ReadByte() == 0x0D &&
-                stream.ReadByte() == 0x0A &&
-                stream.ReadByte() == 0x1A &&
-                stream.ReadByte() == 0x0A;
-
-            stream.Seek(pos, SeekOrigin.Begin);
-            return ret;
-        }
+       
     }
 }
