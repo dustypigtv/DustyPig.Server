@@ -1383,7 +1383,7 @@ namespace DustyPig.Server.Controllers.v3
                     ) :
                     genre == Genres.Action ? me.Genre_Action :
                     genre == Genres.Adventure ? me.Genre_Adventure :
-                    genre == Genres.Animation ? me.Genre_Adventure :
+                    genre == Genres.Animation ? me.Genre_Animation :
                     genre == Genres.Anime ? me.Genre_Anime :
                     genre == Genres.Awards_Show ? me.Genre_Awards_Show :
                     genre == Genres.Children ? me.Genre_Children :
@@ -1392,7 +1392,7 @@ namespace DustyPig.Server.Controllers.v3
                     genre == Genres.Documentary ? me.Genre_Documentary :
                     genre == Genres.Drama ? me.Genre_Drama :
                     genre == Genres.Family ? me.Genre_Family :
-                    genre == Genres.Fantasy ? me.Genre_Family :
+                    genre == Genres.Fantasy ? me.Genre_Fantasy :
                     genre == Genres.Food ? me.Genre_Food :
                     genre == Genres.Game_Show ? me.Genre_Game_Show :
                     genre == Genres.History ? me.Genre_History :
