@@ -57,7 +57,7 @@ namespace DustyPig.Server.Controllers.v3
                     FriendshipId = item.FriendshipId,
                     NotificationType = item.NotificationType,
                     ProfileId = UserProfile.Id,
-                    MediaId = item.MediaEntryId,
+                    MediaId = item.MediaEntryId ?? item.GetRequest?.TMDB_Id,
                     MediaType = item.NotificationType switch
                     {
                         NotificationTypes.NewMediaAvailable => MediaTypes.Episode,
