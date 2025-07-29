@@ -234,12 +234,13 @@ namespace DustyPig.Server.Controllers.v3
             //Make sure the library is owned
             var ownedLib = await DB.Libraries
                 .AsNoTracking()
+                .Include(item => item.ProfileLibraryShares)
                 .Where(item => item.AccountId == UserAccount.Id)
                 .Where(item => item.Id == seriesInfo.LibraryId)
-                .AnyAsync();
-            if (!ownedLib)
-                return CommonResponses.ValueNotFound(nameof(seriesInfo.LibraryId));
+                .FirstOrDefaultAsync();
 
+            if (ownedLib == null)
+                return CommonResponses.ValueNotFound(nameof(seriesInfo.LibraryId));
 
             var newItem = new MediaEntry
             {
@@ -297,6 +298,8 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var existingItem = await DB.MediaEntries
+                .Include(item => item.Library)
+                .ThenInclude(item => item.ProfileLibraryShares)
                 .Where(item => item.Id == seriesInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Series)
                 .FirstOrDefaultAsync();
@@ -304,17 +307,23 @@ namespace DustyPig.Server.Controllers.v3
             if (existingItem == null)
                 return CommonResponses.ValueNotFound(nameof(seriesInfo.Id));
 
+            var profileIdsToNotifyViaFirestore = await DB.ProfilesWithAccessToTopLevel(seriesInfo.Id);
+
             //Make sure this item is owned
             var ownedLibs = await DB.Libraries
                 .AsNoTracking()
+                .Include(_ => _.ProfileLibraryShares)
                 .Where(item => item.AccountId == UserAccount.Id)
-                .Select(item => item.Id)
                 .ToListAsync();
 
-            if (!ownedLibs.Contains(existingItem.LibraryId))
+            var ownedLibIds = ownedLibs
+                .Select(item => item.Id)
+                .ToList();
+
+            if (!ownedLibIds.Contains(existingItem.LibraryId))
                 return "This account does not own this series";
 
-            if (!ownedLibs.Contains(seriesInfo.LibraryId))
+            if (!ownedLibIds.Contains(seriesInfo.LibraryId))
                 return CommonResponses.ValueNotFound(nameof(seriesInfo.LibraryId));
 
 
@@ -379,6 +388,10 @@ namespace DustyPig.Server.Controllers.v3
 
             //Save
             await DB.SaveChangesAsync();
+
+            if (library_changed)
+                profileIdsToNotifyViaFirestore.AddRange(await DB.ProfilesWithAccessToTopLevel(existingItem.LibraryId));
+            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore);
 
 
             //Playlists
@@ -498,6 +511,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.ProfileMediaProgresses.Remove(prog);
                 await DB.SaveChangesAsync();
+                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -584,6 +598,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             await DB.SaveChangesAsync();
+            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
 
             return Result.BuildSuccess();
         }

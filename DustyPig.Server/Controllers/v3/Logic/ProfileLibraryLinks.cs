@@ -51,6 +51,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
 
             await db.SaveChangesAsync();
 
+            FirestoreMediaChangedTriggerManager.QueueProfileId(profileId);
 
             //Scenario: Linked lib has items in a playlist. Then
             //Lib is unlinked, artwork is updated, then relinked - need
@@ -83,6 +84,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
             {
                 db.ProfileLibraryShares.Remove(rec);
                 await db.SaveChangesAsync();
+
+                FirestoreMediaChangedTriggerManager.QueueProfileId(profileId);
 
                 var playlistIds = await GetPlaylistIds(db, profileId, libraryId);
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);

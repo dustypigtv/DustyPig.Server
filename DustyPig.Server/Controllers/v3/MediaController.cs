@@ -386,6 +386,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
                 await DB.SaveChangesAsync();
+                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -407,6 +408,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.WatchListItems.Remove(item);
                 await DB.SaveChangesAsync();
+                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -451,6 +453,7 @@ namespace DustyPig.Server.Controllers.v3
 
             mediaEntry.EverPlayed = true;
 
+            bool updateFirestore = false;
             var existingProgress = mediaEntry.ProfileMediaProgress.FirstOrDefault();
             if (existingProgress == null)
             {
@@ -467,6 +470,8 @@ namespace DustyPig.Server.Controllers.v3
                     Timestamp = newProgress.AsOfUTC,
                     Xid = maybeEpisode.Xid
                 });
+
+                updateFirestore = true;
             }
             else
             {
@@ -475,6 +480,7 @@ namespace DustyPig.Server.Controllers.v3
                     if (mediaEntry.EntryType == MediaTypes.Movie && (newProgress.Seconds < 1 || newProgress.Seconds > (mediaEntry.CreditsStartTime ?? (mediaEntry.Length * 0.9))))
                     {
                         DB.ProfileMediaProgresses.Remove(existingProgress);
+                        updateFirestore = true;
                     }
                     else
                     {
@@ -483,12 +489,17 @@ namespace DustyPig.Server.Controllers.v3
                         existingProgress.Timestamp = newProgress.AsOfUTC;
                         existingProgress.Xid = maybeEpisode.Xid;
                         DB.ProfileMediaProgresses.Update(existingProgress);
+
+                        if (Math.Abs((existingProgress.Timestamp - existingProgress.Timestamp).TotalSeconds) >= 60)
+                            updateFirestore = true;
                     }
                 }
             }
 
 
             await DB.SaveChangesAsync();
+            if (updateFirestore)
+                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
@@ -874,7 +885,6 @@ namespace DustyPig.Server.Controllers.v3
 
             List<Friendship> myFriends = null;
 
-
             //Check if current user can edit permissions
             if (mediaEntry.Library.AccountId == UserAccount.Id)
             {
@@ -921,9 +931,6 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-
-
-
             // *** Check if user can view by default ***
             bool allowByDefault = false;
             var profile = UserAccount.Profiles.FirstOrDefault(item => item.Id == info.ProfileId);
@@ -964,6 +971,10 @@ namespace DustyPig.Server.Controllers.v3
 
 
 
+            List<int> profileIds = [];
+
+
+
             //Check for an existing override
             var overrideEntity = mediaEntry.TitleOverrides
                 .Where(item => item.ProfileId == info.ProfileId)
@@ -1000,6 +1011,7 @@ namespace DustyPig.Server.Controllers.v3
                         Status = info.OverrideState == OverrideState.Allow ? OverrideRequestStatus.Granted : OverrideRequestStatus.Denied
                     };
                     DB.TitleOverrides.Add(overrideEntity);
+                    profileIds.Add(info.ProfileId);
                 }
             }
             else
@@ -1034,6 +1046,7 @@ namespace DustyPig.Server.Controllers.v3
                 if (deleteOverride)
                 {
                     DB.TitleOverrides.Remove(overrideEntity);
+                    profileIds.Add(overrideEntity.ProfileId);
                 }
                 else
                 {
@@ -1071,7 +1084,10 @@ namespace DustyPig.Server.Controllers.v3
                                     {
                                         var subOverride = mediaEntry.TitleOverrides.FirstOrDefault(item => item.ProfileId == subProfile.Id);
                                         if (subOverride != null)
+                                        {
                                             DB.TitleOverrides.Remove(subOverride);
+                                            profileIds.Add(subOverride.ProfileId);
+                                        }
                                     }
                                     break;
                                 }
@@ -1091,12 +1107,14 @@ namespace DustyPig.Server.Controllers.v3
                             Title = "Access Request",
                             Timestamp = DateTime.UtcNow
                         });
+                        profileIds.Add(info.ProfileId);
                     }
                 }
             }
 
             await DB.SaveChangesAsync();
 
+            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIds);
             if (doNotification)
                 FirebaseNotificationsManager.QueueProfileForNotifications(info.ProfileId);
 

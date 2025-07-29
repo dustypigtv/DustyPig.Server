@@ -482,12 +482,15 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<Result> Delete(int id)
         {
             var lib = await DB.Libraries
+                .Include(item => item.ProfileLibraryShares)
                 .Where(item => item.AccountId == UserAccount.Id)
                 .Where(item => item.Id == id)
                 .SingleOrDefaultAsync();
 
             if (lib != null)
             {
+                var profileIds = lib.ProfileLibraryShares.Select(_ => _.ProfileId).ToList();
+
                 var q =
                     from me in DB.MediaEntries.Where(item => item.LibraryId == id)
                     join pi in DB.PlaylistItems on me.Id equals pi.MediaEntryId
@@ -497,7 +500,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 DB.Libraries.Remove(lib);
                 await DB.SaveChangesAsync();
-
+                FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIds);
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 

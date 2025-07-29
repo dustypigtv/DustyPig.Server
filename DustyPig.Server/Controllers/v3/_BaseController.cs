@@ -8,6 +8,7 @@ namespace DustyPig.Server.Controllers.v3
     [ApiVersion("3")]
     [Route("api/v{version:apiVersion}/[controller]/[action]")]
     [Produces("application/json")]
+    [Consumes("application/json")]
     public abstract class _BaseController : Controller
     {
         public _BaseController(AppDbContext db) => DB = db;

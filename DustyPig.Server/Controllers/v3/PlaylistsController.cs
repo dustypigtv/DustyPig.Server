@@ -275,6 +275,7 @@ namespace DustyPig.Server.Controllers.v3
 
             DB.Playlists.Add(playlist);
             await DB.SaveChangesAsync();
+            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
 
             return playlist.Id;
         }
@@ -320,6 +321,7 @@ namespace DustyPig.Server.Controllers.v3
 
             playlist.Name = info.Name;
             await DB.SaveChangesAsync();
+            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
@@ -342,6 +344,7 @@ namespace DustyPig.Server.Controllers.v3
                 await ArtworkUpdater.SetNeedsDeletionAsync([playlist.ArtworkUrl, playlist.BackdropUrl]);
                 DB.Playlists.Remove(playlist);
                 await DB.SaveChangesAsync();
+                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -703,7 +706,7 @@ namespace DustyPig.Server.Controllers.v3
             playlist.ArtworkUpdateNeeded = true;
 
             await DB.SaveChangesAsync();
-
+            
             return Result.BuildSuccess();
         }
 

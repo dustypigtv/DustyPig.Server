@@ -10,6 +10,7 @@ namespace DustyPig.Server.Controllers.v3
 {
     [ApiVersion("3")]
     [Produces("application/json")]
+    [Consumes("application/json")]
     [ApiController]
     [ApiExplorerSettings(GroupName = "NoOp")]
     [Route("api/v{version:apiVersion}/NoOp/[action]")]
@@ -24,8 +25,6 @@ namespace DustyPig.Server.Controllers.v3
     }
 
 
-    [ApiVersion("3")]
-    [Produces("application/json")]
     [ApiController]
     [ApiExplorerSettings(GroupName = "NoOp")]
     [Route("api/v{version:apiVersion}/NoOp/[action]")]
@@ -42,8 +41,6 @@ namespace DustyPig.Server.Controllers.v3
     }
 
 
-    [ApiVersion("3")]
-    [Produces("application/json")]
     [ApiController]
     [ApiExplorerSettings(GroupName = "NoOp")]
     [Route("api/v{version:apiVersion}/NoOp/[action]")]

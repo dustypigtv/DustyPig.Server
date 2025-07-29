@@ -1,6 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
-using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Messaging;
 using Google.Cloud.Firestore;
@@ -11,7 +10,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,10 +17,6 @@ namespace DustyPig.Server.HostedServices
 {
     public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     {
-        //About once/second check for and send any new notifications
-        private const int ONE_SECOND = 1000;
-
-
         private readonly Timer _timer;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly CancellationToken _cancellationToken;
@@ -31,8 +25,7 @@ namespace DustyPig.Server.HostedServices
         //To reduce polling the DB:
         //  poll everything on first run
         //  otherwise only pull from the queue
-        private static bool _firstRun = true;
-        private static ConcurrentQueue<int> _queue = new ConcurrentQueue<int>();
+        private static BlockingCollection<int> _profileIds = new();
 
         //Only delete old tokens once a day
         private static DateTime _lastTokenDelete = DateTime.Now.AddDays(-2);
@@ -57,74 +50,91 @@ namespace DustyPig.Server.HostedServices
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            _profileIds.CompleteAdding();
             _cancellationTokenSource.Cancel();
             return Task.CompletedTask;
         }
 
-        public static void QueueProfileForNotifications(int profileId) => _queue.Enqueue(profileId);
-
+        public static void QueueProfileForNotifications(int profileId)
+        {
+            if (!_profileIds.Contains(profileId))
+                _profileIds.Add(profileId);
+        }
 
         private async void TimerTickedAsync(object state)
         {
             try
             {
-                await DoWorkAsync();
+                await InitialProfileIdsAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "DoWork");
+                _logger.LogError(ex, nameof(TimerTickedAsync));
             }
 
-            if (!_cancellationToken.IsCancellationRequested)
-                _timer.Change(ONE_SECOND, Timeout.Infinite);
-        }
 
-
-        private async Task DoWorkAsync()
-        {
-            //Separate functions aren't called more than once, but are separated to make
-            //Scoping easier, and smaller-faster progress saves
-
-            if (DateTime.Now.AddDays(-1) > _lastTokenDelete)
+            try
             {
-                await RemoveOldFCMTokensAsync();
-                _lastTokenDelete = DateTime.Now;
-                _firstRun = true;
-            }
+                //Blocking for loop
+                foreach (int profileId in _profileIds.GetConsumingEnumerable(_cancellationToken))
+                {
+                    if (DateTime.Now.AddDays(-1) > _lastTokenDelete)
+                    {
+                        await RemoveOldFCMTokensAsync();
+                        _lastTokenDelete = DateTime.Now;
+                    }
 
-            //Now do the notifications
-            if (_firstRun || !_queue.IsEmpty)
-                await SendNotificationsAsync();
+                    await SendNotificationsAsync(profileId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, nameof(TimerTickedAsync));
+            }
         }
 
+        private async Task InitialProfileIdsAsync()
+        {
+            using var db = new AppDbContext();
+            var profileIds = await db.Profiles
+                .AsNoTracking()
+                .Include(p => p.FCMTokens)
+                .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
+                .ThenInclude(n => n.MediaEntry)
+                .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
+                .ThenInclude(n => n.GetRequest)
+                .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
+                .ThenInclude(n => n.Friendship)
+                .Where(p => p.Notifications.Any(n => !(n.Sent || n.Seen)))
+                .Select(_ => _.Id)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (int profileId in profileIds)
+                _profileIds.Add(profileId);
+        }
 
         private async Task RemoveOldFCMTokensAsync()
         {
-            using var db = new AppDbContext();
-            string query = $"DELETE FROM {nameof(db.FCMTokens)} WHERE {nameof(Data.Models.FCMToken.LastSeen)} < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
-            await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
+            try
+            {
+                using var db = new AppDbContext();
+                string query = $"DELETE FROM {nameof(db.FCMTokens)} WHERE {nameof(Data.Models.FCMToken.LastSeen)} < '{DateTime.UtcNow.AddMonths(-3):yyyy-MM-dd}'";
+                await db.Database.ExecuteSqlRawAsync(query, _cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, nameof(RemoveOldFCMTokensAsync));
+            }
         }
 
-
-
-
-
-        private async Task SendNotificationsAsync()
+        private async Task SendNotificationsAsync(int profileId)
         {
-            int pid = -1;
-            if (!_firstRun)
-                if (!_queue.TryDequeue(out pid))
-                    return;
-
-
-            if (pid > 0)
-                await UpdateFirestoreAsync(pid);
-
             using var db = new AppDbContext();
 
 
             //Get the next profile with unseen/unsent notifications
-            var query = db.Profiles
+            var profile = await db.Profiles
                 .AsNoTracking()
 
                 .Include(p => p.FCMTokens)
@@ -138,23 +148,35 @@ namespace DustyPig.Server.HostedServices
                 .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
                 .ThenInclude(n => n.Friendship)
 
-                .Where(p => p.Notifications.Any(n => !(n.Sent || n.Seen)));
+                .Where(p => p.Notifications.Any(n => !(n.Sent || n.Seen)))
 
-            if (!_firstRun)
-                query = query.Where(p => p.Id == pid);
-
-            var profile = await query
+                .Where(p => p.Id == profileId)
                 .OrderBy(p => p.Notifications.Select(n => n.Timestamp).OrderBy(t => t).First())
+
                 .FirstOrDefaultAsync(_cancellationToken);
 
             if (profile == null)
-            {
-                _firstRun = false;
                 return;
-            }
 
-            if (profile.Id != pid)
-                await UpdateFirestoreAsync(profile.Id);
+
+
+            // Update Firestore to let mobile listeners know to update their list of notifications
+            try
+            {
+                DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profileId.ToString());
+
+                //The clients only wait for a change to the document, and don't care what the changes are
+                //A 1-char key and 8 byte timestamp is small, fast and always updates
+                Dictionary<string, object> data = new Dictionary<string, object>
+                {
+                    { "t", DateTime.UtcNow.Ticks }
+                };
+                await docRef.SetAsync(data, cancellationToken: _cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating alerts in Firestore");
+            }
 
 
             //If there are not FCM tokens to send pushes to, consider all notifications sent
@@ -259,32 +281,7 @@ namespace DustyPig.Server.HostedServices
                 }
             }
 
-
             await db.SaveChangesAsync(_cancellationToken);
-        }
-
-        private async Task UpdateFirestoreAsync(int profileId)
-        {
-            if (profileId < 1)
-                return;
-
-            // Update Firestore to let mobile listeners know to update their list of notifications
-            try
-            {
-                DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profileId.ToString());
-
-                //The clients only look for a change to the document, not what the changes are
-                //A 1-char key and 8 byte timestamp is small, fast and always updates
-                Dictionary<string, object> data = new Dictionary<string, object>
-                {
-                    { "t", DateTime.UtcNow.Ticks }
-                };
-                await docRef.SetAsync(data, cancellationToken: _cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating alerts in Firestore");
-            }
         }
     }
 }

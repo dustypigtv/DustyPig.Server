@@ -3,6 +3,7 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
@@ -42,12 +43,21 @@ namespace DustyPig.Server.Controllers.v3
             //Get the object, making sure it's owned
             var mediaEntry = await DB.MediaEntries
                 .Include(item => item.Library)
+                .ThenInclude(item => item.ProfileLibraryShares)
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .FirstOrDefaultAsync();
 
             if (mediaEntry == null)
                 return Result.BuildSuccess();
+
+
+            List<int> profileIdsToNotifyViaFirestore = [];
+            if (Constants.TOP_LEVEL_MEDIA_TYPES.Contains(mediaEntry.EntryType))
+                profileIdsToNotifyViaFirestore.AddRange(await DB.ProfilesWithAccessToTopLevel(mediaEntry.Id));
+            else
+                profileIdsToNotifyViaFirestore.AddRange(await DB.ProfilesWithAccessToTopLevel(mediaEntry.LinkedToId ?? 0));
+
 
             // Flag playlist artwork for updates
             var playlists = mediaEntry.EntryType == MediaTypes.Series ?
@@ -72,6 +82,7 @@ namespace DustyPig.Server.Controllers.v3
 
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
+            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore);
 
             return Result.BuildSuccess();
         }

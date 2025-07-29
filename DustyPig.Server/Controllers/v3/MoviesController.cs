@@ -335,6 +335,7 @@ namespace DustyPig.Server.Controllers.v3
             //Make sure the library is owned
             var ownedLib = await DB.Libraries
                 .AsNoTracking()
+                .Include(item => item.ProfileLibraryShares)
                 .Where(item => item.AccountId == UserAccount.Id)
                 .Where(item => item.Id == movieInfo.LibraryId)
                 .AnyAsync();
@@ -387,6 +388,8 @@ namespace DustyPig.Server.Controllers.v3
             DB.MediaEntries.Add(newItem);
             await DB.SaveChangesAsync();
 
+            var profileIdsToNotify = await DB.ProfilesWithAccessToLibraryAndRating(newItem.LibraryId, newItem.MovieRating ?? MovieRatings.Unrated);
+            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotify);
 
             //Notifications
             if (newItem.TMDB_Id > 0)
@@ -444,6 +447,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var existingItem = await DB.MediaEntries
                 .Include(item => item.ExtraSearchTerms)
+                .Include(item => item.Library)
+                .ThenInclude(item => item.ProfileLibraryShares)
                 .Where(item => item.Id == movieInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
                 .FirstOrDefaultAsync();
@@ -454,17 +459,22 @@ namespace DustyPig.Server.Controllers.v3
             //Make sure this item is owned
             var ownedLibs = await DB.Libraries
                 .AsNoTracking()
+                .Include(item => item.ProfileLibraryShares)
                 .Where(item => item.AccountId == UserAccount.Id)
-                .Select(item => item.Id)
                 .ToListAsync();
 
-            if (!ownedLibs.Contains(existingItem.LibraryId))
+            var ownedLibIds = ownedLibs
+                .Select(item => item.Id)
+                .ToList();
+
+            if (!ownedLibIds.Contains(existingItem.LibraryId))
                 return CommonResponses.ValueNotFound(nameof(movieInfo.Id));
 
-            if (!ownedLibs.Contains(movieInfo.LibraryId))
+            if (!ownedLibIds.Contains(movieInfo.LibraryId))
                 return CommonResponses.ValueNotFound(nameof(movieInfo.LibraryId));
 
-
+            var profileIdsToNotifyViaFirestore = await DB.ProfilesWithAccessToTopLevel(movieInfo.Id);
+            
 
             //Update info
             bool library_changed = existingItem.LibraryId != movieInfo.LibraryId;
@@ -511,6 +521,12 @@ namespace DustyPig.Server.Controllers.v3
             //Save
             await DB.SaveChangesAsync();
 
+            if (library_changed)
+            {
+                var newProfileIdsWithAccess = await DB.ProfilesWithAccessToTopLevel(movieInfo.Id);
+                profileIdsToNotifyViaFirestore.AddRange(newProfileIdsWithAccess);
+            } 
+            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore.Distinct());
 
             //Playlists
             List<int> playlistIds = null;
@@ -557,6 +573,7 @@ namespace DustyPig.Server.Controllers.v3
             movie.EverPlayed = true;
             DB.ProfileMediaProgresses.Remove(movie.ProfileMediaProgress.First());
             await DB.SaveChangesAsync();
+            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
