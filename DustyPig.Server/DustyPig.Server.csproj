@@ -7,7 +7,7 @@
 		<NoWarn>$(NoWarn);1591,1579,CS1573,IDE0090</NoWarn>
 
 		<!-- Leave the revision as zero, it will be set by github actions -->
-		<Version>3.4.0.0</Version>
+		<Version>3.5.0.0</Version>
 		<UserSecretsId>ad457da4-3875-453c-9c70-70fa31ad9064</UserSecretsId>
 
 	</PropertyGroup>
