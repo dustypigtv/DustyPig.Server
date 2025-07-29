@@ -45,30 +45,6 @@ namespace DustyPig.Server.Controllers.v3.Logic
             return ret;
         }
 
-        public static SRTSubtitle ToSRTSubtitle(this Subtitle self) =>
-            new SRTSubtitle
-            {
-                Language = self.Language,
-                Name = self.Name,
-                Url = self.Url
-            };
-
-
-        public static List<SRTSubtitle> ToSRTSubtitleList(this List<Subtitle> self)
-        {
-            if (self == null)
-                return null;
-
-            if (self.Count == 0)
-                return null;
-
-            self.Sort();
-            var ret = new List<SRTSubtitle>();
-            foreach (var item in self)
-                ret.Add(item.ToSRTSubtitle());
-            return ret;
-        }
-
 
         public static DetailedMovie ToDetailedMovie(this MediaEntry self, bool playable)
         {
@@ -94,8 +70,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 Title = self.Title,
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = playable ? self.VideoUrl : null,
-                ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(item => item.Term).Order().ToList(),
-                SRTSubtitles = playable ? (self.Subtitles ?? []).ToSRTSubtitleList() : null
+                ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(item => item.Term).Order().ToList()
             };
         }
 
@@ -141,8 +116,6 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 TMDB_Id = self.TMDB_Id,
                 VideoUrl = self.VideoUrl,
             };
-
-            ret.SRTSubtitles = self.Subtitles.ToSRTSubtitleList();
 
             return ret;
         }

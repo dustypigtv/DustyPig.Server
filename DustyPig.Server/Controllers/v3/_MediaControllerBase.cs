@@ -194,7 +194,6 @@ namespace DustyPig.Server.Controllers.v3
             //Get the episodes
             var dbEps = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.Subtitles)
                 .Where(item => item.LinkedToId == id)
                 .OrderBy(item => item.Xid)
                 .ToListAsync();
@@ -213,7 +212,6 @@ namespace DustyPig.Server.Controllers.v3
                         Date = dbEp.Date.Value,
                         Description = dbEp.Description,
                         EpisodeNumber = (ushort)dbEp.Episode.Value,
-                        SRTSubtitles = playable ? dbEp.Subtitles.ToSRTSubtitleList() : null,
                         Id = dbEp.Id,
                         IntroEndTime = dbEp.IntroEndTime,
                         IntroStartTime = dbEp.IntroStartTime,

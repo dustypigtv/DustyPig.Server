@@ -203,8 +203,6 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Include(item => item.ProfileMediaProgress.Where(item2 => item2.ProfileId == UserProfile.Id))
 
-                .Include(item => item.Subtitles)
-
                 .Where(item => item.Id == id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
                 .FirstOrDefaultAsync();
@@ -304,8 +302,6 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.People)
                 .ThenInclude(item => item.TMDB_Person)
 
-                .Include(item => item.Subtitles)
-
                 .Where(item => item.Id == id)
                 .Where(item => item.Library.AccountId == UserAccount.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
@@ -384,7 +380,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Movie);
-            newItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.SRTSubtitles, movieInfo.Genres, tmdbInfo);
+            newItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.Genres, tmdbInfo);
 
 
             //Save
@@ -448,7 +444,6 @@ namespace DustyPig.Server.Controllers.v3
 
             var existingItem = await DB.MediaEntries
                 .Include(item => item.ExtraSearchTerms)
-                .Include(item => item.Subtitles)
                 .Where(item => item.Id == movieInfo.Id)
                 .Where(item => item.EntryType == MediaTypes.Movie)
                 .FirstOrDefaultAsync();
@@ -510,7 +505,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Movie);
-            existingItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.SRTSubtitles, movieInfo.Genres, tmdbInfo);
+            existingItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.Genres, tmdbInfo);
 
 
             //Save

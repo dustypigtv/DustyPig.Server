@@ -78,7 +78,6 @@ namespace DustyPig.Server.Controllers.v3
                 .ThenInclude(item => item.LinkedTo)
                 .Include(item => item.PlaylistItems)
                 .ThenInclude(item => item.MediaEntry)
-                .ThenInclude(item => item.Subtitles)
                 .Where(item => item.Id == id)
                 .Where(item => item.ProfileId == UserProfile.Id)
                 .FirstOrDefaultAsync();
@@ -200,8 +199,6 @@ namespace DustyPig.Server.Controllers.v3
                             pli.ArtworkUrl = dbPlaylistItem.MediaEntry.BackdropUrl;
                         break;
                 }
-
-                pli.SRTSubtitles = dbPlaylistItem.MediaEntry.Subtitles.ToSRTSubtitleList();
 
                 ret.Items.Add(pli);
             }

@@ -67,7 +67,6 @@ namespace DustyPig.Server.Controllers.v3
                 SeriesBackdropUrl = series.BackdropUrl,
                 SeriesId = series.Id,
                 SeriesTitle = series.Title,
-                SRTSubtitles = episode.SRTSubtitles,
                 Title = episode.Title,
                 TMDB_Id = episode.TMDB_Id,
                 UpNext = episode.UpNext,
@@ -146,7 +145,7 @@ namespace DustyPig.Server.Controllers.v3
                 return $"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
-            newItem.SetOtherInfo(null, episodeInfo.SRTSubtitles, null, null);
+            newItem.SetOtherInfo(null, null, null);
 
 
             //Add the new item
@@ -340,7 +339,6 @@ namespace DustyPig.Server.Controllers.v3
             var existingEpisode = await DB.MediaEntries
                 .Include(item => item.LinkedTo)
                 .ThenInclude(item => item.Library)
-                .Include(item => item.Subtitles)
                 .Where(item => item.Id == episodeInfo.Id)
                 .SingleOrDefaultAsync();
 
@@ -385,7 +383,7 @@ namespace DustyPig.Server.Controllers.v3
                 return $"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
-            existingEpisode.SetOtherInfo(null, episodeInfo.SRTSubtitles, null, null);
+            existingEpisode.SetOtherInfo(null, null, null);
 
 
             if (artChanged)

@@ -207,7 +207,6 @@ namespace DustyPig.Server.Controllers.v3
             //Get the episodes
             var dbEps = await DB.MediaEntries
                 .AsNoTracking()
-                .Include(item => item.Subtitles)
                 .Where(item => item.LinkedToId == id)
                 .OrderBy(item => item.Xid)
                 .ToListAsync();
@@ -272,7 +271,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Series);
-            newItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, null, seriesInfo.Genres, tmdbInfo);
+            newItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
 
 
             //Add the new item
@@ -350,7 +349,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Series);
-            existingItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, null, seriesInfo.Genres, tmdbInfo);
+            existingItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
 
             //Update library/rated for episodes
             List<int> playlistIds = null;

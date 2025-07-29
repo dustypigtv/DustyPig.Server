@@ -256,9 +256,6 @@ namespace DustyPig.Server.Data.Models
 
         public List<TitleOverride> TitleOverrides { get; set; } = [];
 
-        public List<Subtitle> Subtitles { get; set; } = [];
-
-
 
 
 
@@ -478,44 +475,7 @@ namespace DustyPig.Server.Data.Models
                 );
         }
 
-        void SetSubtitles(List<SRTSubtitle> newSubs)
-        {
-            Subtitles ??= [];
-            if (!(EntryType == MediaTypes.Movie || EntryType == MediaTypes.Episode))
-            {
-                Subtitles.Clear();
-                return;
-            }
-
-            newSubs ??= [];
-            Subtitles.RemoveAll(existing =>
-            {
-                return !newSubs
-                    .Where(_ => _.Name == existing.Name)
-                    .Where(_ => _.Language == existing.Language)
-                    .Where(_ => _.Url == existing.Url)
-                    .Any();
-            });
-            Subtitles.AddRange
-                (
-                    newSubs
-                        .Where(sub =>
-                        {
-                            return !Subtitles
-                                .Where(existing => existing.Name == sub.Name)
-                                .Where(existing => existing.Language == sub.Language)
-                                .Where(existing => existing.Url == sub.Url)
-                                .Any();
-                        })
-                        .Select(sub => new Subtitle
-                        {
-                            Language = sub.Language,
-                            MediaEntry = this,
-                            Name = sub.Name,
-                            Url = sub.Url
-                        })
-                );
-        }
+        
 
         void SetGenreFlags(Genres? genres)
         {
@@ -570,10 +530,9 @@ namespace DustyPig.Server.Data.Models
         /// <summary>
         /// Call this after setting all other fields
         /// </summary>
-        public void SetOtherInfo(List<string> extraSearchTerms, List<SRTSubtitle> subTitles, Genres? genres, TMDB_Entry tmdbInfo)
+        public void SetOtherInfo(List<string> extraSearchTerms, Genres? genres, TMDB_Entry tmdbInfo)
         {
             SetExraSearchTerms(extraSearchTerms);
-            SetSubtitles(subTitles);
             UpdateFromTMDB(tmdbInfo);
             SetGenreFlags(genres);
             CreateSearchTitle();

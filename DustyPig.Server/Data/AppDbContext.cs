@@ -39,7 +39,6 @@ namespace DustyPig.Server.Data
         public DbSet<ProfileMediaProgress> ProfileMediaProgresses { get; set; }
         public DbSet<S3ArtFileToDelete> S3ArtFilesToDelete { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
-        public DbSet<Subtitle> Subtitles { get; set; }
         public DbSet<TitleOverride> TitleOverrides { get; set; }
         public DbSet<WatchlistItem> WatchListItems { get; set; }
 
