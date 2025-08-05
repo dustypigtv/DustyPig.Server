@@ -386,7 +386,7 @@ namespace DustyPig.Server.Controllers.v3
                 });
 
                 await DB.SaveChangesAsync();
-                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+                FirestoreMediaChangedTriggerManager.QueueWatchlist(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -408,7 +408,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.WatchListItems.Remove(item);
                 await DB.SaveChangesAsync();
-                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+                FirestoreMediaChangedTriggerManager.QueueWatchlist(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -499,7 +499,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
             if (updateFirestore)
-                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+                FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
@@ -1114,7 +1114,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIds);
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIds);
             if (doNotification)
                 FirebaseNotificationsManager.QueueProfileForNotifications(info.ProfileId);
 

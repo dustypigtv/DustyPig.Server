@@ -500,7 +500,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 DB.Libraries.Remove(lib);
                 await DB.SaveChangesAsync();
-                FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIds);
+                FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIds);
                 await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
             }
 

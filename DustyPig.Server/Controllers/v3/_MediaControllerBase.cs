@@ -82,7 +82,7 @@ namespace DustyPig.Server.Controllers.v3
 
             DB.MediaEntries.Remove(mediaEntry);
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore);
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
 
             return Result.BuildSuccess();
         }

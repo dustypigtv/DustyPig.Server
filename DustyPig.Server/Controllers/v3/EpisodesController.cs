@@ -258,7 +258,7 @@ namespace DustyPig.Server.Controllers.v3
             await HostedServices.ArtworkUpdater.SetNeedsUpdateAsync(playlistsToUpdate);
 
             //Queue notifications
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore);
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
             
             foreach(int profileId in notifiedProfiles.Distinct())
                 FirebaseNotificationsManager.QueueProfileForNotifications(profileId);
@@ -320,7 +320,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+            FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
@@ -411,7 +411,7 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
 
             var profileIdsToNotifyViaFirestore = await DB.ProfilesWithAccessToTopLevel(episodeInfo.SeriesId);
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore);
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
             
             return Result.BuildSuccess();
         }

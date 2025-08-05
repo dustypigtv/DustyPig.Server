@@ -389,7 +389,7 @@ namespace DustyPig.Server.Controllers.v3
             await DB.SaveChangesAsync();
 
             var profileIdsToNotify = await DB.ProfilesWithAccessToLibraryAndRating(newItem.LibraryId, newItem.MovieRating ?? MovieRatings.Unrated);
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotify);
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotify);
 
             //Notifications
             if (newItem.TMDB_Id > 0)
@@ -526,7 +526,7 @@ namespace DustyPig.Server.Controllers.v3
                 var newProfileIdsWithAccess = await DB.ProfilesWithAccessToTopLevel(movieInfo.Id);
                 profileIdsToNotifyViaFirestore.AddRange(newProfileIdsWithAccess);
             } 
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore.Distinct());
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore.Distinct());
 
             //Playlists
             List<int> playlistIds = null;
@@ -573,7 +573,7 @@ namespace DustyPig.Server.Controllers.v3
             movie.EverPlayed = true;
             DB.ProfileMediaProgresses.Remove(movie.ProfileMediaProgress.First());
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+            FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
             return Result.BuildSuccess();
         }

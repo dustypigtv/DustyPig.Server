@@ -17,7 +17,13 @@ namespace DustyPig.Server.HostedServices;
 /// </summary>
 public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
 {
-    private static readonly BlockingCollection<int> _profileIds = new();
+    private const int TICK_INTERVAL = 100;
+
+    private static readonly ConcurrentQueue<int> _homescreen = new();
+    private static readonly ConcurrentQueue<int> _continueWatching = new();
+    private static readonly ConcurrentQueue<int> _watchlist = new();
+    private static readonly ConcurrentQueue<int> _playlist = new();
+
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly CancellationToken _cancellationToken;
     private readonly Timer _timer;
@@ -36,29 +42,56 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     }
 
 
-    public static void QueueProfileId(int profileId)
+    public static void QueueHomeScreen(int profileId)
     {
-        if (!_profileIds.Contains(profileId))
-            _profileIds.Add(profileId);
+        if (!_homescreen.Contains(profileId))
+            _homescreen.Enqueue(profileId);
     }
 
-    public static void QueueProfileIds(IEnumerable<int> profileIds)
+    public static void QueueHomeScreen(IEnumerable<int> profileIds)
     {
         foreach(int profileId in profileIds.Distinct())
-            QueueProfileId(profileId);
+            QueueHomeScreen(profileId);
     }
+
+
+    public static void QueueContinueWatching(int profileId)
+    {
+        if(!_continueWatching.Contains(profileId))
+            _continueWatching.Enqueue(profileId);
+    }
+
+    public static void QueueContinueWatching(IEnumerable<int> profileIds)
+    {
+        foreach(int profileId in profileIds.Distinct())
+            QueueContinueWatching(profileId);
+    }
+
+    public static void QueueWatchlist(int profileId)
+    {
+        if(!_watchlist.Contains(profileId))
+            _watchlist.Enqueue(profileId);
+    }
+
+    public static void QueuePlaylist(int profileId)
+    {
+        if(!_playlist.Contains(profileId))
+            _playlist.Enqueue(profileId);
+    }
+
+
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         //Use a timer to start it
-        _timer.Change(0, Timeout.Infinite);
+        _timer.Change(TICK_INTERVAL, Timeout.Infinite);
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _profileIds.CompleteAdding();
         _cancellationTokenSource.Cancel();
+        _timer.Dispose();
         return Task.CompletedTask;
     }
 
@@ -66,30 +99,40 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     {
         try
         {
-            foreach (int profileId in _profileIds.GetConsumingEnumerable(_cancellationToken))
-            {
-                // Update Firestore to let mobile listeners know to update their home screen / media views
-                try
-                {
-                    DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_HOMESCREEN_COLLECTION).Document(profileId.ToString());
-
-                    //The clients only wait for a change to the document, and don't care what the changes are
-                    //A 1-char key and 8 byte timestamp is small, fast and always updates
-                    Dictionary<string, object> data = new Dictionary<string, object>
-                    {
-                        { "t", DateTime.UtcNow.Ticks }
-                    };
-                    await docRef.SetAsync(data, cancellationToken: _cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error updating alerts in Firestore");
-                }
-            }
+            await ProcessQueue(_homescreen, Constants.FDB_KEY_HOMESCREEN_COLLECTION);
+            await ProcessQueue(_watchlist, Constants.FBD_KEY_WATCHLIST);
+            await ProcessQueue(_playlist, Constants.FBD_KEY_PLAYLIST);
+            await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DoWork");
+            _logger.LogError(ex, "TimerTicked");
         }
+
+        try { _timer.Change(TICK_INTERVAL, Timeout.Infinite); }
+        catch { }
+    }
+
+    private async Task ProcessQueue(ConcurrentQueue<int> queue, string key)
+    {
+        while (queue.TryDequeue(out int profileId))
+        {
+            await Task.Delay(TICK_INTERVAL, _cancellationToken);
+            await WriteDoc(key, profileId);
+        }
+
+        await Task.Delay(TICK_INTERVAL, _cancellationToken);
+    }
+
+    private Task WriteDoc(string key, int profileId)
+    {
+        //The clients only wait for a change to the document, and don't care what the changes are
+        //A 1-char key and 8 byte timestamp is small, fast and always updates
+        DocumentReference docRef = FDB.Service.Collection(key).Document(profileId.ToString());
+        Dictionary<string, object> data = new Dictionary<string, object>
+        {
+            { "t", DateTime.UtcNow.Ticks }
+        };
+        return docRef.SetAsync(data, cancellationToken: _cancellationToken);
     }
 }

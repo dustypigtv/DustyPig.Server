@@ -391,7 +391,7 @@ namespace DustyPig.Server.Controllers.v3
 
             if (library_changed)
                 profileIdsToNotifyViaFirestore.AddRange(await DB.ProfilesWithAccessToTopLevel(existingItem.LibraryId));
-            FirestoreMediaChangedTriggerManager.QueueProfileIds(profileIdsToNotifyViaFirestore);
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
 
 
             //Playlists
@@ -511,7 +511,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.ProfileMediaProgresses.Remove(prog);
                 await DB.SaveChangesAsync();
-                FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+                FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
             }
 
             return Result.BuildSuccess();
@@ -598,7 +598,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueProfileId(UserProfile.Id);
+            FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
             return Result.BuildSuccess();
         }

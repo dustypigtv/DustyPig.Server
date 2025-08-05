@@ -233,6 +233,8 @@ namespace DustyPig.Server.HostedServices
 
                 playlist.ArtworkUpdateNeeded = false;
                 await db.SaveChangesAsync(_cancellationToken);
+
+                FirestoreMediaChangedTriggerManager.QueuePlaylist(playlist.ProfileId);
             }
             catch (Exception ex)
             {
