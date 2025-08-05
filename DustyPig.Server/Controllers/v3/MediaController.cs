@@ -485,13 +485,13 @@ namespace DustyPig.Server.Controllers.v3
                     else
                     {
                         //Update
+                        if (Math.Abs((newProgress.AsOfUTC - existingProgress.Timestamp).TotalSeconds) >= 60)
+                            updateFirestore = true;
+
                         existingProgress.Played = Math.Max(0, newProgress.Seconds);
                         existingProgress.Timestamp = newProgress.AsOfUTC;
                         existingProgress.Xid = maybeEpisode.Xid;
                         DB.ProfileMediaProgresses.Update(existingProgress);
-
-                        if (Math.Abs((existingProgress.Timestamp - existingProgress.Timestamp).TotalSeconds) >= 60)
-                            updateFirestore = true;
                     }
                 }
             }
