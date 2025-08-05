@@ -104,6 +104,7 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
             await ProcessQueue(_playlist, Constants.FDB_KEY_PLAYLIST);
             await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING);
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             _logger.LogError(ex, "TimerTicked");
