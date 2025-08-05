@@ -100,8 +100,8 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
         try
         {
             await ProcessQueue(_homescreen, Constants.FDB_KEY_HOMESCREEN_COLLECTION);
-            await ProcessQueue(_watchlist, Constants.FBD_KEY_WATCHLIST);
-            await ProcessQueue(_playlist, Constants.FBD_KEY_PLAYLIST);
+            await ProcessQueue(_watchlist, Constants.FDB_KEY_WATCHLIST);
+            await ProcessQueue(_playlist, Constants.FDB_KEY_PLAYLIST);
             await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING);
         }
         catch (Exception ex)
