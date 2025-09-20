@@ -64,13 +64,16 @@ namespace DustyPig.Server.HostedServices
 
         private async void DoWork(object state)
         {
-            try
+            if (AppDbContext.Ready)
             {
-                await DoUpdateAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "DoWork");
+                try
+                {
+                    await DoUpdateAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "DoWork");
+                }
             }
 
             if (!_cancellationToken.IsCancellationRequested)

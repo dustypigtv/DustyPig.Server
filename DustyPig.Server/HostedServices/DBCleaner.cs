@@ -43,8 +43,11 @@ namespace DustyPig.Server.HostedServices
 
         private async void DoWork(object state)
         {
-            try { await CleanupAsync(); }
-            catch { }
+            if (AppDbContext.Ready)
+            {
+                try { await CleanupAsync(); }
+                catch { }
+            }
 
             if (!_cancellationToken.IsCancellationRequested)
                 try { _timer.Change(MILLISECONDS_PER_DAY, Timeout.Infinite); }

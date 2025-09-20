@@ -1,12 +1,18 @@
 ﻿using DustyPig.Server.Data.Models;
+using Google.Api.Gax;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DustyPig.Server.Data
 {
     public partial class AppDbContext : DbContext
     {
+        public static bool Ready { get; private set; }
+
         private static readonly LoggerFactory MyLoggerFactory = new(new[] { new NLog.Extensions.Logging.NLogLoggerProvider() });
 
         private static string _connectionString;
@@ -85,6 +91,26 @@ namespace DustyPig.Server.Data
         }
 
 
+        public static void Migrate(IServiceProvider serviceProvider)
+        {
+            while (true)
+            {
+                try
+                {
+                    using var scope = serviceProvider.CreateScope();
+                    using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    db.Database.Migrate();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error migrating database");
+                    Console.WriteLine(ex.ToString());
+                    Thread.Sleep(1000);
+                }
+            }
+            Ready = true;
+        }
 
 
 

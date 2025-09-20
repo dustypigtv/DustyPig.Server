@@ -89,20 +89,23 @@ namespace DustyPig.Server.HostedServices
 
         private async void DoWork(object state)
         {
-            try
+            if (AppDbContext.Ready)
             {
-                if(_processFirstRun || !_processQueue.IsEmpty)
-                    await ProcessNextAsync();
+                try
+                {
+                    if (_processFirstRun || !_processQueue.IsEmpty)
+                        await ProcessNextAsync();
 
-                if(_deleteFirstRun || !_deleteQueue.IsEmpty)
-                    await DeleteNextAsync();
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, ex.Message);
+                    if (_deleteFirstRun || !_deleteQueue.IsEmpty)
+                        await DeleteNextAsync();
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, ex.Message);
+                }
             }
 
             if (!_cancellationToken.IsCancellationRequested)

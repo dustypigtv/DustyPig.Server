@@ -17,6 +17,8 @@ namespace DustyPig.Server.HostedServices
 {
     public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     {
+        const int ONE_SECOND = 1000;
+
         private readonly Timer _timer;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly CancellationToken _cancellationToken;
@@ -63,34 +65,41 @@ namespace DustyPig.Server.HostedServices
 
         private async void TimerTickedAsync(object state)
         {
-            try
+            if (AppDbContext.Ready)
             {
-                await InitialProfileIdsAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, nameof(TimerTickedAsync));
-            }
-
-
-            try
-            {
-                //Blocking for loop
-                foreach (int profileId in _profileIds.GetConsumingEnumerable(_cancellationToken))
+                try
                 {
-                    if (DateTime.Now.AddDays(-1) > _lastTokenDelete)
-                    {
-                        await RemoveOldFCMTokensAsync();
-                        _lastTokenDelete = DateTime.Now;
-                    }
+                    await InitialProfileIdsAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, nameof(TimerTickedAsync));
+                }
 
-                    await SendNotificationsAsync(profileId);
+
+                try
+                {
+                    //Blocking for loop
+                    foreach (int profileId in _profileIds.GetConsumingEnumerable(_cancellationToken))
+                    {
+                        if (DateTime.Now.AddDays(-1) > _lastTokenDelete)
+                        {
+                            await RemoveOldFCMTokensAsync();
+                            _lastTokenDelete = DateTime.Now;
+                        }
+
+                        await SendNotificationsAsync(profileId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, nameof(TimerTickedAsync));
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, nameof(TimerTickedAsync));
-            }
+
+            if (!_cancellationToken.IsCancellationRequested)
+                try { _timer.Change(ONE_SECOND, Timeout.Infinite); }
+                catch { }
         }
 
         private async Task InitialProfileIdsAsync()

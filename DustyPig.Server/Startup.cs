@@ -50,7 +50,10 @@ namespace DustyPig.Server
 
 
 
+
             const string FIREBASE_JSON_FILE = "/config/firebase.json";
+
+
 
             //*** Firebase Cloud Messaging ***
             FirebaseApp.Create(new AppOptions()
@@ -165,7 +168,7 @@ namespace DustyPig.Server
             //*** DB Context ***
             services.AddDbContext<AppDbContext>();
 
-
+            
 
 
             //*** Authentication and Authorization ***
@@ -347,6 +350,8 @@ namespace DustyPig.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            AppDbContext.Migrate(app.ApplicationServices);
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
