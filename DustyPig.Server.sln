@@ -19,11 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server Config Example", "Server Config Example", "{8CA01048-5275-42CD-A242-843384DF1F4B}"
-	ProjectSection(SolutionItems) = preProject
-		Server Config Example\nginx.txt = Server Config Example\nginx.txt
-		Server Config Example\service-dustypig-tv.service = Server Config Example\service-dustypig-tv.service
-		Server Config Example\upgrade.sh = Server Config Example\upgrade.sh
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Default Images", "Default Images", "{A625A8F8-2CCA-4888-A51B-8A50282D37C7}"
 EndProject
