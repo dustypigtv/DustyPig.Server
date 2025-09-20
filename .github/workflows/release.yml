@@ -5,6 +5,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env: 
+        SERVER_VERSION: "3.5.1.${{github.run_number}}"
 
     steps:
     
@@ -16,23 +18,6 @@ jobs:
         with: 
           dotnet-version: 9
 
-      # - name: Build Server
-      #   run: |
-      #       sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
-      #       dotnet publish "DustyPig.Server/DustyPig.Server.csproj" -c release -p:PublishProfile=FolderProfile -o publish
-      #       rm -rf "publish/wwwroot/.well-known"
-      #       cp -r "DustyPig.Server/wwwroot/.well-known" "publish/wwwroot"
-      #       cd publish
-      #       zip -rm9 ../DustyPig.Server.zip .
-      #       cd ..
-
-      # - uses: marvinpinto/action-automatic-releases@latest
-      #   with:
-      #       repo_token: "${{ secrets.GITHUB_TOKEN }}"
-      #       prerelease: false
-      #       files: DustyPig.Server.zip
-      #       automatic_release_tag: v3.4.0.${{github.run_number}}
-
       - name: 'Login to ghcr'
         uses: docker/login-action@v3
         with:
@@ -42,6 +27,6 @@ jobs:
 
       - name: 'Build Inventory Image'
         run: |
-            sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
+            sed -i "s|<Version>.*</Version>|<Version>${SERVER_VERSION}</Version>|" "DustyPig.Server/DustyPig.Server.csproj"
             docker buildx create --name mybuilder --driver=docker-container --use
-            docker buildx build --platform linux/amd64,linux/arm64 . -f DustyPig.Server/Dockerfile --push --tag ghcr.io/dustypigtv/dustypig.server:latest
+            docker buildx build --platform linux/amd64,linux/arm64 . -f DustyPig.Server/Dockerfile --push --tag ghcr.io/dustypigtv/dustypig.server:v${SERVER_VERSION} --tag ghcr.io/dustypigtv/dustypig.server:latest
