@@ -42,36 +42,41 @@ namespace DustyPig.Server
 
             //*** Database Connection ***
 #if DEBUG
-            string connStr = Configuration["mysql-server-v3"];
+            string connStr = Configuration["MYSQL-SERVER-V3-DEV"];
 #else
-            string connStr = Configuration["mysql-server-v3"];
+            string connStr = Configuration["MYSQL-SERVER-V3"];
 #endif
             AppDbContext.Configure(connStr);
 
 
 
+            const string FIREBASE_JSON_FILE = "/config/firebase.json";
+
             //*** Firebase Cloud Messaging ***
             FirebaseApp.Create(new AppOptions()
             {
-                Credential = GoogleCredential.FromJson(Configuration["firebase-config"])
+                Credential = GoogleCredential.FromFile(FIREBASE_JSON_FILE)
             });
 
 
             //*** Firebase Firestore DB
-            FDB.Configure(Configuration["firebase-config"]);
+            FDB.Configure(FIREBASE_JSON_FILE);
 
 
+
+            //*** Firebase Auth
+            FirebaseAuthClient.Configure(Configuration["FIREBASE-AUTH-KEY"]);
 
             //*** TMDB ***
-            TMDBClient.Configure(Configuration["tmdb-api-key"]);
+            TMDBClient.Configure(Configuration["TMDB-API-KEY"]);
 
 
             //*** JWT Encryption Key ***
-            JWTProvider.Configure(Configuration["jwt-key"]);
+            JWTProvider.Configure(Configuration["JWT-KEY"]);
 
 
             //*** S3 credentials for artwork ***
-            S3.Configure(Configuration["s3-url"], Configuration["s3-key"], Configuration["s3-secret"]);
+            S3.Configure(Configuration["S3-URL"], Configuration["S3-KEY"], Configuration["S3-SECRET"]);
 
 
 
@@ -358,7 +363,7 @@ namespace DustyPig.Server
             }
 
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseStaticFiles(new StaticFileOptions
             {

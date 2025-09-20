@@ -46,7 +46,7 @@ namespace DustyPig.Server
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     //Prod secrets file
-                    config.AddJsonFile("/etc/DustyPig.Server/secrets.json",
+                    config.AddJsonFile("/config/secrets.json",
                                        optional: true,
                                        reloadOnChange: true);
                 })
