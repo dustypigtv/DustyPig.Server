@@ -2,6 +2,7 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+ARG TARGETARCH
 LABEL org.opencontainers.image.source="https://github.com/dustypigtv/dustypig.server"
 USER $APP_UID
 WORKDIR /app
@@ -16,7 +17,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["DustyPig.Server/DustyPig.Server.csproj", "DustyPig.Server/"]
-RUN dotnet restore "./DustyPig.Server/DustyPig.Server.csproj"
+RUN dotnet restore "./DustyPig.Server/DustyPig.Server.csproj" -a $TARGETARCH
 COPY . .
 WORKDIR "/src/DustyPig.Server"
 RUN dotnet build "./DustyPig.Server.csproj" -c $BUILD_CONFIGURATION -o /app/build
@@ -24,7 +25,7 @@ RUN dotnet build "./DustyPig.Server.csproj" -c $BUILD_CONFIGURATION -o /app/buil
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./DustyPig.Server.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./DustyPig.Server.csproj" -c $BUILD_CONFIGURATION -a $TARGETARCH -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
