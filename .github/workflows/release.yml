@@ -5,6 +5,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+        run:
+            working-directory: './DustyPig.Server'
     steps:
     
       - name: Checkout
@@ -41,6 +44,7 @@ jobs:
 
       - name: 'Build Inventory Image'
         run: |
+            sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server.csproj"
             docker build . --tag ghcr.io/dustypigtv/dustypig.server:latest
             docker push ghcr.io/dustypigtv/dustypig.server:latest    
               
