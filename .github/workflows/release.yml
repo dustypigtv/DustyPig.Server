@@ -43,6 +43,7 @@ jobs:
       - name: 'Build Inventory Image'
         run: |
             sed -i "s/\(<Version>\([0-9]\+\.\)\{3\}\)\([0-9]\+\)/\1${{github.run_number}}/" "DustyPig.Server/DustyPig.Server.csproj"
-            docker buildx build --driver docker-container --platform linux/amd64,linux/arm64 . -f DustyPig.Server/Dockerfile --tag ghcr.io/dustypigtv/dustypig.server:latest
+            buildx create --name mybuilder --driver=docker-container --use
+            docker buildx build --platform linux/amd64,linux/arm64 . -f DustyPig.Server/Dockerfile --tag ghcr.io/dustypigtv/dustypig.server:latest
             docker push ghcr.io/dustypigtv/dustypig.server:latest    
               
