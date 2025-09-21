@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -100,6 +101,61 @@ namespace DustyPig.Server.Data
                     using var scope = serviceProvider.CreateScope();
                     using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                     db.Database.Migrate();
+
+                    var tstAcct = db.Accounts.FirstOrDefault(_ => _.Id == 1);
+
+                    bool add = false;
+                    if(tstAcct == null)
+                    {
+                        add = true;
+                    }
+                    else if (tstAcct.FirebaseId != "TEST ACCOUNT")
+                    {
+                        db.Accounts.Remove(tstAcct);
+                        db.SaveChanges();
+                        add = true;
+                    }
+
+                    if (add)
+                    {
+                        tstAcct = db.Accounts.Add(new Account
+                        {
+                            Id = 1,
+                            FirebaseId = "TEST ACCOUNT"
+                        }).Entity;
+                        db.SaveChanges();
+                    }
+
+
+                    var tstProfile = db.Profiles.FirstOrDefault(_ => _.Id == 1);
+
+                    add = false;
+                    if(tstProfile == null)
+                    {
+                        add = true;
+                    }
+                    else if(tstProfile.AccountId != 1)
+                    {
+                        db.Profiles.Remove(tstProfile);
+                        db.SaveChanges();
+                        add = true;
+                    }
+
+                    if (add)
+                    {
+                        db.Profiles.Add(new Profile
+                        {
+                            AccountId = 1,
+                            Id = 1,
+                            IsMain = true,
+                            Name = "Test User",
+                            AvatarUrl = "https://s3.dustypig.tv/user-art/profile/grey.png",
+                            MaxMovieRating = API.v3.MPAA.MovieRatings.Unrated,
+                            MaxTVRating = API.v3.MPAA.TVRatings.NotRated
+                        });
+                        db.SaveChanges();
+                    }
+
                     break;
                 }
                 catch (Exception ex)
