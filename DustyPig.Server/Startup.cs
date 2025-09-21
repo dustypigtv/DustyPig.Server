@@ -138,6 +138,11 @@ namespace DustyPig.Server
         public void ConfigureServices(IServiceCollection services)
         {
 
+            //Docker health checks
+            services.AddHealthChecks();
+
+
+            // Upload size
             services.Configure<FormOptions>(options =>
             {
                 options.KeyLengthLimit = 5242880; //5MB
@@ -351,6 +356,8 @@ namespace DustyPig.Server
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             AppDbContext.Migrate(app.ApplicationServices);
+
+            app.UseHealthChecks("/health");
 
             if (env.IsDevelopment())
             {
