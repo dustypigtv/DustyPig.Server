@@ -363,17 +363,16 @@ namespace DustyPig.Server
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                //Staging & Production
-                app.UseForwardedHeaders(new ForwardedHeadersOptions
-                {
-                    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-                });
+            //else
+            //{
+            //    //Staging & Production
+            //    app.UseForwardedHeaders(new ForwardedHeadersOptions
+            //    {
+            //        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            //    });
 
-                app.UseHsts();
-            }
-
+            //    app.UseHsts();
+            //}
 
             //app.UseHttpsRedirection();
 
