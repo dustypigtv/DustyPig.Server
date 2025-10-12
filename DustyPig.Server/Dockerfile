@@ -17,17 +17,17 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["DustyPig.Server/DustyPig.Server.csproj", "DustyPig.Server/"]
-RUN dotnet restore "./DustyPig.Server/DustyPig.Server.csproj" -a $TARGETARCH
+RUN dotnet restore "./DustyPig.Server/DustyPig.Server.csproj"
 COPY . .
 WORKDIR "/src/DustyPig.Server"
-RUN dotnet build "./DustyPig.Server.csproj" -a $TARGETARCH -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./DustyPig.Server.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./DustyPig.Server.csproj" -a $TARGETARCH -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./DustyPig.Server.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 
 
