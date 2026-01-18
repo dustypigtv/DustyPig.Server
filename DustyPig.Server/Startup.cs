@@ -67,9 +67,6 @@ namespace DustyPig.Server
 
 
 
-            //*** Firebase Auth
-            FirebaseAuthClient.Configure(Configuration["FIREBASE-AUTH-KEY"]);
-
             //*** TMDB ***
             TMDBClient.Configure(Configuration["TMDB-API-KEY"]);
 
@@ -137,6 +134,7 @@ namespace DustyPig.Server
             //Docker health checks
             services.AddHealthChecks();
 
+            services.AddHttpClient();
 
             // Upload size
             services.Configure<FormOptions>(options =>

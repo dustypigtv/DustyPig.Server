@@ -16,6 +16,10 @@ namespace DustyPig.Server.Services;
 
 internal class S3Service : IDisposable
 {
+    private const string CONFIG_KEY_KEY = "S3-KEY";
+    private const string CONFIG_KEY_SECRET = "S3-SECRET";
+    private const string CONFIG_KEY_URL = "S3-URL";
+
     private readonly AmazonS3Client _client;
     private readonly TransferUtility _transferUtility;
     private readonly ILogger<S3Service> _logger;
@@ -24,9 +28,9 @@ internal class S3Service : IDisposable
 
     public S3Service(IConfiguration configuration, ILogger<S3Service> logger)
     {
-        string key = configuration.GetRequiredValue("S3-KEY");
-        string secret = configuration.GetRequiredValue("S3-SECRET");
-        string url = configuration.GetRequiredValue("S3-URL");
+        string key = configuration.GetRequiredValue(CONFIG_KEY_KEY);
+        string secret = configuration.GetRequiredValue(CONFIG_KEY_SECRET);
+        string url = configuration.GetRequiredValue(CONFIG_KEY_URL);
         
         _client = new(key, secret, new AmazonS3Config { ServiceURL = url });
         _transferUtility = new(_client);

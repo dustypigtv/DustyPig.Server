@@ -1,12 +1,13 @@
-﻿namespace DustyPig.Server.Services
+﻿using DustyPig.Server.Extensions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Net.Http;
+
+namespace DustyPig.Server.Services;
+
+internal class FirebaseAuthClient : Firebase.Auth.Client
 {
-    public sealed class FirebaseAuthClient : Firebase.Auth.Client
-    {
-        private static string _apiKey;
+    private const string CONFIG_KEY = "FIREBASE-AUTH-KEY";
 
-        public static void Configure(string apiKey) => _apiKey = apiKey;
-
-        public FirebaseAuthClient() : base(Program.SharedHttpClient, _apiKey) { }
-
-    }
+    public FirebaseAuthClient(HttpClient httpClient, IConfiguration configuration, ILogger<FirebaseAuthClient> logger) : base(httpClient, configuration.GetRequiredValue(CONFIG_KEY), logger) { }
 }

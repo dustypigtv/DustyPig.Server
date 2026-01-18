@@ -16,16 +16,16 @@ namespace DustyPig.Server.Services;
 
 internal class JWTService : IDisposable
 {
-    
+    private const string CONFIG_KEY = "JWT-KEY";
+
+
     public const string ISSUER = "dustypig.tv";
     public const string AUDIENCE = "dusty-pig-clients";
     public const string CLAIM_ACCOUNT_ID = "account_id";
     public const string CLAIM_PROFILE_ID = "profile_id";
     public const string CLAIM_AUTH_TOKEN_ID = "auth_token_id";
     public const string CLAIM_FCM_TOKEN_ID = "fcm_token_id";
-
-    private const string CONFIG_SIGNING_KEY = "JWT-KEY";
-
+        
 
     private readonly AppDbContext _db;
     private readonly SigningCredentials _signingCredentials;
@@ -41,7 +41,7 @@ internal class JWTService : IDisposable
     }
 
     public static SymmetricSecurityKey GetSecurityKey(IConfiguration configuration) =>
-        new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetRequiredValue(CONFIG_SIGNING_KEY)));
+        new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration.GetRequiredValue(CONFIG_KEY)));
 
 
     public async Task<string> CreateTokenAsync(int accountId, int? profileId, int? fcmTokenId, string deviceId)
