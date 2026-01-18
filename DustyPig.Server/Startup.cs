@@ -3,6 +3,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Middleware;
+using DustyPig.Server.Pages.Shared;
 using DustyPig.Server.Services;
 using DustyPig.Server.SwaggerHelpers;
 using FirebaseAdmin;
@@ -36,8 +37,6 @@ namespace DustyPig.Server
     public class Startup
     {
         private const string FIREBASE_JSON_FILE = "/config/firebase.json";
-        private const string CONFIG_KEY_FIREBASE_AUTH = "FIREBASE-AUTH-KEY";
-
 
 
         public Startup(IConfiguration configuration)
@@ -66,12 +65,6 @@ namespace DustyPig.Server
             });
 
 
-
-
-
-
-            //*** TMDB ***
-            TMDBClient.Configure(Configuration["TMDB-API-KEY"]);
 
 
         }
@@ -292,33 +285,42 @@ namespace DustyPig.Server
 
 
             //*** Dependency Injection ***
+            //Anything that requires AppDbContext should be scoped
             services.AddScoped<JWTService>();
+            services.AddScoped<TMDBService>();
+            
+
+            //If needs HttpClient then use that specific engine
+            services.AddHttpClient<TMDBService>();
+            services.AddHttpClient<FirebaseAuthService>();
+
+
+            //Otherwise it can be singleton or transient
+            services.AddTransient<S3Service>();
+
+            services.AddSingleton<FirestoreDb>(serviceProvider =>
+            {
+                return new FirestoreDbBuilder
+                {
+                    GoogleCredential = GoogleCredential.FromFile(FIREBASE_JSON_FILE),
+                    ProjectId = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(FIREBASE_JSON_FILE)).GetProperty("project_id").GetString()
+                }.Build();
+            });
+
+
+
+
+            //Add hosted services
             services.AddHostedService<TMDB_Updater>();
             services.AddHostedService<FirebaseNotificationsManager>();
             services.AddHostedService<FirestoreMediaChangedTriggerManager>();
             services.AddHostedService<DBCleaner>();
             services.AddHostedService<ArtworkUpdater>();
 
-            services.AddTransient<S3Service>();
-
-            services.AddScoped<Firebase.Auth.Client>(serviceProvider =>
-            {
-                return new(serviceProvider.GetRequiredService<HttpClient>(), Configuration.GetRequiredValue(CONFIG_KEY_FIREBASE_AUTH), serviceProvider.GetRequiredService<ILogger<Firebase.Auth.Client>>());
-            });
+            
 
 
-            services.AddSingleton<FirestoreDb>(serviceProvider =>
-            {
-                string projectId = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(FIREBASE_JSON_FILE)).GetProperty("project_id").GetString();
-
-                var builder = new FirestoreDbBuilder
-                {
-                    GoogleCredential = GoogleCredential.FromFile(FIREBASE_JSON_FILE),
-                    ProjectId = projectId
-                };
-
-                return builder.Build();
-            });
+            
         }
 
 

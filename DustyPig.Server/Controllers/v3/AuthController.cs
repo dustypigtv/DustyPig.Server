@@ -24,14 +24,14 @@ namespace DustyPig.Server.Controllers.v3;
 [ApiController]
 internal class AuthController : _BaseController
 {
-    private readonly Firebase.Auth.Client _firebaseClient;
+    private readonly FirebaseAuthService _firebaseAuthService;
     private readonly JWTService _jwtService;
 
     private bool _disposed = false;
 
-    public AuthController(AppDbContext db, Firebase.Auth.Client firebaseClient, JWTService jwtService) : base(db)
+    public AuthController(AppDbContext db, FirebaseAuthService firebaseClient, JWTService jwtService) : base(db)
     {
-        _firebaseClient = firebaseClient;
+        _firebaseAuthService = firebaseClient;
         _jwtService = jwtService;
     }
 
@@ -61,7 +61,7 @@ internal class AuthController : _BaseController
         }
         else
         {
-            var signInResponse = await _firebaseClient.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
+            var signInResponse = await _firebaseAuthService.SignInWithEmailPasswordAsync(credentials.Email, credentials.Password);
             if (!signInResponse.Success)
                 return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
 
@@ -120,7 +120,7 @@ internal class AuthController : _BaseController
         if (email.Value.ToLower().Trim() == TestAccount.Email)
             return CommonResponses.ProhibitTestUser();
 
-        var ret = await _firebaseClient.SendPasswordResetEmailAsync(email.Value);
+        var ret = await _firebaseAuthService.SendPasswordResetEmailAsync(email.Value);
         if (!ret.Success)
             return ret.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordReset);
 

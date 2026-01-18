@@ -5,15 +5,17 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
-using static DustyPig.Server.Services.TMDBClient;
+using static DustyPig.Server.Services.TMDBService;
 
 namespace DustyPig.Server.HostedServices
 {
@@ -22,19 +24,16 @@ namespace DustyPig.Server.HostedServices
         private const int ONE_MINUTE = 1000 * 60;
         private const int CHUNK_SIZE = 1000;
 
+        private readonly IServiceProvider _serviceProvider;
         private readonly Timer _timer;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly CancellationToken _cancellationToken;
         private readonly ILogger<TMDB_Updater> _logger;
-        private static readonly TMDBClient _client = new()
-        {
-            RetryCount = 1,
-            RetryDelay = 250,
-            Throttle = 250
-        };
 
-        public TMDB_Updater(ILogger<TMDB_Updater> logger)
+
+        public TMDB_Updater(IServiceProvider serviceProvider, ILogger<TMDB_Updater> logger)
         {
+            _serviceProvider = serviceProvider;
             _cancellationToken = _cancellationTokenSource.Token;
             _logger = logger;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
@@ -273,7 +272,9 @@ namespace DustyPig.Server.HostedServices
 
         private async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId)
         {
-            var response = await _client.GetMovieAsync(tmdbId, _cancellationToken);
+            var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
+            
+            var response = await tmdbService.GetMovieAsync(tmdbId, _cancellationToken);
             if (!response.Success)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -284,14 +285,15 @@ namespace DustyPig.Server.HostedServices
             }
 
             var movie = response.Data;
-            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBClient.GetCommonCredits(movie), movie.BackdropPath, TMDBClient.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBClient.TryMapMovieRatings(movie));
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBService.GetCommonCredits(movie), movie.BackdropPath, TMDBService.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBService.TryMapMovieRatings(movie));
         }
 
 
 
         private async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId)
         {
-            var response = await _client.GetSeriesAsync(tmdbId, _cancellationToken);
+            var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
+            var response = await tmdbService.GetSeriesAsync(tmdbId, _cancellationToken);
             if (!response.Success)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -302,7 +304,7 @@ namespace DustyPig.Server.HostedServices
             }
 
             var series = response.Data;
-            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBClient.GetCommonCredits(series), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBClient.TryMapTVRatings(series));
+            return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBService.TryMapTVRatings(series));
         }
 
 
@@ -322,7 +324,7 @@ namespace DustyPig.Server.HostedServices
                     return TMDBInfo.FromEntry(entry, false);
 
 
-            var backdropUrl = TMDBClient.GetPosterPath(backdropPath);
+            var backdropUrl = TMDBService.GetPosterPath(backdropPath);
 
             bool changed = false;
             bool newEntry = false;
@@ -505,7 +507,7 @@ namespace DustyPig.Server.HostedServices
                 {
                     var crewMember = credits.CrewMembers
                         .Where(item => item.Id == entry.TMDB_PersonId)
-                        .Where(item => TMDBClient.GetCreditRole(item.Job) == entry.Role)
+                        .Where(item => TMDBService.GetCreditRole(item.Job) == entry.Role)
                         .FirstOrDefault();
                     if (crewMember == null)
                         db.TMDB_EntryPeopleBridges.Remove(entry);
@@ -558,10 +560,10 @@ namespace DustyPig.Server.HostedServices
                 }
 
 
-                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBClient.JOB_DIRECTOR]);
-                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBClient.JOB_PRODUCER]);
-                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBClient.JOB_EXECUTIVE_PRODUCER]);
-                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBClient.JOB_WRITER, TMDBClient.JOB_SCREENPLAY]);
+                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_DIRECTOR]);
+                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_PRODUCER]);
+                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_EXECUTIVE_PRODUCER]);
+                SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_WRITER, TMDBService.JOB_SCREENPLAY]);
             }
 
             await db.SaveChangesAsync(_cancellationToken);
@@ -579,7 +581,7 @@ namespace DustyPig.Server.HostedServices
                 {
                     found = true;
 
-                    var creditRole = TMDBClient.GetCreditRole(roleName) ?? throw new Exception($"Unknown credit role for: {roleName}");
+                    var creditRole = TMDBService.GetCreditRole(roleName) ?? throw new Exception($"Unknown credit role for: {roleName}");
                     var entry = bridges
                         .Where(item => item.TMDB_PersonId == personId)
                         .Where(item => item.Role == creditRole)

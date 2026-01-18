@@ -1,6 +1,7 @@
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Data;
 using DustyPig.Server.Extensions;
+using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,9 +13,9 @@ namespace DustyPig.Server.Pages.FirebaseActions;
 
 internal class IndexModel : PageModel
 {
-    private readonly Firebase.Auth.Client _client;
+    private readonly FirebaseAuthService _firebaseAuthService;
 
-    public IndexModel(Firebase.Auth.Client client) => _client = client;
+    public IndexModel(FirebaseAuthService client) => _firebaseAuthService = client;
 
     [BindProperty]
     public FirebaseActionModel FAM { get; set; }
@@ -35,7 +36,7 @@ internal class IndexModel : PageModel
         switch (mode)
         {
             case "resetPassword":
-                var checkCodeResponse = await _client.VerifyPasswordResetCodeAsync(oobCode);
+                var checkCodeResponse = await _firebaseAuthService.VerifyPasswordResetCodeAsync(oobCode);
                 if (checkCodeResponse.Success)
                 {
                     FAM.Title = "Reset Password";
@@ -51,7 +52,7 @@ internal class IndexModel : PageModel
 
 
             case "verifyEmail":
-                var confirmResponse = await _client.ConfirmEmailVerificationAsync(oobCode);
+                var confirmResponse = await _firebaseAuthService.ConfirmEmailVerificationAsync(oobCode);
                 if (confirmResponse.Success)
                 {
                     FAM.Title = "Success";
@@ -83,7 +84,7 @@ internal class IndexModel : PageModel
             return;
         }
 
-        var ret = await _client.ConfirmPasswordResetAsync(FAM.Code, FAM.NewPassword);
+        var ret = await _firebaseAuthService.ConfirmPasswordResetAsync(FAM.Code, FAM.NewPassword);
         if (ret.Success)
         {
             //Reset pin

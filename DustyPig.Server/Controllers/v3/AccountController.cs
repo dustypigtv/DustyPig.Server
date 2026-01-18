@@ -6,6 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
+using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -24,11 +25,11 @@ namespace DustyPig.Server.Controllers.v3;
 [ApiExplorerSettings(GroupName = "Account")]
 internal class AccountController : _BaseController
 {
-    private readonly Firebase.Auth.Client _firebaseAuthClient;
+    private readonly FirebaseAuthService _firebaseAuthService;
 
-    public AccountController(AppDbContext db, Firebase.Auth.Client firebaseAuthClient) : base(db)
+    public AccountController(AppDbContext db, FirebaseAuthService firebaseAuthClient) : base(db)
     {
-        _firebaseAuthClient = firebaseAuthClient;
+        _firebaseAuthService = firebaseAuthClient;
     }
 
 
@@ -108,7 +109,7 @@ internal class AccountController : _BaseController
             return CommonResponses.RequireMainProfile();
 
 
-        var signInResponse = await _firebaseAuthClient.SignInWithEmailPasswordAsync(data.Email, data.Password);
+        var signInResponse = await _firebaseAuthService.SignInWithEmailPasswordAsync(data.Email, data.Password);
         if (!signInResponse.Success)
             return Result.BuildError("Invalid credentials");
 
@@ -174,7 +175,7 @@ internal class AccountController : _BaseController
         if (!profile.IsMain)
             return CommonResponses.RequireMainProfile();
 
-        var signInResponse = await _firebaseAuthClient.SignInWithEmailPasswordAsync(data.EmailAddress, data.Password);
+        var signInResponse = await _firebaseAuthService.SignInWithEmailPasswordAsync(data.EmailAddress, data.Password);
         if (!signInResponse.Success)
             return Result.BuildError("Invalid credentials");
 
@@ -226,7 +227,7 @@ internal class AccountController : _BaseController
         if (!profile.IsMain)
             return CommonResponses.RequireMainProfile();
 
-        var signInResponse = await _firebaseAuthClient.SignInWithEmailPasswordAsync(data.EmailAddress, data.Password);
+        var signInResponse = await _firebaseAuthService.SignInWithEmailPasswordAsync(data.EmailAddress, data.Password);
         if (!signInResponse.Success)
             return Result.BuildError("Invalid credentials");
 

@@ -9,8 +9,8 @@ namespace DustyPig.Server.Controllers.v3.Logic
         public static BasicTMDB ToBasicTMDBInfo(this TMDB.Models.Search.MultiObject self) => new BasicTMDB
         {
             TMDB_ID = self.Id,
-            ArtworkUrl = TMDBClient.GetPosterPath(self.PosterPath),
-            BackdropUrl = TMDBClient.GetBackdropPath(self.BackdropPath),
+            ArtworkUrl = TMDBService.GetPosterPath(self.PosterPath),
+            BackdropUrl = TMDBService.GetBackdropPath(self.BackdropPath),
             MediaType = self.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
             Title = self.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? self.Title : self.Name
         };
@@ -20,7 +20,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             TMDB_Id = self.Id,
             Name = self.Name,
             Initials = self.Name.GetInitials(),
-            AvatarUrl = TMDBClient.GetAvatarPath(self.ProfilePath)
+            AvatarUrl = TMDBService.GetAvatarPath(self.ProfilePath)
         };
     }
 }
