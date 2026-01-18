@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal.Util;
-using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.REST;
 using DustyPig.Server.Data.Models;
@@ -38,7 +37,7 @@ internal class TMDBService : TMDB.Client
 
     private readonly ILogger<TMDBService> _logger;
 
-    public TMDBService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<TMDBService> logger, ILogger<TMDB.Client> clientLogger) : base(httpClientFactory.CreateClient(), clientLogger) 
+    public TMDBService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<TMDBService> logger, ILogger<TMDB.Client> clientLogger) : base(httpClientFactory.CreateClient(), clientLogger)
     {
         _logger = logger;
         SetAuth(AuthTypes.APIKey, configuration.GetRequiredValue(CONFIG_KEY));

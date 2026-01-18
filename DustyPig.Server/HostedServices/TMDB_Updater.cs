@@ -12,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using static DustyPig.Server.Services.TMDBService;
@@ -273,7 +272,7 @@ namespace DustyPig.Server.HostedServices
         private async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId)
         {
             var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
-            
+
             var response = await tmdbService.GetMovieAsync(tmdbId, _cancellationToken);
             if (!response.Success)
             {

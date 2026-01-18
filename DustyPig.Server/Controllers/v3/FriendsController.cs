@@ -9,7 +9,6 @@ using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NuGet.Common;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;

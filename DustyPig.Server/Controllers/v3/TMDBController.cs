@@ -1,5 +1,4 @@
 ﻿using DustyPig.API.v3;
-using DustyPig.API.v3.Clients;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;

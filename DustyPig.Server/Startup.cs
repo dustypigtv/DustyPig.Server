@@ -1,9 +1,7 @@
 using Asp.Versioning;
 using DustyPig.Server.Data;
-using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Middleware;
-using DustyPig.Server.Pages.Shared;
 using DustyPig.Server.Services;
 using DustyPig.Server.SwaggerHelpers;
 using FirebaseAdmin;
@@ -19,7 +17,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -27,7 +24,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -288,7 +284,7 @@ namespace DustyPig.Server
             //Anything that requires AppDbContext should be scoped
             services.AddScoped<JWTService>();
             services.AddScoped<TMDBService>();
-            
+
 
             //If needs HttpClient then use that specific engine
             services.AddHttpClient<TMDBService>();
@@ -317,10 +313,10 @@ namespace DustyPig.Server
             services.AddHostedService<DBCleaner>();
             services.AddHostedService<ArtworkUpdater>();
 
-            
 
 
-            
+
+
         }
 
 

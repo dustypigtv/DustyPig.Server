@@ -1,7 +1,6 @@
 ﻿using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading;
@@ -57,7 +56,7 @@ namespace DustyPig.Server.Data
                 {
                     opts.EnableRetryOnFailure();
                 });
-                
+
 
         }
 
