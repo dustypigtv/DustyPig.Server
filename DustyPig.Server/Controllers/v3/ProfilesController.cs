@@ -325,7 +325,7 @@ namespace DustyPig.Server.Controllers.v3
         /// </remarks>
         [HttpPost]
         [ProhibitTestUser]
-        [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 100 kb leeway for multipart encoding
+        [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 5mb for json
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
         public async Task<Result<string>> SetProfileAvatar(UpdateProfileAvatar data)
         {
@@ -339,8 +339,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
 
-            var bytes = Convert.FromBase64String(data.Base64Image);
-            var stream = new MemoryStream(bytes);
+            var stream = new MemoryStream(Convert.FromBase64String(data.Base64Image));
 
             bool isPng = UpdateProfileAvatar.IsPng(bytes);
 
