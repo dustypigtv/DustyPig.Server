@@ -22,7 +22,6 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
-    [ExceptionLogger(typeof(PlaylistsController))]
     public class PlaylistsController : _MediaControllerBase
     {
         public PlaylistsController(AppDbContext db) : base(db) { }

@@ -18,7 +18,6 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
-    [ExceptionLogger(typeof(MoviesController))]
     public class MoviesController : _MediaControllerBase
     {
         public MoviesController(AppDbContext db) : base(db)

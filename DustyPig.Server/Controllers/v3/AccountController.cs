@@ -22,7 +22,6 @@ namespace DustyPig.Server.Controllers.v3;
 
 [ApiController]
 [ApiExplorerSettings(GroupName = "Account")]
-[ExceptionLogger(typeof(AccountController))]
 internal class AccountController : _BaseController
 {
     private readonly Firebase.Auth.Client _firebaseAuthClient;

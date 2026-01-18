@@ -26,7 +26,6 @@ namespace DustyPig.Server.Controllers.v3
     [ApiExplorerSettings(GroupName = "Profiles")]
     [Route("api/v{version:apiVersion}/Profiles/[action]")]
     [Produces("application/json")]
-    [ExceptionLogger(typeof(ProfilesListController))]
     internal class ProfilesListController : _BaseAccountController
     {
         public ProfilesListController(AppDbContext db) : base(db) { }
@@ -52,7 +51,6 @@ namespace DustyPig.Server.Controllers.v3
 
     [ApiController]
     [ApiExplorerSettings(GroupName = "Profiles")]
-    [ExceptionLogger(typeof(ProfilesController))]
     internal class ProfilesController : _BaseProfileController
     {
         private readonly S3Service _s3Service;

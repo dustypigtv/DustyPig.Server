@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Utilities;
 
 
-// <summary>
+/// <summary>
 /// Non-overlapping timer that swallows exceptions in tick callbacks
 /// </summary>
 internal class SafeTimer : IDisposable

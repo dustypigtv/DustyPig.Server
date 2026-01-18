@@ -17,7 +17,6 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
-    [ExceptionLogger(typeof(LibrariesController))]
     public class LibrariesController : _BaseProfileController
     {
         public LibrariesController(AppDbContext db) : base(db) { }

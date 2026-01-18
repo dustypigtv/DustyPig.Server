@@ -22,7 +22,6 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Controllers.v3;
 
 [ApiController]
-[ExceptionLogger(typeof(AuthController))]
 internal class AuthController : _BaseController
 {
     private readonly Firebase.Auth.Client _firebaseClient;

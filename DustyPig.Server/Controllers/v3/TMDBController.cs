@@ -22,7 +22,6 @@ namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
     [ProhibitTestUser]
-    [ExceptionLogger(typeof(TMDBController))]
     public class TMDBController : _BaseProfileController
     {
         public TMDBController(AppDbContext db) : base(db) { }

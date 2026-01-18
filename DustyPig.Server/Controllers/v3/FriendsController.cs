@@ -19,7 +19,6 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
-    [ExceptionLogger(typeof(FriendsController))]
     public class FriendsController : _BaseProfileController
     {
         public FriendsController(AppDbContext db) : base(db) { }

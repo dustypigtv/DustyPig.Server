@@ -21,7 +21,6 @@ using Enum = System.Enum;
 namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
-    [ExceptionLogger(typeof(MediaController))]
     public class MediaController : _MediaControllerBase
     {
 

@@ -15,7 +15,6 @@ using APINotification = DustyPig.API.v3.Models.Notification;
 namespace DustyPig.Server.Controllers.v3
 {
     [ApiController]
-    [ExceptionLogger(typeof(NotificationsController))]
     public class NotificationsController : _BaseProfileController
     {
         private const int LIST_SIZE = 25;
