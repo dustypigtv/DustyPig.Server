@@ -1,5 +1,6 @@
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Data;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
