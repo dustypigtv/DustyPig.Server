@@ -653,8 +653,6 @@ internal class MediaController : _MediaControllerBase
 
         await DB.SaveChangesAsync();
 
-        FirebaseNotificationsManager.QueueProfileForNotifications(notifyProfileId);
-
         return Result.BuildSuccess();
     }
 
@@ -1116,9 +1114,6 @@ internal class MediaController : _MediaControllerBase
         await DB.SaveChangesAsync();
 
         FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIds);
-        if (doNotification)
-            FirebaseNotificationsManager.QueueProfileForNotifications(info.ProfileId);
-
         return Result.BuildSuccess();
     }
 

@@ -244,7 +244,7 @@ public class EpisodesController : _MediaControllerBase
                     PlaylistId = aps.PlaylistId
                 });
 
-                var playlist = aps.Playlist.ArtworkUpdateNeeded = true;
+                aps.Playlist.ArtworkUpdateNeeded = true;
             }
         }
 
@@ -253,11 +253,9 @@ public class EpisodesController : _MediaControllerBase
         //Moment of truth!
         await DB.SaveChangesAsync();
 
+
         //Queue notifications
         FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
-
-        foreach (int profileId in notifiedProfiles.Distinct())
-            FirebaseNotificationsManager.QueueProfileForNotifications(profileId);
 
         return newItem.Id;
     }

@@ -421,8 +421,6 @@ namespace DustyPig.Server.Controllers.v3
                     }
 
                     await DB.SaveChangesAsync();
-                    foreach (var sub in getRequest.NotificationSubscriptions)
-                        FirebaseNotificationsManager.QueueProfileForNotifications(sub.ProfileId);
                 }
             }
 

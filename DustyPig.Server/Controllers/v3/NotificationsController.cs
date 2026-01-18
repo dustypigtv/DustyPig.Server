@@ -94,7 +94,6 @@ namespace DustyPig.Server.Controllers.v3
             dbNotification.Sent = true;
             dbNotification.Seen = true;
             await DB.SaveChangesAsync();
-            FirebaseNotificationsManager.QueueProfileForNotifications(UserProfile.Id);
 
             return Result.BuildSuccess();
         }
@@ -116,7 +115,6 @@ namespace DustyPig.Server.Controllers.v3
             {
                 DB.Notifications.Remove(dbNotification);
                 await DB.SaveChangesAsync();
-                FirebaseNotificationsManager.QueueProfileForNotifications(UserProfile.Id);
             }
 
             return Result.BuildSuccess();

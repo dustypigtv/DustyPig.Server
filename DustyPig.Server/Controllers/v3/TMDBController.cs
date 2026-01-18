@@ -503,7 +503,6 @@ internal class TMDBController : _BaseProfileController
             .Where(item => item.EntryType == data.MediaType)
             .FirstOrDefaultAsync();
 
-        bool notifyProfile = false;
         if (existingReq != null)
         {
             //Subscribe
@@ -532,7 +531,6 @@ internal class TMDBController : _BaseProfileController
                     _ => throw new Exception("Imposible value for existingReq.Status")
                 };
 
-                notifyProfile = true;
                 DB.Notifications.Add(new Data.Models.Notification
                 {
                     GetRequestId = existingReq.Id,
@@ -567,7 +565,6 @@ internal class TMDBController : _BaseProfileController
             });
 
             //Notification
-            notifyProfile = true;
             DB.Notifications.Add(new Data.Models.Notification
             {
                 GetRequest = newReq,
@@ -583,9 +580,6 @@ internal class TMDBController : _BaseProfileController
 
 
         await DB.SaveChangesAsync();
-
-        if (notifyProfile)
-            FirebaseNotificationsManager.QueueProfileForNotifications(targetAcct.Profiles.First(item => item.IsMain).Id);
 
         return Result.BuildSuccess();
     }
@@ -804,8 +798,7 @@ internal class TMDBController : _BaseProfileController
         }
 
         await DB.SaveChangesAsync();
-        notifyProfileIds.ForEach(p => FirebaseNotificationsManager.QueueProfileForNotifications(p));
-
+        
         return Result.BuildSuccess();
     }
 

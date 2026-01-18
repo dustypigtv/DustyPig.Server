@@ -1,4 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Utilities;
 using Google.Cloud.Firestore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,7 @@ namespace DustyPig.Server.HostedServices;
 /// </summary>
 public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
 {
-    private const int TICK_INTERVAL = 100;
+    private const int TICK_INTERVAL_MS = 100;
 
     private static readonly ConcurrentQueue<int> _homescreen = new();
     private static readonly ConcurrentQueue<int> _continueWatching = new();
@@ -24,17 +25,14 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     private static readonly ConcurrentQueue<int> _playlist = new();
 
     private readonly FirestoreDb _firestoreDb;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private readonly CancellationToken _cancellationToken;
-    private readonly Timer _timer;
+    private readonly SafeTimer _timer;
     private readonly ILogger<FirestoreMediaChangedTriggerManager> _logger;
 
     public FirestoreMediaChangedTriggerManager(FirestoreDb firestoreDb, ILogger<FirestoreMediaChangedTriggerManager> logger)
     {
         _firestoreDb = firestoreDb;
         _logger = logger;
-        _cancellationToken = _cancellationTokenSource.Token;
-        _timer = new Timer(new TimerCallback(TimerTickedAsync), null, Timeout.Infinite, Timeout.Infinite);
+        _timer = new(TimerTick, TimeSpan.FromMicroseconds(TICK_INTERVAL_MS));
     }
 
     public void Dispose()
@@ -84,57 +82,49 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        //Use a timer to start it
-        _timer.Change(TICK_INTERVAL, Timeout.Infinite);
+        _timer.Enabled = true;
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _cancellationTokenSource.Cancel();
-        _timer.Dispose();
+        _timer.TryForceStop();
         return Task.CompletedTask;
     }
 
-    private async void TimerTickedAsync(object state)
+    private async Task TimerTick(CancellationToken cancellationToken)
     {
-        try
-        {
-            await ProcessQueue(_homescreen, Constants.FDB_KEY_HOMESCREEN_COLLECTION);
-            await ProcessQueue(_watchlist, Constants.FDB_KEY_WATCHLIST);
-            await ProcessQueue(_playlist, Constants.FDB_KEY_PLAYLIST);
-            await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING);
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "TimerTicked");
-        }
-
-        try { _timer.Change(TICK_INTERVAL, Timeout.Infinite); }
-        catch { }
+        await ProcessQueue(_homescreen, Constants.FDB_KEY_HOMESCREEN_COLLECTION, cancellationToken);
+        await ProcessQueue(_watchlist, Constants.FDB_KEY_WATCHLIST, cancellationToken);
+        await ProcessQueue(_playlist, Constants.FDB_KEY_PLAYLIST, cancellationToken);
+        await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING, cancellationToken);
     }
 
-    private async Task ProcessQueue(ConcurrentQueue<int> queue, string key)
+    private async Task ProcessQueue(ConcurrentQueue<int> queue, string key, CancellationToken cancellationToken)
     {
         while (queue.TryDequeue(out int profileId))
         {
-            await Task.Delay(TICK_INTERVAL, _cancellationToken);
-            await WriteDoc(key, profileId);
+            await Task.Delay(TimeSpan.FromMicroseconds(TICK_INTERVAL_MS), cancellationToken);
+            await WriteDoc(key, profileId, cancellationToken);
         }
-
-        await Task.Delay(TICK_INTERVAL, _cancellationToken);
     }
 
-    private Task WriteDoc(string key, int profileId)
+    private async Task WriteDoc(string key, int profileId, CancellationToken cancellationToken)
     {
-        //The clients only wait for a change to the document, and don't care what the changes are
-        //A 1-char key and 8 byte timestamp is small, fast and always updates
-        DocumentReference docRef = _firestoreDb.Collection(key).Document(profileId.ToString());
-        Dictionary<string, object> data = new Dictionary<string, object>
+        try
         {
-            { "t", DateTime.UtcNow.Ticks }
-        };
-        return docRef.SetAsync(data, cancellationToken: _cancellationToken);
+            //The clients only wait for a change to the document, and don't care what the changes are
+            //A 1-char key and 8 byte timestamp is small, fast and always updates
+            DocumentReference docRef = _firestoreDb.Collection(key).Document(profileId.ToString());
+            Dictionary<string, object> data = new Dictionary<string, object>
+            {
+                { "t", DateTime.UtcNow.Ticks }
+            };
+            await docRef.SetAsync(data, cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(WriteDoc));
+        }
     }
 }
