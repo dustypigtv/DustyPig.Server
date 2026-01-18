@@ -16,5 +16,4 @@ internal class FirebaseAuthService
     public FirebaseAuthService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<FirebaseAuthService> logger) :
         base(httpClientFactory.CreateClient(), configuration.GetRequiredValue(CONFIG_KEY), logger)
     { }
-
 }
