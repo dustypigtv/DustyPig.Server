@@ -25,14 +25,14 @@ internal class JWTService : IDisposable
     public const string CLAIM_PROFILE_ID = "profile_id";
     public const string CLAIM_AUTH_TOKEN_ID = "auth_token_id";
     public const string CLAIM_FCM_TOKEN_ID = "fcm_token_id";
-        
+
 
     private readonly AppDbContext _db;
     private readonly SigningCredentials _signingCredentials;
 
     private bool _disposed;
-    
-   
+
+
     public JWTService(IConfiguration configuration, AppDbContext db)
     {
         _db = db;

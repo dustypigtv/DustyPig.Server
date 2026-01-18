@@ -1,7 +1,6 @@
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Data;
 using DustyPig.Server.Extensions;
-using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,9 +12,9 @@ namespace DustyPig.Server.Pages.FirebaseActions;
 
 internal class IndexModel : PageModel
 {
-    private readonly FirebaseAuthService _client;
+    private readonly Firebase.Auth.Client _client;
 
-    public IndexModel(FirebaseAuthService client) => _client = client;
+    public IndexModel(Firebase.Auth.Client client) => _client = client;
 
     [BindProperty]
     public FirebaseActionModel FAM { get; set; }

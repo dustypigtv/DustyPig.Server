@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using DustyPig.Server.Data;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Middleware;
 using DustyPig.Server.Services;
@@ -12,22 +13,20 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -36,7 +35,9 @@ namespace DustyPig.Server
 {
     public class Startup
     {
-        const string FIREBASE_JSON_FILE = "/config/firebase.json";
+        private const string FIREBASE_JSON_FILE = "/config/firebase.json";
+        private const string CONFIG_KEY_FIREBASE_AUTH = "FIREBASE-AUTH-KEY";
+
 
 
         public Startup(IConfiguration configuration)
@@ -55,7 +56,7 @@ namespace DustyPig.Server
 
 
 
-            
+
 
 
             //*** Firebase Cloud Messaging ***
@@ -65,7 +66,7 @@ namespace DustyPig.Server
             });
 
 
-            
+
 
 
 
@@ -73,50 +74,6 @@ namespace DustyPig.Server
             TMDBClient.Configure(Configuration["TMDB-API-KEY"]);
 
 
-
-            
-
-
-
-            //*** Configure Logging ***
-            var config = new LoggingConfiguration();
-            var nullTarget = new NullTarget("null");
-            config.AddTarget(nullTarget);
-            config.LoggingRules.Add(new LoggingRule("Microsoft.*", LogLevel.Trace, LogLevel.Info, nullTarget) { Final = true });
-            config.LoggingRules.Add(new LoggingRule("Microsoft.EntityFrameworkCore.*", LogLevel.Trace, LogLevel.Warn, nullTarget) { Final = true });
-            config.LoggingRules.Add(new LoggingRule("System.*", LogLevel.Trace, LogLevel.Info, nullTarget) { Final = true });
-            config.LoggingRules.Add(new LoggingRule("Microsoft.AspNetCore.DataProtection.*", LogLevel.Trace, nullTarget) { Final = true });
-
-
-            var dbTarget = new DatabaseTarget("DB")
-            {
-                DBProvider = "MySql.Data.MySqlClient.MySqlConnection, MySql.Data",
-                ConnectionString = connStr,
-                CommandText = @"insert into Logs (
-                                    Timestamp, Logger, CallSite, Level, Message, Exception
-                                ) values (
-                                    @Timestamp, @Logger, @CallSite, @Level, @Message, @Exception
-                                );"
-            };
-            dbTarget.Parameters.Add(new DatabaseParameterInfo("@Timestamp", "${date}"));
-            dbTarget.Parameters.Add(new DatabaseParameterInfo("@Logger", "${logger}"));
-            dbTarget.Parameters.Add(new DatabaseParameterInfo("@CallSite", "${callsite}"));
-            dbTarget.Parameters.Add(new DatabaseParameterInfo("@Level", "${level}"));
-            dbTarget.Parameters.Add(new DatabaseParameterInfo("@Message", "${message}"));
-            dbTarget.Parameters.Add(new DatabaseParameterInfo("@Exception", "${exception:format=tostring}"));
-            config.AddTarget("database", dbTarget);
-
-            var ignoreOpCancelledRule = new LoggingRule("Microsoft.EntityFrameworkCore.Query", LogLevel.Error, dbTarget);
-            ignoreOpCancelledRule.Filters.Add(new NLog.Filters.ConditionBasedFilter()
-            {
-                Action = NLog.Filters.FilterResult.IgnoreFinal,
-                Condition = "contains('${message}', 'System.OperationCanceledException')"
-            });
-            config.LoggingRules.Add(ignoreOpCancelledRule);
-
-            config.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, dbTarget) { Final = true });
-
-            LogManager.Configuration = config;
         }
 
 
@@ -126,7 +83,7 @@ namespace DustyPig.Server
 
 
 
-        
+
 
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -169,7 +126,7 @@ namespace DustyPig.Server
             //*** DB Context ***
             services.AddDbContext<AppDbContext>();
 
-            
+
 
 
             //*** Authentication and Authorization ***
@@ -331,11 +288,10 @@ namespace DustyPig.Server
             services.AddRazorPages();
 
             //Raw data
-            services.AddMvc(o => o.InputFormatters.Insert(0, new RawRequestBodyFormatter()));
+            services.AddMvc(mvcOptions => mvcOptions.InputFormatters.Insert(0, new RawRequestBodyFormatter()));
 
 
             //*** Dependency Injection ***
-            services.AddScoped<FirebaseAuthService>();
             services.AddScoped<JWTService>();
             services.AddHostedService<TMDB_Updater>();
             services.AddHostedService<FirebaseNotificationsManager>();
@@ -345,7 +301,13 @@ namespace DustyPig.Server
 
             services.AddTransient<S3Service>();
 
-            services.AddSingleton<FirestoreDb>(_ =>
+            services.AddScoped<Firebase.Auth.Client>(serviceProvider =>
+            {
+                return new(serviceProvider.GetRequiredService<HttpClient>(), Configuration.GetRequiredValue(CONFIG_KEY_FIREBASE_AUTH), serviceProvider.GetRequiredService<ILogger<Firebase.Auth.Client>>());
+            });
+
+
+            services.AddSingleton<FirestoreDb>(serviceProvider =>
             {
                 string projectId = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(FIREBASE_JSON_FILE)).GetProperty("project_id").GetString();
 

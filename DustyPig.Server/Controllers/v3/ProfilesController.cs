@@ -59,7 +59,7 @@ namespace DustyPig.Server.Controllers.v3
 
         private bool _disposed;
 
-        public ProfilesController(AppDbContext db, S3Service s3Service) : base(db) 
+        public ProfilesController(AppDbContext db, S3Service s3Service) : base(db)
         {
             _s3Service = s3Service;
         }
@@ -314,7 +314,7 @@ namespace DustyPig.Server.Controllers.v3
 
             dbProfile.AvatarUrl = LogicUtils.EnsureProfilePic(null);
             await DB.SaveChangesAsync();
-           
+
             return Result<string>.BuildSuccess(dbProfile.AvatarUrl);
         }
 
@@ -345,7 +345,7 @@ namespace DustyPig.Server.Controllers.v3
             var stream = new MemoryStream(bytes);
 
             bool isPng = UpdateProfileAvatar.IsPng(bytes);
-            
+
             var ext = isPng ? "png" : "jpg";
             string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
@@ -439,7 +439,7 @@ namespace DustyPig.Server.Controllers.v3
                 .ToListAsync();
 
             artworkToDelete.Add(profile.AvatarUrl);
-            
+
             DB.Profiles.Remove(profile);
 
             await DB.SaveChangesAsync();
@@ -459,7 +459,7 @@ namespace DustyPig.Server.Controllers.v3
         public async Task<Result<DetailedProfile>> GetMainProfileDetails()
         {
             var profile = UserAccount.Profiles.SingleOrDefault(item => item.IsMain);
-            
+
 
             var ret = new DetailedProfile
             {
@@ -480,7 +480,7 @@ namespace DustyPig.Server.Controllers.v3
                 .AsNoTracking()
                 .Where(item => item.AccountId == profile.AccountId)
                 .ToListAsync();
-            
+
 
             if (libs.Count > 0)
             {
@@ -492,7 +492,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Libs shared with account
             var ownedLibraryIds = libs.Select(item => item.Id).ToList();
-            List<FriendLibraryShare>  shares = await DB.FriendLibraryShares
+            List<FriendLibraryShare> shares = await DB.FriendLibraryShares
                 .AsNoTracking()
 
                 .Include(item => item.Library)
@@ -519,7 +519,7 @@ namespace DustyPig.Server.Controllers.v3
 
                 .Distinct()
                 .ToListAsync();
-           
+
 
 
             if (shares.Count > 0)

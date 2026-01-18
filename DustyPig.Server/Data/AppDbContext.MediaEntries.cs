@@ -1,5 +1,4 @@
-﻿using Amazon;
-using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
@@ -176,7 +175,7 @@ namespace DustyPig.Server.Data
                     ret.Add(id);
             }
 
-            foreach(var profile in lib.ProfileLibraryShares.Select(_ => _.Profile).Where(_ => _.MaxMovieRating >= rating))
+            foreach (var profile in lib.ProfileLibraryShares.Select(_ => _.Profile).Where(_ => _.MaxMovieRating >= rating))
             {
                 if (!ret.Contains(profile.Id))
                     ret.Add(profile.Id);
@@ -273,7 +272,7 @@ namespace DustyPig.Server.Data
                     .Any();
 
                 if (!add)
-                    add = pls.Profile.IsMain 
+                    add = pls.Profile.IsMain
                         && mediaEntry.Library.FriendLibraryShares.Any(f => f.Friendship.Account1Id == pls.Profile.AccountId || f.Friendship.Account2Id == pls.Profile.AccountId)
                         && !mediaEntry.TitleOverrides.Where(t => t.ProfileId == pls.ProfileId).Where(t => t.State == OverrideState.Block).Any();
 

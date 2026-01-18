@@ -307,7 +307,7 @@ namespace DustyPig.Server.Controllers.v3
                 ProfileId = UserProfile.Id
             });
 
-            if(info.ProfileIds != null)
+            if (info.ProfileIds != null)
             {
                 foreach (var profileId in info.ProfileIds.Distinct())
                     if (profileId != UserProfile.Id)
@@ -332,8 +332,8 @@ namespace DustyPig.Server.Controllers.v3
                     .Select(item => item.Id)
                     .ToListAsync();
 
-                foreach(var friendId in info.FriendIds)
-                    if(friends.Any(item => item == friendId))
+                foreach (var friendId in info.FriendIds)
+                    if (friends.Any(item => item == friendId))
                         DB.FriendLibraryShares.Add(new FriendLibraryShare
                         {
                             FriendshipId = friendId,
@@ -341,7 +341,7 @@ namespace DustyPig.Server.Controllers.v3
                         });
             }
 
-            
+
             return lib.Id;
         }
 

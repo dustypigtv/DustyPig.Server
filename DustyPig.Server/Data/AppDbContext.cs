@@ -1,20 +1,16 @@
 ﻿using DustyPig.Server.Data.Models;
-using Google.Api.Gax;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace DustyPig.Server.Data
 {
     public partial class AppDbContext : DbContext
     {
         public static bool Ready { get; private set; }
-
-        private static readonly LoggerFactory MyLoggerFactory = new(new[] { new NLog.Extensions.Logging.NLogLoggerProvider() });
 
         private static string _connectionString;
 
@@ -60,15 +56,8 @@ namespace DustyPig.Server.Data
                 .UseMySql(_connectionString, ServerVersion.Create(8, 0, 28, Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql), opts =>
                 {
                     opts.EnableRetryOnFailure();
-                })
-                .UseLoggerFactory(MyLoggerFactory)
-
-#if DEBUG
-                        .EnableSensitiveDataLogging(true)
-                        .EnableDetailedErrors(true)
-                        .LogTo(Console.WriteLine)
-#endif
-                        ;
+                });
+                
 
         }
 
@@ -105,7 +94,7 @@ namespace DustyPig.Server.Data
                     var tstAcct = db.Accounts.FirstOrDefault(_ => _.Id == 1);
 
                     bool add = false;
-                    if(tstAcct == null)
+                    if (tstAcct == null)
                     {
                         add = true;
                     }
@@ -130,11 +119,11 @@ namespace DustyPig.Server.Data
                     var tstProfile = db.Profiles.FirstOrDefault(_ => _.Id == 1);
 
                     add = false;
-                    if(tstProfile == null)
+                    if (tstProfile == null)
                     {
                         add = true;
                     }
-                    else if(tstProfile.AccountId != 1)
+                    else if (tstProfile.AccountId != 1)
                     {
                         db.Profiles.Remove(tstProfile);
                         db.SaveChanges();

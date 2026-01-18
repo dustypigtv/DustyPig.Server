@@ -1,5 +1,4 @@
 ﻿using DustyPig.API.v3.Models;
-using DustyPig.Server.Services;
 using Google.Cloud.Firestore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -52,32 +51,32 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
 
     public static void QueueHomeScreen(IEnumerable<int> profileIds)
     {
-        foreach(int profileId in profileIds.Distinct())
+        foreach (int profileId in profileIds.Distinct())
             QueueHomeScreen(profileId);
     }
 
 
     public static void QueueContinueWatching(int profileId)
     {
-        if(!_continueWatching.Contains(profileId))
+        if (!_continueWatching.Contains(profileId))
             _continueWatching.Enqueue(profileId);
     }
 
     public static void QueueContinueWatching(IEnumerable<int> profileIds)
     {
-        foreach(int profileId in profileIds.Distinct())
+        foreach (int profileId in profileIds.Distinct())
             QueueContinueWatching(profileId);
     }
 
     public static void QueueWatchlist(int profileId)
     {
-        if(!_watchlist.Contains(profileId))
+        if (!_watchlist.Contains(profileId))
             _watchlist.Enqueue(profileId);
     }
 
     public static void QueuePlaylist(int profileId)
     {
-        if(!_playlist.Contains(profileId))
+        if (!_playlist.Contains(profileId))
             _playlist.Enqueue(profileId);
     }
 

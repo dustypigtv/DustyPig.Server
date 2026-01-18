@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NLog;
-using NLog.Web;
 using System;
 using System.Net.Http;
 
@@ -17,10 +15,6 @@ namespace DustyPig.Server
 
         public static void Main(string[] args)
         {
-#if DEBUG
-            //var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
-            var logger = LogManager.Setup().LoadConfigurationFromFile(args).GetCurrentClassLogger();
-#endif
             try
             {
                 CreateHostBuilder(args).Build().Run();
@@ -28,17 +22,14 @@ namespace DustyPig.Server
 #if DEBUG
             catch (Exception ex)
             {
-                logger.Error(ex, "Stopped program because of exception");
                 Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Stopped program because of exception");
+                Console.WriteLine();
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
                 Console.ReadLine();
             }
 #endif
-            finally
-            {
-                NLog.LogManager.Shutdown();
-            }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -61,8 +52,7 @@ namespace DustyPig.Server
                     logging.AddConsole();
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Debug);
 #endif
-                })
-                .UseNLog();
+                });
 
 
         public static Version ServerVersion => typeof(Program).Assembly.GetName().Version;

@@ -1,6 +1,5 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
-using DustyPig.API.v3.MPAA;
 using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
@@ -9,8 +8,6 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
-using Google.Apis.Auth.OAuth2;
-using Google.Rpc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +18,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace DustyPig.Server.Controllers.v3;
 
@@ -29,12 +25,12 @@ namespace DustyPig.Server.Controllers.v3;
 [ExceptionLogger(typeof(AuthController))]
 internal class AuthController : _BaseController
 {
-    private readonly FirebaseAuthService _firebaseClient;
+    private readonly Firebase.Auth.Client _firebaseClient;
     private readonly JWTService _jwtService;
 
     private bool _disposed = false;
 
-    public AuthController(AppDbContext db, FirebaseAuthService firebaseClient, JWTService jwtService) : base(db)
+    public AuthController(AppDbContext db, Firebase.Auth.Client firebaseClient, JWTService jwtService) : base(db)
     {
         _firebaseClient = firebaseClient;
         _jwtService = jwtService;
@@ -540,7 +536,7 @@ internal class AuthController : _BaseController
 
     protected override void Dispose(bool disposing)
     {
-        if(!_disposed)
+        if (!_disposed)
         {
             if (disposing)
             {

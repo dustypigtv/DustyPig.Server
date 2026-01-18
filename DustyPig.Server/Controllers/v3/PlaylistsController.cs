@@ -706,7 +706,7 @@ namespace DustyPig.Server.Controllers.v3
             playlist.ArtworkUpdateNeeded = true;
 
             await DB.SaveChangesAsync();
-            
+
             return Result.BuildSuccess();
         }
 

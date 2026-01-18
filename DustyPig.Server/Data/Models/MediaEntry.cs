@@ -2,12 +2,9 @@
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Ocsp;
-using Org.BouncyCastle.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 
 namespace DustyPig.Server.Data.Models
@@ -240,10 +237,10 @@ namespace DustyPig.Server.Data.Models
 
 
 
-        
 
 
-        
+
+
         public List<ExtraSearchTerm> ExtraSearchTerms { get; set; } = [];
 
         public List<PlaylistItem> PlaylistItems { get; set; } = [];
@@ -393,7 +390,7 @@ namespace DustyPig.Server.Data.Models
             if (string.IsNullOrWhiteSpace(Title))
                 throw new Exception("Title must have a value before creating the search title");
 
-            
+
             var terms = Title.NormalizedQueryString().Tokenize();
 
             //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
@@ -446,7 +443,7 @@ namespace DustyPig.Server.Data.Models
 
             SearchTitle = st;
         }
-        
+
         void SetExraSearchTerms(List<string> newTerms)
         {
             ExtraSearchTerms ??= [];
@@ -475,7 +472,7 @@ namespace DustyPig.Server.Data.Models
                 );
         }
 
-        
+
 
         void SetGenreFlags(Genres? genres)
         {

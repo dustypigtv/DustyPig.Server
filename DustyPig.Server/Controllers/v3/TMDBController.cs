@@ -11,7 +11,6 @@ using DustyPig.TMDB.Models.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NuGet.DependencyResolver;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -63,7 +62,7 @@ namespace DustyPig.Server.Controllers.v3
             FillCredits(GetCommonCredits(movie), ret);
             ret.Credits?.ForEach(c =>
             {
-                if(string.IsNullOrWhiteSpace(c.AvatarUrl))
+                if (string.IsNullOrWhiteSpace(c.AvatarUrl))
                     c.AvatarUrl = Constants.DEFAULT_PROFILE_IMAGE_GREY;
             });
 
@@ -85,7 +84,7 @@ namespace DustyPig.Server.Controllers.v3
                     ret.Requestors = getRequests.SelectMany(g => g.NotificationSubscriptions.Select(n => n.Profile.Name)).ToList();
                 }
             }
-            
+
 
             var available = await DB.MediaEntries
                 .AsNoTracking()
@@ -654,8 +653,8 @@ namespace DustyPig.Server.Controllers.v3
             var mainProfile = UserAccount.Profiles.First(p => p.IsMain);
 
             var ret = new List<TitleRequestSource>();
-            
-            if(!UserProfile.IsMain)
+
+            if (!UserProfile.IsMain)
                 ret.Add(new TitleRequestSource
                 {
                     Name = mainProfile.Name,

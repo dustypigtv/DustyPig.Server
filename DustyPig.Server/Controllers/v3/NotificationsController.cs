@@ -1,5 +1,4 @@
-﻿using Amazon.S3.Model;
-using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -8,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;

@@ -23,7 +23,7 @@ internal class S3Service : IDisposable
     private readonly AmazonS3Client _client;
     private readonly TransferUtility _transferUtility;
     private readonly ILogger<S3Service> _logger;
-    
+
     private bool _disposed;
 
     public S3Service(IConfiguration configuration, ILogger<S3Service> logger)
@@ -31,7 +31,7 @@ internal class S3Service : IDisposable
         string key = configuration.GetRequiredValue(CONFIG_KEY_KEY);
         string secret = configuration.GetRequiredValue(CONFIG_KEY_SECRET);
         string url = configuration.GetRequiredValue(CONFIG_KEY_URL);
-        
+
         _client = new(key, secret, new AmazonS3Config { ServiceURL = url });
         _transferUtility = new(_client);
         _logger = logger;

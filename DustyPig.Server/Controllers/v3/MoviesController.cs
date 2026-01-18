@@ -13,7 +13,6 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3
@@ -420,7 +419,7 @@ namespace DustyPig.Server.Controllers.v3
 
                         DB.GetRequestSubscriptions.Remove(sub);
                     }
-                    
+
                     await DB.SaveChangesAsync();
                     foreach (var sub in getRequest.NotificationSubscriptions)
                         FirebaseNotificationsManager.QueueProfileForNotifications(sub.ProfileId);
@@ -474,7 +473,7 @@ namespace DustyPig.Server.Controllers.v3
                 return CommonResponses.ValueNotFound(nameof(movieInfo.LibraryId));
 
             var profileIdsToNotifyViaFirestore = await DB.ProfilesWithAccessToTopLevel(movieInfo.Id);
-            
+
 
             //Update info
             bool library_changed = existingItem.LibraryId != movieInfo.LibraryId;
@@ -525,7 +524,7 @@ namespace DustyPig.Server.Controllers.v3
             {
                 var newProfileIdsWithAccess = await DB.ProfilesWithAccessToTopLevel(movieInfo.Id);
                 profileIdsToNotifyViaFirestore.AddRange(newProfileIdsWithAccess);
-            } 
+            }
             FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore.Distinct());
 
             //Playlists

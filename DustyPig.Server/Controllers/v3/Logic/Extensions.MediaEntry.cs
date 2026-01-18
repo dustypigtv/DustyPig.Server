@@ -181,22 +181,22 @@ namespace DustyPig.Server.Controllers.v3.Logic
             self.Sort((x, y) =>
             {
                 int ret = -qt[x.Id].ICEquals(normQuery).CompareTo(qt[y.Id].ICEquals(normQuery));
-         
+
                 if (ret == 0 && qt[x.Id].ICEquals(qt[y.Id]))
                     ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                
+
                 if (ret == 0)
                     ret = -qt[x.Id].ICStartsWith(normQuery).CompareTo(qt[y.Id].ICStartsWith(normQuery));
-                
+
                 if (ret == 0)
                     ret = -qt[x.Id].ICContains(normQuery).CompareTo(qt[y.Id].ICContains(normQuery));
-                
+
                 if (ret == 0)
                     ret = x.SortTitle.CompareTo(y.SortTitle);
-                
+
                 if (ret == 0)
                     ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-                
+
                 return ret;
             });
         }

@@ -1,6 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
-using DustyPig.Server.Services;
 using FirebaseAdmin.Messaging;
 using Google.Cloud.Firestore;
 using Microsoft.EntityFrameworkCore;

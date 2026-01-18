@@ -5,7 +5,6 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -13,12 +12,10 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography.Xml;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -52,13 +49,13 @@ namespace DustyPig.Server.HostedServices
         private readonly Timer _timer;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly CancellationToken _cancellationToken;
-       
+
 
 
         //Reduce polling the database by only polling on startup, then using a queue
         bool _processFirstRun = true;
         static readonly ConcurrentQueue<int> _processQueue = new();
-        
+
         bool _deleteFirstRun = true;
         static readonly ConcurrentQueue<int> _deleteQueue = new();
 

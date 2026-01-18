@@ -285,7 +285,7 @@ namespace DustyPig.Server.Controllers.v3
 
             await DB.SaveChangesAsync();
 
-            if(notifyProfileId > 0)
+            if (notifyProfileId > 0)
                 FirebaseNotificationsManager.QueueProfileForNotifications(notifyProfileId);
 
             return Result.BuildSuccess();

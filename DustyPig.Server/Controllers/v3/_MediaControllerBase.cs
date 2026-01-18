@@ -5,7 +5,6 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -284,8 +283,8 @@ namespace DustyPig.Server.Controllers.v3
 
             return ret;
         }
-    
-    
+
+
         internal async Task<Result<List<BasicMedia>>> AdminSearchAsync(int libraryId, string query, MediaTypes mediaType)
         {
             var ret = new List<BasicMedia>();
@@ -323,7 +322,7 @@ namespace DustyPig.Server.Controllers.v3
         }
 
 
-    
+
         internal async Task<Result<List<BasicMedia>>> AdminSearchByTmdbIdAsync(int libraryId, int tmdbId, MediaTypes mediaType)
         {
             var ret = new List<BasicMedia>();

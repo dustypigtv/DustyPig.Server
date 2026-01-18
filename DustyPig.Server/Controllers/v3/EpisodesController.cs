@@ -1,6 +1,5 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
-using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
@@ -107,7 +106,7 @@ namespace DustyPig.Server.Controllers.v3
             if (ownedSeries.Library.AccountId != UserAccount.Id)
                 return CommonResponses.ValueNotFound(nameof(episodeInfo.SeriesId));
 
-            
+
             // ***** Ok at this point the mediaInfo has all required data, build the new entry *****
             var newItem = new MediaEntry
             {
@@ -208,7 +207,7 @@ namespace DustyPig.Server.Controllers.v3
                         Timestamp = DateTime.UtcNow,
                         Title = "New Episode Available"
                     });
-             
+
                     notifiedProfiles.Add(subscription.ProfileId);
                     profileIdsToNotifyViaFirestore.RemoveAll(_ => _ == subscription.ProfileId);
                 }
@@ -236,8 +235,8 @@ namespace DustyPig.Server.Controllers.v3
                     .AsNoTracking()
                     .Where(s => s.Id == episodeInfo.SeriesId)
                     .AnyAsync();
-                
-                
+
+
                 if (seriesPlayable)
                 {
                     DB.PlaylistItems.Add(new Data.Models.PlaylistItem
@@ -259,8 +258,8 @@ namespace DustyPig.Server.Controllers.v3
 
             //Queue notifications
             FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
-            
-            foreach(int profileId in notifiedProfiles.Distinct())
+
+            foreach (int profileId in notifiedProfiles.Distinct())
                 FirebaseNotificationsManager.QueueProfileForNotifications(profileId);
 
             return newItem.Id;
@@ -355,7 +354,7 @@ namespace DustyPig.Server.Controllers.v3
             if (existingEpisode.Library.AccountId != UserAccount.Id)
                 return CommonResponses.ValueNotFound(nameof(episodeInfo.Id));
 
-            
+
             //Don't update Added or EntryType
 
             bool artChanged = existingEpisode.ArtworkUrl != episodeInfo.ArtworkUrl;
@@ -412,7 +411,7 @@ namespace DustyPig.Server.Controllers.v3
 
             var profileIdsToNotifyViaFirestore = await DB.ProfilesWithAccessToTopLevel(episodeInfo.SeriesId);
             FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
-            
+
             return Result.BuildSuccess();
         }
 

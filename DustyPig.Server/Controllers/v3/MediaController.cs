@@ -259,7 +259,7 @@ namespace DustyPig.Server.Controllers.v3
             var ret = new SearchResults();
 
             var normQuery = request.Query.NormalizedQueryString();
-            if(string.IsNullOrWhiteSpace(normQuery)) 
+            if (string.IsNullOrWhiteSpace(normQuery))
                 return ret;
 
             var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);

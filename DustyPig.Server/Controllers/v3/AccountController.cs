@@ -1,15 +1,12 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
-using DustyPig.Firebase.Auth;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
 using FirebaseAdmin.Auth;
-using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -28,9 +25,9 @@ namespace DustyPig.Server.Controllers.v3;
 [ExceptionLogger(typeof(AccountController))]
 internal class AccountController : _BaseController
 {
-    private readonly FirebaseAuthService _firebaseAuthClient;
+    private readonly Firebase.Auth.Client _firebaseAuthClient;
 
-    public AccountController(AppDbContext db, FirebaseAuthService firebaseAuthClient) : base(db)
+    public AccountController(AppDbContext db, Firebase.Auth.Client firebaseAuthClient) : base(db)
     {
         _firebaseAuthClient = firebaseAuthClient;
     }
