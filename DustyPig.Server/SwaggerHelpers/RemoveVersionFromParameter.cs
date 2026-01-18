@@ -2,17 +2,16 @@
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Linq;
 
-namespace DustyPig.Server.SwaggerHelpers
-{
-    public class RemoveVersionFromParameter : IOperationFilter
-    {
-        public void Apply(OpenApiOperation operation, OperationFilterContext context)
-        {
-            if (!operation.Parameters.Any())
-                return;
+namespace DustyPig.Server.SwaggerHelpers;
 
-            var versionParameter = operation.Parameters.Single(p => p.Name == "version");
-            operation.Parameters.Remove(versionParameter);
-        }
+public class RemoveVersionFromParameter : IOperationFilter
+{
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    {
+        if (!operation.Parameters.Any())
+            return;
+
+        var versionParameter = operation.Parameters.Single(p => p.Name == "version");
+        operation.Parameters.Remove(versionParameter);
     }
 }
