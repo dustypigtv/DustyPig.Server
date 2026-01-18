@@ -278,58 +278,75 @@ internal class ArtworkUpdater : IHostedService, IDisposable
     {
         var s3Service = _serviceProvider.GetRequiredService<S3Service>();
 
-        List<S3Object> s3Objs;
-        try
+        foreach (string key in new string[] { Constants.USER_PLAYLIST_PATH, Constants.USER_PROFILE_PATH })
         {
-            s3Objs = await s3Service.ListImagesAsync(Constants.DEFAULT_PLAYLIST_PATH, [".jpg"], cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, nameof(s3Service.ListImagesAsync));
-            return;
-        }
-
-
-        //Skip newer images
-        s3Objs.RemoveAll(_ => _.LastModified > DateTime.UtcNow.AddDays(-3));
-        if (s3Objs.Count == 0)
-            return;
-
-        foreach (var s3Obj in s3Objs)
-        {
-            //Don't crash before scanning all files
+            List<S3Object> s3Objs;
             try
             {
-                //Not critical, throttle it down
-                await Task.Delay(1000, cancellationToken);
-
-                //Convert the key to url
-                string filename = s3Obj.Key.Split('/', StringSplitOptions.RemoveEmptyEntries).Last();
-                string url = Constants.DEFAULT_PLAYLIST_URL_ROOT + filename;
-
-                //Check if the url is in a playlist
-                using var scope = _serviceProvider.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                bool keep = await db.Playlists
-                    .AsNoTracking()
-                    .Where(_ => _.ArtworkUrl == url || _.BackdropUrl == url)
-                    .AnyAsync(cancellationToken);
-
-                if (!keep)
-                {
-                    //The file is at least a few days old, and id not used by a playlist, 
-                    //Delete it
-                    await s3Service.DeleteFileAsync(s3Obj.Key, cancellationToken);
-                }
+                s3Objs = await s3Service.ListImagesAsync(key, [".jpg", ".png"], cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Check and delete playlist art: {key}", s3Obj.Key);
+                _logger.LogError(ex, nameof(s3Service.ListImagesAsync));
+                return;
+            }
+
+
+            //Skip newer images
+            s3Objs.RemoveAll(_ => _.LastModified > DateTime.UtcNow.AddDays(-3));
+            if (s3Objs.Count == 0)
+                return;
+
+            foreach (var s3Obj in s3Objs)
+            {
+                //Don't crash before scanning all files
+                try
+                {
+                    //Not critical, throttle it down
+                    await Task.Delay(1000, cancellationToken);
+
+                    //Convert the key to url
+                    string filename = s3Obj.Key.Split('/', StringSplitOptions.RemoveEmptyEntries).Last();
+                    string url = key == Constants.DEFAULT_PLAYLIST_PATH ?
+                        Constants.USER_PLAYLIST_URL_ROOT + filename :
+                        Constants.USER_PROFILE_URL_ROOT + filename;
+
+                    
+                    //Check if the url is in a playlist/PROFILE
+                    using var scope = _serviceProvider.CreateScope();
+                    using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                    bool keep;
+                    if (key == Constants.USER_PLAYLIST_PATH)
+                    {
+                        keep = await db.Playlists
+                            .AsNoTracking()
+                            .Where(_ => _.ArtworkUrl == url || _.BackdropUrl == url)
+                            .AnyAsync(cancellationToken);
+                    }
+                    else
+                    {
+                        keep = await db.Profiles
+                            .AsNoTracking()
+                            .Where(_ => _.AvatarUrl == url)
+                            .AnyAsync(cancellationToken);
+                    }
+                    
+
+                    if (!keep)
+                    {
+                        //The file is at least a few days old, and id not used by a playlist or profile. 
+                        //Delete it
+                        await s3Service.DeleteFileAsync(s3Obj.Key, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Check and delete art: {key}", s3Obj.Key);
+                }
             }
         }
     }
-
 
 
 
