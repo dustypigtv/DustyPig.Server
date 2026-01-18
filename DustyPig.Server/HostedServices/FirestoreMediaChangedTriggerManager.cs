@@ -27,6 +27,8 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     private readonly FirestoreDb _firestoreDb;
     private readonly SafeTimer _timer;
     private readonly ILogger<FirestoreMediaChangedTriggerManager> _logger;
+    
+    private bool _disposed;
 
     public FirestoreMediaChangedTriggerManager(FirestoreDb firestoreDb, ILogger<FirestoreMediaChangedTriggerManager> logger)
     {
@@ -35,11 +37,7 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
         _timer = new(TimerTick, TimeSpan.FromMicroseconds(TICK_INTERVAL_MS));
     }
 
-    public void Dispose()
-    {
-        _timer.Dispose();
-    }
-
+    
 
     public static void QueueHomeScreen(int profileId)
     {
@@ -126,5 +124,35 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(WriteDoc));
         }
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+                _timer.Dispose();
+            }
+
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            _disposed = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~FirestoreMediaChangedTriggerManager()
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

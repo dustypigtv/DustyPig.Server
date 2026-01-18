@@ -23,6 +23,8 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     private readonly SafeTimer _timer;
     private readonly ILogger<FirebaseNotificationsManager> _logger;
 
+    private bool _disposed;
+
     //Only delete old tokens once a day
     //private static DateTime _lastTokenDelete = DateTime.Now.AddDays(-2);
 
@@ -34,10 +36,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
         _timer = new(TimerTick);
     }
 
-    public void Dispose()
-    {
-        _timer.Dispose();
-    }
+    
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -233,5 +232,35 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+                _timer.Dispose();
+            }
+
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            _disposed = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~FirebaseNotificationsManager()
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
