@@ -1,8 +1,11 @@
 ﻿using DustyPig.Server.Data;
-using DustyPig.Server.Data.Models;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,62 +13,65 @@ namespace DustyPig.Server.HostedServices
 {
     public class DBCleaner : IHostedService, IDisposable
     {
-        //No reason to run this more than once/day
-        private const int MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+        private readonly SafeTimer _timer;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<DBCleaner> _logger;
 
-        private readonly Timer _timer;
-        private readonly CancellationTokenSource _cancellationTokenSource = new();
-        private readonly CancellationToken _cancellationToken;
-
-        public DBCleaner()
+        public DBCleaner(IServiceProvider serviceProvider, ILogger<DBCleaner> logger)
         {
-            _cancellationToken = _cancellationTokenSource.Token;
-            _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
+            _serviceProvider = serviceProvider;
+            _logger = logger;
+            _timer = new SafeTimer(TimerTick, TimeSpan.FromDays(1));
         }
 
-        public void Dispose()
-        {
-            _timer.Dispose();
-        }
-
-
+        
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _timer.Change(0, Timeout.Infinite);
+            _timer.Enabled = true;
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _cancellationTokenSource.Cancel();
+            _timer.TryForceStop();
             return Task.CompletedTask;
         }
 
-        private async void DoWork(object state)
+        private async Task TimerTick(CancellationToken cancellationToken)
         {
-            if (AppDbContext.Ready)
+            using var scope = _serviceProvider.CreateScope();
+            using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            try
             {
-                try { await CleanupAsync(); }
-                catch { }
+                var dt = DateTime.UtcNow.AddDays(-1);
+                while (true)
+                {
+                    //Clean activation codes more than 1 day old
+                    var codes = await db.ActivationCodes
+                        .Where(_ => _.Created < dt)
+                        .Take(100)
+                        .ToListAsync(cancellationToken);
+
+                    if (codes.Count == 0)
+                        break;
+
+                    db.ActivationCodes.RemoveRange(codes);
+                    await db.SaveChangesAsync(cancellationToken);
+                    await Task.Delay(1000, cancellationToken);
+                }
             }
-
-            if (!_cancellationToken.IsCancellationRequested)
-                try { _timer.Change(MILLISECONDS_PER_DAY, Timeout.Infinite); }
-                catch { }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Clean activation codes");
+            }
         }
 
-        private async Task CleanupAsync()
+
+
+        public void Dispose()
         {
-            using var db = new AppDbContext();
-
-            //Clean logs more than 14 days old
-            string query = $"DELETE FROM {nameof(db.Logs)} WHERE {nameof(LogEntry.Timestamp)} < '{DateTime.UtcNow.AddDays(-14):yyyy-MM-dd}'";
-            await db.Database.ExecuteSqlRawAsync(query);
-
-            //Clean activation codes more than 1 day old
-            query = $"DELETE FROM {nameof(db.ActivationCodes)} WHERE {nameof(ActivationCode.Created)} < '{DateTime.UtcNow.AddDays(-1):yyyy-MM-dd}'";
-            await db.Database.ExecuteSqlRawAsync(query);
+            _timer.Dispose();
         }
-
     }
 }
