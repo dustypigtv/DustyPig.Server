@@ -12,9 +12,9 @@ namespace DustyPig.Server.Pages.FirebaseActions;
 
 internal class IndexModel : PageModel
 {
-    private readonly FirebaseAuthClient _client;
+    private readonly FirebaseAuthService _client;
 
-    public IndexModel(FirebaseAuthClient client) => _client = client;
+    public IndexModel(FirebaseAuthService client) => _client = client;
 
     [BindProperty]
     public FirebaseActionModel FAM { get; set; }

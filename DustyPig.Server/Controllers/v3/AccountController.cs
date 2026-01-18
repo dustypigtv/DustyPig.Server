@@ -28,9 +28,9 @@ namespace DustyPig.Server.Controllers.v3;
 [ExceptionLogger(typeof(AccountController))]
 internal class AccountController : _BaseController
 {
-    private readonly FirebaseAuthClient _firebaseAuthClient;
+    private readonly FirebaseAuthService _firebaseAuthClient;
 
-    public AccountController(AppDbContext db, FirebaseAuthClient firebaseAuthClient) : base(db)
+    public AccountController(AppDbContext db, FirebaseAuthService firebaseAuthClient) : base(db)
     {
         _firebaseAuthClient = firebaseAuthClient;
     }

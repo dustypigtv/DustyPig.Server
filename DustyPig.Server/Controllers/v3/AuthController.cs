@@ -28,12 +28,12 @@ namespace DustyPig.Server.Controllers.v3;
 [ExceptionLogger(typeof(AuthController))]
 internal class AuthController : _BaseController
 {
-    private readonly FirebaseAuthClient _firebaseClient;
+    private readonly FirebaseAuthService _firebaseClient;
     private readonly JWTService _jwtService;
 
     private bool _disposed = false;
 
-    public AuthController(AppDbContext db, FirebaseAuthClient firebaseClient, JWTService jwtService) : base(db)
+    public AuthController(AppDbContext db, FirebaseAuthService firebaseClient, JWTService jwtService) : base(db)
     {
         _firebaseClient = firebaseClient;
         _jwtService = jwtService;

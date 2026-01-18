@@ -333,7 +333,7 @@ namespace DustyPig.Server
 
 
             //*** Dependency Injection ***
-            services.AddScoped<FirebaseAuthClient>();
+            services.AddScoped<FirebaseAuthService>();
             services.AddScoped<JWTService>();
             services.AddHostedService<TMDB_Updater>();
             services.AddHostedService<FirebaseNotificationsManager>();
