@@ -24,13 +24,15 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     private static readonly ConcurrentQueue<int> _watchlist = new();
     private static readonly ConcurrentQueue<int> _playlist = new();
 
+    private readonly FirestoreDb _firestoreDb;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly CancellationToken _cancellationToken;
     private readonly Timer _timer;
     private readonly ILogger<FirestoreMediaChangedTriggerManager> _logger;
 
-    public FirestoreMediaChangedTriggerManager(ILogger<FirestoreMediaChangedTriggerManager> logger)
+    public FirestoreMediaChangedTriggerManager(FirestoreDb firestoreDb, ILogger<FirestoreMediaChangedTriggerManager> logger)
     {
+        _firestoreDb = firestoreDb;
         _logger = logger;
         _cancellationToken = _cancellationTokenSource.Token;
         _timer = new Timer(new TimerCallback(TimerTickedAsync), null, Timeout.Infinite, Timeout.Infinite);
@@ -129,7 +131,7 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     {
         //The clients only wait for a change to the document, and don't care what the changes are
         //A 1-char key and 8 byte timestamp is small, fast and always updates
-        DocumentReference docRef = FDB.Service.Collection(key).Document(profileId.ToString());
+        DocumentReference docRef = _firestoreDb.Collection(key).Document(profileId.ToString());
         Dictionary<string, object> data = new Dictionary<string, object>
         {
             { "t", DateTime.UtcNow.Ticks }

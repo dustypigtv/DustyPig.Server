@@ -29,12 +29,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace DustyPig.Server
 {
     public class Startup
     {
+        const string FIREBASE_JSON_FILE = "/config/firebase.json";
+
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -51,8 +55,7 @@ namespace DustyPig.Server
 
 
 
-            const string FIREBASE_JSON_FILE = "/config/firebase.json";
-
+            
 
 
             //*** Firebase Cloud Messaging ***
@@ -62,8 +65,7 @@ namespace DustyPig.Server
             });
 
 
-            //*** Firebase Firestore DB
-            FDB.Configure(FIREBASE_JSON_FILE);
+            
 
 
 
@@ -342,6 +344,19 @@ namespace DustyPig.Server
             services.AddHostedService<ArtworkUpdater>();
 
             services.AddTransient<S3Service>();
+
+            services.AddSingleton<FirestoreDb>(_ =>
+            {
+                string projectId = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(FIREBASE_JSON_FILE)).GetProperty("project_id").GetString();
+
+                var builder = new FirestoreDbBuilder
+                {
+                    GoogleCredential = GoogleCredential.FromFile(FIREBASE_JSON_FILE),
+                    ProjectId = projectId
+                };
+
+                return builder.Build();
+            });
         }
 
 

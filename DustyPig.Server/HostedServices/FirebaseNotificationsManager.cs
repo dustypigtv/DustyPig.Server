@@ -19,6 +19,7 @@ namespace DustyPig.Server.HostedServices
     {
         const int ONE_SECOND = 1000;
 
+        private readonly FirestoreDb _firestoreDb;
         private readonly Timer _timer;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly CancellationToken _cancellationToken;
@@ -32,8 +33,9 @@ namespace DustyPig.Server.HostedServices
         //Only delete old tokens once a day
         private static DateTime _lastTokenDelete = DateTime.Now.AddDays(-2);
 
-        public FirebaseNotificationsManager(ILogger<FirebaseNotificationsManager> logger)
+        public FirebaseNotificationsManager(FirestoreDb firestoreDb, ILogger<FirebaseNotificationsManager> logger)
         {
+            _firestoreDb = firestoreDb;
             _cancellationToken = _cancellationTokenSource.Token;
             _logger = logger;
             _timer = new Timer(new TimerCallback(TimerTickedAsync), null, Timeout.Infinite, Timeout.Infinite);
@@ -172,7 +174,7 @@ namespace DustyPig.Server.HostedServices
             // Update Firestore to let mobile listeners know to update their list of notifications
             try
             {
-                DocumentReference docRef = FDB.Service.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profileId.ToString());
+                DocumentReference docRef = _firestoreDb.Collection(Constants.FDB_KEY_ALERTS_COLLECTION).Document(profileId.ToString());
 
                 //The clients only wait for a change to the document, and don't care what the changes are
                 //A 1-char key and 8 byte timestamp is small, fast and always updates
