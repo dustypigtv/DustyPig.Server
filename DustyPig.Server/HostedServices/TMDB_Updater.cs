@@ -3,6 +3,7 @@ using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
+using DustyPig.Server.Utilities;
 using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,22 +21,18 @@ namespace DustyPig.Server.HostedServices;
 
 public class TMDB_Updater : IHostedService, IDisposable
 {
-    private const int ONE_MINUTE = 1000 * 60;
     private const int CHUNK_SIZE = 1000;
 
     private readonly IServiceProvider _serviceProvider;
-    private readonly Timer _timer;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private readonly CancellationToken _cancellationToken;
+    private readonly SafeTimer _timer;
     private readonly ILogger<TMDB_Updater> _logger;
 
 
     public TMDB_Updater(IServiceProvider serviceProvider, ILogger<TMDB_Updater> logger)
     {
         _serviceProvider = serviceProvider;
-        _cancellationToken = _cancellationTokenSource.Token;
         _logger = logger;
-        _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
+        _timer = new(TimerTick);
     }
 
     public void Dispose()
@@ -48,19 +45,19 @@ public class TMDB_Updater : IHostedService, IDisposable
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _timer.Change(0, Timeout.Infinite);
+        _timer.Enabled = true;
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _cancellationTokenSource.Cancel();
+        _timer.TryForceStop();
         return Task.CompletedTask;
     }
 
 
 
-    private async void DoWork(object state)
+    private async Task TimerTick(CancellationToken cancellationToken)
     {
         if (AppDbContext.Ready)
         {

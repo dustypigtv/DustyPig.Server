@@ -17,6 +17,8 @@ public class DBCleaner : IHostedService, IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DBCleaner> _logger;
 
+    private bool _disposed;
+
     public DBCleaner(IServiceProvider serviceProvider, ILogger<DBCleaner> logger)
     {
         _serviceProvider = serviceProvider;
@@ -94,10 +96,33 @@ public class DBCleaner : IHostedService, IDisposable
         }
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+                _timer.Dispose();
+            }
 
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            _disposed = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~DBCleaner()
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
 
     public void Dispose()
     {
-        _timer.Dispose();
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
