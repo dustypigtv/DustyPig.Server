@@ -3,6 +3,7 @@ using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -339,7 +340,6 @@ namespace DustyPig.Server.Controllers.v3
 
             if (playlist != null)
             {
-                await ArtworkUpdater.SetNeedsDeletionAsync([playlist.ArtworkUrl, playlist.BackdropUrl]);
                 DB.Playlists.Remove(playlist);
                 await DB.SaveChangesAsync();
                 FirestoreMediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
@@ -512,7 +512,7 @@ namespace DustyPig.Server.Controllers.v3
             }).Entity;
 
             await DB.SaveChangesAsync();
-            await ArtworkUpdater.SetNeedsUpdateAsync(info.PlaylistId);
+            await DB.MarkPlaylistArtworkNeedsupdate([info.PlaylistId]);
 
             return entity.Id;
         }
@@ -621,7 +621,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
             await DB.SaveChangesAsync();
-            await ArtworkUpdater.SetNeedsUpdateAsync(info.PlaylistId);
+            await DB.MarkPlaylistArtworkNeedsupdate([info.PlaylistId]);
 
             return Result.BuildSuccess();
         }

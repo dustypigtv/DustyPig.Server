@@ -122,29 +122,10 @@ internal class AccountController : _BaseController
         if (account.Id != account2.Id)
             return Result.BuildError("Invalid credentials");
 
-        //Images to cleanup from Wasabi
-        var profileIds = account.Profiles.Select(item => item.Id).ToList();
-        var artToDelete = account.Profiles.Select(item => item.AvatarUrl).ToList();
-        try
-        {
-            var playlistArtworkUrls = await DB.Playlists
-                .AsNoTracking()
-                .Where(item => profileIds.Contains(item.ProfileId))
-                .Where(item => item.ArtworkUrl != Constants.DEFAULT_PLAYLIST_IMAGE)
-                .Select(item => item.ArtworkUrl)
-                .ToListAsync();
-            artToDelete.AddRange(playlistArtworkUrls);
-        }
-        catch { }
-
-
         await FirebaseAuth.DefaultInstance.DeleteUserAsync(account.FirebaseId);
 
         DB.Accounts.Remove(account);
         await DB.SaveChangesAsync();
-
-        //Try to clean up, but ok if it fails
-        await ArtworkUpdater.SetNeedsDeletionAsync(artToDelete);
 
         return Result.BuildSuccess();
     }

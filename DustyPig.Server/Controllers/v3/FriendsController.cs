@@ -4,6 +4,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Http;
@@ -319,7 +320,8 @@ namespace DustyPig.Server.Controllers.v3
                 DB.Friendships.Remove(friend);
                 await DB.SaveChangesAsync();
 
-                await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
+                if (playlistIds.Count > 0)
+                    await DB.MarkPlaylistArtworkNeedsupdate(playlistIds);
             }
 
             return Result.BuildSuccess();

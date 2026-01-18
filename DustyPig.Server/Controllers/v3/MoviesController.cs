@@ -5,6 +5,7 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -535,7 +536,7 @@ namespace DustyPig.Server.Controllers.v3
                     .Select(item => item.PlaylistId)
                     .Distinct()
                     .ToListAsync();
-            await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
+            await DB.MarkPlaylistArtworkNeedsupdate(playlistIds);
 
 
             return Result.BuildSuccess();

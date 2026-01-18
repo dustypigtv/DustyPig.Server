@@ -339,7 +339,8 @@ namespace DustyPig.Server.Controllers.v3
 
             var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
 
-            var stream = new MemoryStream(Convert.FromBase64String(data.Base64Image));
+            var bytes = Convert.FromBase64String(data.Base64Image);
+            var stream = new MemoryStream(bytes);
 
             bool isPng = UpdateProfileAvatar.IsPng(bytes);
 
@@ -351,7 +352,6 @@ namespace DustyPig.Server.Controllers.v3
             await _s3Service.UploadImageAsync(stream, keyPath, default);
 
             //Swap
-            await ArtworkUpdater.SetNeedsDeletionAsync(profile.AvatarUrl);
             profile.AvatarUrl = urlPath;
             DB.Profiles.Update(profile);
 
@@ -429,19 +429,9 @@ namespace DustyPig.Server.Controllers.v3
             if (profile.IsMain)
                 return "Cannot delete main profile";
 
-            var artworkToDelete = await DB.Playlists
-                .AsNoTracking()
-                .Where(item => item.ProfileId == id)
-                .Select(item => item.ArtworkUrl)
-                .ToListAsync();
-
-            artworkToDelete.Add(profile.AvatarUrl);
-
             DB.Profiles.Remove(profile);
 
             await DB.SaveChangesAsync();
-
-            await ArtworkUpdater.SetNeedsDeletionAsync(artworkToDelete);
 
             return Result.BuildSuccess();
         }

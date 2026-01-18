@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -57,7 +58,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
             //Lib is unlinked, artwork is updated, then relinked - need
             //to update the artwork again
             var playlistIds = await GetPlaylistIds(db, profileId, libraryId);
-            await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
+            await db.MarkPlaylistArtworkNeedsupdate(playlistIds);
 
             return Result.BuildSuccess();
         }
@@ -88,7 +89,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileId);
 
                 var playlistIds = await GetPlaylistIds(db, profileId, libraryId);
-                await ArtworkUpdater.SetNeedsUpdateAsync(playlistIds);
+                await db.MarkPlaylistArtworkNeedsupdate(playlistIds);
             }
 
             return Result.BuildSuccess();
