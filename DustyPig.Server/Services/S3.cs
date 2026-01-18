@@ -2,57 +2,27 @@
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using DustyPig.API.v3.Models;
+using DustyPig.Server.Extensions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DustyPig.Server.Services
+namespace DustyPig.Server.Services;
+
+
+internal class S3(IConfiguration configuration, ILogger<S3> logger)
 {
-    static class S3
+    private readonly IConfiguration _configuration = configuration;
+    private readonly ILogger<S3> _logger = logger;
+
+    public async Task UploadImageAsync(Stream ms, string key, CancellationToken cancellationToken)
     {
-        static AmazonS3Client _client;
-        static TransferUtility _transferUtility;
-
-        public static void Configure(string url, string key, string secret)
+        try
         {
-            if (string.IsNullOrWhiteSpace(url))
-                throw new ArgumentNullException(nameof(url));
-
-            if (string.IsNullOrWhiteSpace(key))
-                throw new ArgumentNullException(nameof(key));
-
-            if (string.IsNullOrWhiteSpace(secret))
-                throw new ArgumentNullException(nameof(secret));
-
-            if (!url.ToLower().StartsWith("http://") && !url.ToLower().StartsWith("https://"))
-                url = "https://" + url;
-           
-            _client = new AmazonS3Client(key, secret, new AmazonS3Config { ServiceURL = url });
-            _transferUtility = new TransferUtility(_client);
-        }
-
-        public static Task UploadFileAsync(MemoryStream ms, string key, CancellationToken cancellationToken)
-        {
-            var req = new TransferUtilityUploadRequest
-            {
-                BucketName = Constants.DEFAULT_HOST,
-                InputStream = ms,
-                Key = key,
-                AutoResetStreamPosition = true,
-                AutoCloseStream = true,
-                DisablePayloadSigning = true,
-                DisableDefaultChecksumValidation = true,
-            };
-
-            return _transferUtility.UploadAsync(req, cancellationToken);
-        }
-
-
-        public static Task UploadAvatarAsync(Stream ms, string key, CancellationToken cancellationToken)
-        {
-            //Since avatars now have unique filenames, add Cache-Control: max-age=10000000
-
             var req = new TransferUtilityUploadRequest
             {
                 BucketName = Constants.DEFAULT_HOST,
@@ -64,11 +34,77 @@ namespace DustyPig.Server.Services
                 DisableDefaultChecksumValidation = true,
             };
             req.Headers.CacheControl = "max-age=10000000";
-            return _transferUtility.UploadAsync(req, cancellationToken);
+
+            using var client = CreateClient();
+            using var transferUtility = new TransferUtility(client);
+            await transferUtility.UploadAsync(req, cancellationToken);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(UploadImageAsync));
+            throw;
+        }
+    }
 
-        public static Task DeleteFileAsync(string key, CancellationToken cancellationToken) =>
-            _client.DeleteObjectAsync(Constants.DEFAULT_HOST, key, cancellationToken);
 
+    public async Task<List<S3Object>> ListImagesAsync(string prefix, string[] extensions, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ret = new List<S3Object>();
+
+            using var client = CreateClient();
+            
+            var request = new ListObjectsV2Request { BucketName = Constants.DEFAULT_HOST, Prefix = prefix, Delimiter = "/" };
+            ListObjectsV2Response response;
+            do
+            {
+                response = await client.ListObjectsV2Async(request, cancellationToken).ConfigureAwait(false);
+
+                foreach (var s3Obj in response.S3Objects)
+                {
+                    foreach (string ext in extensions)
+                    {
+                        if (s3Obj.Key.ICEndsWith(ext))
+                        {
+                            ret.Add(s3Obj);
+                            break;
+                        }
+                    }
+                }
+
+                request.ContinuationToken = response.NextContinuationToken;
+            } while (response.IsTruncated ?? false);
+
+            return ret;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(ListImagesAsync));
+            throw;
+        }
+    }
+
+    public async Task DeleteFileAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var client = CreateClient();
+            await client.DeleteObjectAsync(Constants.DEFAULT_HOST, key, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(DeleteFileAsync));
+            throw;
+        }
+    }
+
+    private AmazonS3Client CreateClient()
+    {
+        string key = _configuration.GetRequiredValue("S3-KEY");
+        string secret = _configuration.GetRequiredValue("S3-SECRET");
+        string url = _configuration.GetRequiredValue("S3-URL");
+
+        return new AmazonS3Client(key, secret, new AmazonS3Config { ServiceURL = url });
     }
 }
