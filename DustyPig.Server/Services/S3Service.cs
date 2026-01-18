@@ -14,10 +14,24 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Services;
 
 
-internal class S3(IConfiguration configuration, ILogger<S3> logger)
+internal class S3Service : IDisposable
 {
-    private readonly IConfiguration _configuration = configuration;
-    private readonly ILogger<S3> _logger = logger;
+    private readonly AmazonS3Client _client;
+    private readonly TransferUtility _transferUtility;
+    private readonly ILogger<S3Service> _logger;
+    
+    private bool _disposed;
+
+    public S3Service(IConfiguration configuration, ILogger<S3Service> logger)
+    {
+        string key = configuration.GetRequiredValue("S3-KEY");
+        string secret = configuration.GetRequiredValue("S3-SECRET");
+        string url = configuration.GetRequiredValue("S3-URL");
+        
+        _client = new(key, secret, new AmazonS3Config { ServiceURL = url });
+        _transferUtility = new(_client);
+        _logger = logger;
+    }
 
     public async Task UploadImageAsync(Stream ms, string key, CancellationToken cancellationToken)
     {
@@ -35,9 +49,7 @@ internal class S3(IConfiguration configuration, ILogger<S3> logger)
             };
             req.Headers.CacheControl = "max-age=10000000";
 
-            using var client = CreateClient();
-            using var transferUtility = new TransferUtility(client);
-            await transferUtility.UploadAsync(req, cancellationToken);
+            await _transferUtility.UploadAsync(req, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -53,13 +65,11 @@ internal class S3(IConfiguration configuration, ILogger<S3> logger)
         {
             var ret = new List<S3Object>();
 
-            using var client = CreateClient();
-            
             var request = new ListObjectsV2Request { BucketName = Constants.DEFAULT_HOST, Prefix = prefix, Delimiter = "/" };
             ListObjectsV2Response response;
             do
             {
-                response = await client.ListObjectsV2Async(request, cancellationToken).ConfigureAwait(false);
+                response = await _client.ListObjectsV2Async(request, cancellationToken).ConfigureAwait(false);
 
                 foreach (var s3Obj in response.S3Objects)
                 {
@@ -89,8 +99,7 @@ internal class S3(IConfiguration configuration, ILogger<S3> logger)
     {
         try
         {
-            using var client = CreateClient();
-            await client.DeleteObjectAsync(Constants.DEFAULT_HOST, key, cancellationToken);
+            await _client.DeleteObjectAsync(Constants.DEFAULT_HOST, key, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -99,12 +108,36 @@ internal class S3(IConfiguration configuration, ILogger<S3> logger)
         }
     }
 
-    private AmazonS3Client CreateClient()
-    {
-        string key = _configuration.GetRequiredValue("S3-KEY");
-        string secret = _configuration.GetRequiredValue("S3-SECRET");
-        string url = _configuration.GetRequiredValue("S3-URL");
 
-        return new AmazonS3Client(key, secret, new AmazonS3Config { ServiceURL = url });
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+                _client.Dispose();
+                _transferUtility.Dispose();
+            }
+
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            _disposed = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~S3Service()
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

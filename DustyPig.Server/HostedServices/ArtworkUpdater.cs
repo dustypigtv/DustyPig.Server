@@ -5,6 +5,8 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Services;
 using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
@@ -46,9 +48,11 @@ namespace DustyPig.Server.HostedServices
 
 
         readonly ILogger<ArtworkUpdater> _logger;
+        private readonly IServiceProvider _serviceProvider;
         private readonly Timer _timer;
         private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly CancellationToken _cancellationToken;
+       
 
 
         //Reduce polling the database by only polling on startup, then using a queue
@@ -59,8 +63,9 @@ namespace DustyPig.Server.HostedServices
         static readonly ConcurrentQueue<int> _deleteQueue = new();
 
 
-        public ArtworkUpdater(ILogger<ArtworkUpdater> logger)
+        public ArtworkUpdater(IServiceProvider serviceProvider, ILogger<ArtworkUpdater> logger)
         {
+            _serviceProvider = serviceProvider;
             _logger = logger;
             _cancellationToken = _cancellationTokenSource.Token;
             _timer = new Timer(new TimerCallback(DoWork), null, Timeout.Infinite, Timeout.Infinite);
@@ -304,7 +309,8 @@ namespace DustyPig.Server.HostedServices
                     if (delete)
                         try
                         {
-                            await S3.DeleteFileAsync(new Uri(entry.Url).LocalPath.Trim('/'), _cancellationToken);
+                            using var s3Service = _serviceProvider.GetRequiredService<S3Service>();
+                            await s3Service.DeleteFileAsync(new Uri(entry.Url).LocalPath.Trim('/'), _cancellationToken);
                         }
                         catch (OperationCanceledException)
                         {
@@ -503,7 +509,9 @@ namespace DustyPig.Server.HostedServices
                     if (backdrop)
                         uploadKey += ".backdrop";
                     uploadKey += ".jpg";
-                    await S3.UploadFileAsync(ms, uploadKey, _cancellationToken);
+
+                    using var s3Service = _serviceProvider.GetRequiredService<S3Service>();
+                    await s3Service.UploadImageAsync(ms, uploadKey, _cancellationToken);
 
 
 

@@ -11,6 +11,8 @@ namespace DustyPig.Server.Controllers.v3
     [Consumes("application/json", IsOptional = true)]
     public abstract class _BaseController : Controller
     {
+        private bool _disposed = false;
+
         public _BaseController(AppDbContext db) => DB = db;
 
         public Account UserAccount { get; set; }
@@ -18,5 +20,18 @@ namespace DustyPig.Server.Controllers.v3
         public Profile UserProfile { get; set; }
 
         public AppDbContext DB { get; private set; }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    DB.Dispose();
+                }
+                _disposed = true;
+            }
+            base.Dispose(disposing);
+        }
     }
 }

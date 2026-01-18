@@ -27,9 +27,10 @@ namespace DustyPig.Server.Controllers.v3
     [Route("api/v{version:apiVersion}/Profiles/[action]")]
     [Produces("application/json")]
     [ExceptionLogger(typeof(ProfilesListController))]
-    public class ProfilesListController : _BaseAccountController
+    internal class ProfilesListController : _BaseAccountController
     {
         public ProfilesListController(AppDbContext db) : base(db) { }
+
 
         /// <summary>
         /// Requires account
@@ -52,9 +53,16 @@ namespace DustyPig.Server.Controllers.v3
     [ApiController]
     [ApiExplorerSettings(GroupName = "Profiles")]
     [ExceptionLogger(typeof(ProfilesController))]
-    public class ProfilesController : _BaseProfileController
+    internal class ProfilesController : _BaseProfileController
     {
-        public ProfilesController(AppDbContext db) : base(db) { }
+        private readonly S3Service _s3Service;
+
+        private bool _disposed;
+
+        public ProfilesController(AppDbContext db, S3Service s3Service) : base(db) 
+        {
+            _s3Service = s3Service;
+        }
 
         /// <summary>
         /// Requires profile
@@ -343,7 +351,7 @@ namespace DustyPig.Server.Controllers.v3
             string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
             string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
 
-            await S3.UploadAvatarAsync(stream, keyPath, default);
+            await _s3Service.UploadImageAsync(stream, keyPath, default);
 
             //Swap
             await ArtworkUpdater.SetNeedsDeletionAsync(profile.AvatarUrl);
@@ -550,6 +558,17 @@ namespace DustyPig.Server.Controllers.v3
         public Task<Result> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
-       
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _s3Service.Dispose();
+                }
+                _disposed = true;
+            }
+            base.Dispose(disposing);
+        }
     }
 }

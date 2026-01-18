@@ -12,4 +12,4 @@ internal static class ConfigurationExtensions
             throw new Exception("Configuraiton value '" + nameof(name) + "' is missing, null or empty");
         return ret;
     }
-//}
+}

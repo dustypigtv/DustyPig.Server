@@ -78,8 +78,7 @@ namespace DustyPig.Server
             JWTProvider.Configure(Configuration["JWT-KEY"]);
 
 
-            //*** S3 credentials for artwork ***
-            S3.Configure(Configuration["S3-URL"], Configuration["S3-KEY"], Configuration["S3-SECRET"]);
+            
 
 
 
@@ -346,6 +345,8 @@ namespace DustyPig.Server
             services.AddHostedService<FirestoreMediaChangedTriggerManager>();
             services.AddHostedService<DBCleaner>();
             services.AddHostedService<ArtworkUpdater>();
+
+            services.AddTransient<S3Service>();
         }
 
 
