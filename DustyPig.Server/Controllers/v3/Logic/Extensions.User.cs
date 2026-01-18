@@ -13,25 +13,25 @@ namespace DustyPig.Server.Controllers.v3.Logic
     {
         public static int? GetAccountId(this ClaimsPrincipal self)
         {
-            try { return int.Parse(self.Claims.First(item => item.Type == JWTProvider.CLAIM_ACCOUNT_ID).Value); }
+            try { return int.Parse(self.Claims.First(item => item.Type == JWTService.CLAIM_ACCOUNT_ID).Value); }
             catch { return null; }
         }
 
         public static int? GetProfileId(this ClaimsPrincipal self)
         {
-            try { return int.Parse(self.Claims.First(item => item.Type == JWTProvider.CLAIM_PROFILE_ID).Value); }
+            try { return int.Parse(self.Claims.First(item => item.Type == JWTService.CLAIM_PROFILE_ID).Value); }
             catch { return null; }
         }
 
         public static int? GetAuthTokenId(this ClaimsPrincipal self)
         {
-            try { return int.Parse(self.Claims.First(item => item.Type == JWTProvider.CLAIM_AUTH_TOKEN_ID).Value); }
+            try { return int.Parse(self.Claims.First(item => item.Type == JWTService.CLAIM_AUTH_TOKEN_ID).Value); }
             catch { return null; }
         }
 
         public static int? GetFCMTokenId(this ClaimsPrincipal self)
         {
-            try { return int.Parse(self.Claims.First(item => item.Type == JWTProvider.CLAIM_FCM_TOKEN_ID).Value); }
+            try { return int.Parse(self.Claims.First(item => item.Type == JWTService.CLAIM_FCM_TOKEN_ID).Value); }
             catch { return null; }
         }
 

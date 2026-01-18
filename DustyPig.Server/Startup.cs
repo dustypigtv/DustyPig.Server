@@ -74,9 +74,6 @@ namespace DustyPig.Server
             TMDBClient.Configure(Configuration["TMDB-API-KEY"]);
 
 
-            //*** JWT Encryption Key ***
-            JWTProvider.Configure(Configuration["JWT-KEY"]);
-
 
             
 
@@ -187,11 +184,11 @@ namespace DustyPig.Server
                     options.SaveToken = true;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidIssuer = JWTProvider.ISSUER,
+                        ValidIssuer = JWTService.ISSUER,
                         ValidateIssuer = true,
-                        ValidAudience = JWTProvider.AUDIENCE,
+                        ValidAudience = JWTService.AUDIENCE,
                         ValidateAudience = true,
-                        IssuerSigningKey = JWTProvider.SigningKey,
+                        IssuerSigningKey = JWTService.GetSecurityKey(Configuration),
                         ValidateIssuerSigningKey = true,
                         ValidateLifetime = false
                     };
@@ -339,7 +336,7 @@ namespace DustyPig.Server
 
             //*** Dependency Injection ***
             services.AddScoped<FirebaseAuthClient>();
-            services.AddScoped<JWTProvider>();
+            services.AddScoped<JWTService>();
             services.AddHostedService<TMDB_Updater>();
             services.AddHostedService<FirebaseNotificationsManager>();
             services.AddHostedService<FirestoreMediaChangedTriggerManager>();
