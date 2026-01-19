@@ -1,11 +1,15 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
+using DustyPig.REST;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.Services;
+using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Server.Utilities;
 using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,7 +19,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static DustyPig.Server.Services.TMDBService;
+
 
 namespace DustyPig.Server.HostedServices;
 
@@ -63,25 +67,21 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             try
             {
-                await DoUpdateAsync();
+                using var scope = _serviceProvider.CreateScope();
+                using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                await DoUpdateAsync(db, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "DoWork");
             }
         }
-
-        if (!_cancellationToken.IsCancellationRequested)
-            try { _timer.Change(ONE_MINUTE, Timeout.Infinite); }
-            catch { }
     }
 
 
 
-    private async Task DoUpdateAsync()
+    private async Task DoUpdateAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        using var db = new AppDbContext();
-
         //Get tmdb_ids from MediaEntries that have not yet been linked to a TMDB_Entry.
         //These are newly added and should update first
         int start = 0;
@@ -90,27 +90,28 @@ public class TMDB_Updater : IHostedService, IDisposable
             var newItemsLst = await db.MediaEntries
                 .AsNoTracking()
                 .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
-                .Where(m => m.TMDB_EntryId == null)
                 .Where(m => m.TMDB_Id.HasValue)
                 .Where(m => m.TMDB_Id > 0)
-                .OrderBy(m => m.Added)
-                .Skip(start)
-                .Take(CHUNK_SIZE)
                 .Select(m => new
                 {
                     m.TMDB_Id,
-                    m.EntryType
+                    m.EntryType,
+                    m.TMDB_Updated
                 })
                 .Distinct()
-                .ToListAsync(_cancellationToken);
+                .OrderBy(m => m.TMDB_Updated)
+                .Skip(start)
+                .Take(CHUNK_SIZE)
+                .ToListAsync(cancellationToken);
 
             if (newItemsLst.Count == 0)
                 break;
 
+
             foreach (var item in newItemsLst)
             {
                 var tmdbType = item.EntryType == MediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series;
-                await DoUpdateAsync(item.TMDB_Id.Value, tmdbType, true);
+                await DoUpdateAsync(db, item.TMDB_Id.Value, tmdbType, true, cancellationToken);
             }
 
             start += CHUNK_SIZE;
@@ -121,26 +122,26 @@ public class TMDB_Updater : IHostedService, IDisposable
         while (true)
         {
             //Now get any existing tmdb entries that are due to update
-            await Task.Delay(100, _cancellationToken);
             var updateItemsLst = await db.TMDB_Entries
                 .AsNoTracking()
                 .Where(m => m.LastUpdated < DateTime.UtcNow.AddDays(-1))
-                .OrderBy(m => m.LastUpdated)
-                .Skip(start)
-                .Take(CHUNK_SIZE)
                 .Select(m => new
                 {
                     m.TMDB_Id,
-                    m.MediaType
+                    m.MediaType,
+                    m.LastUpdated
                 })
                 .Distinct()
-                .ToListAsync(_cancellationToken);
+                .OrderBy(m => m.LastUpdated)
+                .Skip(start)
+                .Take(CHUNK_SIZE)
+                .ToListAsync(cancellationToken);
 
             if (updateItemsLst.Count == 0)
                 break;
 
             foreach (var item in updateItemsLst)
-                await DoUpdateAsync(item.TMDB_Id, item.MediaType, false);
+                await DoUpdateAsync(db, item.TMDB_Id, item.MediaType, false, cancellationToken);
 
             start += CHUNK_SIZE;
         }
@@ -148,32 +149,28 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
     /// <param name="forceUpdate">For when the tmdbId came from an unlinked MediaEntry</param>
-    private async Task DoUpdateAsync(int tmdbId, TMDB_MediaTypes mediaType, bool forceUpdate)
+    private async Task DoUpdateAsync(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, bool forceUpdate, CancellationToken cancellationToken)
     {
-        using var db = new AppDbContext();
+        var entryType = (int)(mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series);
 
         try
         {
             var info = mediaType == TMDB_MediaTypes.Movie ?
-                await AddOrUpdateTMDBMovieAsync(tmdbId) :
-                await AddOrUpdateTMDBSeriesAsync(tmdbId);
+                await UpdateTMDBMovie(db, tmdbId, cancellationToken) :
+                await UpdateTMDBSeries(db, tmdbId, cancellationToken);
 
             if (info != null && (forceUpdate || info.Changed))
             {
-                var conn = db.Database.GetDbConnection();
-                if (conn.State != System.Data.ConnectionState.Open)
-                    await conn.OpenAsync(_cancellationToken);
+                var conn = await db.GetOpenDbConnection(cancellationToken);
 
-                var entryType = (int)(mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series);
 
                 //Popularity
                 var cmd = conn.CreateCommand();
-                cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Popularity)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
+                cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.Popularity)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
                 cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Popularity));
                 cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
                 cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
-                await Task.Delay(100, _cancellationToken);
-                await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
 
 
 
@@ -184,12 +181,11 @@ public class TMDB_Updater : IHostedService, IDisposable
                     if (infoRating > 0)
                     {
                         cmd = conn.CreateCommand();
-                        cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.MovieRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.MovieRating)} IS NULL";
+                        cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.MovieRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.MovieRating)} IS NULL";
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", infoRating.Value));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
-                        await Task.Delay(100, _cancellationToken);
-                        await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                        await cmd.ExecuteNonQueryAsync(cancellationToken);
                     }
                 }
 
@@ -200,120 +196,142 @@ public class TMDB_Updater : IHostedService, IDisposable
                     if (infoRating > 0)
                     {
                         cmd = conn.CreateCommand();
-                        cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.TVRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TVRating)} IS NULL";
+                        cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TVRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TVRating)} IS NULL";
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", infoRating.Value));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
                         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
-                        await Task.Delay(100, _cancellationToken);
-                        await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                        await cmd.ExecuteNonQueryAsync(cancellationToken);
                     }
                 }
 
                 //Description
-                if (!string.IsNullOrWhiteSpace(info.Overview))
+                if (info.Overview.HasValue())
                 {
                     cmd = conn.CreateCommand();
-                    cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.Description)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND ({nameof(MediaEntry.Description)}=@p4 OR {nameof(MediaEntry.Description)} IS NULL)";
+                    cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.Description)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.Description)} IS NULL";
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Overview));
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", ""));
-                    await Task.Delay(100, _cancellationToken);
-                    await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
                 //Backdrop Url
-                if (!string.IsNullOrWhiteSpace(info.BackdropUrl))
+                if (info.BackdropUrl.HasValue())
                 {
                     cmd = conn.CreateCommand();
-                    cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.BackdropUrl)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND ({nameof(MediaEntry.BackdropUrl)}=@p5 OR {nameof(MediaEntry.BackdropUrl)} IS NULL)";
+                    cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.BackdropUrl)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND {nameof(MediaEntry.BackdropUrl)} IS NULL";
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.BackdropUrl));
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", tmdbId));
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", entryType));
                     cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p5", ""));
-                    await Task.Delay(100, _cancellationToken);
-                    await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                    await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
                 //Link
                 cmd = conn.CreateCommand();
-                cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.TMDB_EntryId)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TMDB_EntryId)} IS NULL";
+                cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TMDB_EntryId)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TMDB_EntryId)} IS NULL";
                 cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Id));
                 cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
                 cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
-                await Task.Delay(100, _cancellationToken);
-                await cmd.ExecuteNonQueryAsync(_cancellationToken);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.Message);
+            _logger.LogError(ex, "Update entry");
+        }
 
-            //This is so failures don't repeatedly try - wait a day!
-            var conn = db.Database.GetDbConnection();
-            if (conn.State != System.Data.ConnectionState.Open)
-                await conn.OpenAsync(_cancellationToken);
 
+
+        //Makeu sure failures don't repeatedly try - wait a day!
+        try
+        {
+            //TMDB_Updated in MediaEntry
+            var conn = await db.GetOpenDbConnection(cancellationToken);
             var cmd = conn.CreateCommand();
-            cmd.CommandText = $"UPDATE {nameof(db.TMDB_Entries)} SET {nameof(TMDB_Entry.LastUpdated)}=@p1 WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p2 AND {nameof(TMDB_Entry.MediaType)}=@p3";
+            cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TMDB_Updated)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
+            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", DateTime.UtcNow));
+            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
+            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Set MediaEntry.TMDB_Updated");
+        }
+
+
+
+
+        try 
+        {
+            //LastUpdated in TMDB_Entry
+            var conn = await db.GetOpenDbConnection(cancellationToken);
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = $"UPDATE {db.GetTableName<TMDB_Entry>()} SET {nameof(TMDB_Entry.LastUpdated)}=@p1 WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p2 AND {nameof(TMDB_Entry.MediaType)}=@p3";
             cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", DateTime.UtcNow));
             cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
             cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", (int)mediaType));
-            await Task.Delay(100, _cancellationToken);
-            await cmd.ExecuteNonQueryAsync(_cancellationToken);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
-    }
-
-
-
-    private async Task<TMDBInfo> AddOrUpdateTMDBMovieAsync(int tmdbId)
-    {
-        var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
-
-        var response = await tmdbService.GetMovieAsync(tmdbId, _cancellationToken);
-        if (!response.Success)
+        catch (Exception ex)
         {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                await DeleteTmdbMediaEntryAsync(tmdbId, TMDB_MediaTypes.Movie);
-            else
-                _logger.LogError(response.Error, "TMDB.Movie.{0}", tmdbId);
-            return null;
+            _logger.LogError(ex, "Set TMDB_Entry.LastUpdated");
         }
 
-        var movie = response.Data;
-        return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Movie, TMDBService.GetCommonCredits(movie), movie.BackdropPath, TMDBService.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBService.TryMapMovieRatings(movie));
+
     }
 
 
 
-    private async Task<TMDBInfo> AddOrUpdateTMDBSeriesAsync(int tmdbId)
+    private async Task<TMDBInfo> UpdateTMDBMovie(AppDbContext db, int tmdbId, CancellationToken cancellationToken)
     {
-        var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
-        var response = await tmdbService.GetSeriesAsync(tmdbId, _cancellationToken);
-        if (!response.Success)
+        try
         {
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                await DeleteTmdbMediaEntryAsync(tmdbId, TMDB_MediaTypes.Series);
-            else
-                _logger.LogError(response.Error, "TMDB.Series.{0}", tmdbId);
-            return null;
-        }
+            var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
+            var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
-        var series = response.Data;
-        return await AddOrUpdateTMDBEntryAsync(tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, series.FirstAirDate, series.Overview, series.Popularity, TMDBService.TryMapTVRatings(series));
+            var movie = response.Data;
+            return await AddOrUpdateTMDBEntry(db, tmdbId, TMDB_MediaTypes.Movie, TMDBService.GetCommonCredits(movie), movie.BackdropPath, TMDBService.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBService.TryMapMovieRatings(movie), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(UpdateTMDBMovie) + "({tmdbid})", tmdbId);
+            if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                await DeleteTmdbEntry(db, tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
+            throw;
+        }
     }
 
 
 
-    private async Task<TMDBInfo> AddOrUpdateTMDBEntryAsync(int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated)
+    private async Task<TMDBInfo> UpdateTMDBSeries(AppDbContext db, int tmdbId, CancellationToken cancellationToken)
     {
-        using var db = new AppDbContext();
+        try
+        {
+            var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
+            var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
-        await Task.Delay(100, _cancellationToken);
+            var series = response.Data;
+            return await AddOrUpdateTMDBEntry(db, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, TMDBService.TryGetMovieDate(series), series.Overview, series.Popularity, TMDBService.TryMapMovieRatings(series), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(UpdateTMDBSeries) + "({tmdbid})", tmdbId);
+            if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                await DeleteTmdbEntry(db, tmdbId, TMDB_MediaTypes.Series, cancellationToken);
+            throw;
+        }
+    }
+
+
+
+    private async Task<TMDBInfo> AddOrUpdateTMDBEntry(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
+    {
         var entry = await db.TMDB_Entries
             .Where(item => item.TMDB_Id == tmdbId)
             .Where(item => item.MediaType == mediaType)
-            .FirstOrDefaultAsync(_cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (entry != null)
             if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
@@ -335,24 +353,22 @@ public class TMDB_Updater : IHostedService, IDisposable
             newEntry = true;
         }
 
-        if (entry.BackdropUrl != backdropUrl && !string.IsNullOrWhiteSpace(backdropUrl))
+        if (entry.BackdropUrl != backdropUrl && backdropUrl.HasValue())
         {
             try
             {
-                var size = await Program.SharedHttpClient.GetDownloadSizeAsync(backdropUrl, cancellationToken: _cancellationToken);
                 entry.BackdropUrl = backdropUrl;
-                entry.BackdropSize = (ulong)size;
                 changed = true;
             }
             catch { }
         }
 
-        if (entry.Date != date)
+        if (entry.Date != date && date.HasValue)
         {
             entry.Date = date;
             changed = true;
         }
-        if (entry.Description != overview)
+        if (entry.Description != overview && overview.HasValue())
         {
             entry.Description = overview;
             changed = true;
@@ -365,28 +381,31 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
         //Rated
-        if (mediaType == TMDB_MediaTypes.Movie)
+        if (rated.HasValue())
         {
-            MovieRatings? movieRating = string.IsNullOrWhiteSpace(rated) ? null : rated.ToMovieRatings();
-            if (movieRating == MovieRatings.None)
-                movieRating = null;
-
-            if (entry.MovieRating != movieRating && movieRating != null)
+            if (mediaType == TMDB_MediaTypes.Movie)
             {
-                entry.MovieRating = movieRating;
-                changed = true;
+                MovieRatings? movieRating = rated.ToMovieRatings();
+                if (movieRating == MovieRatings.None)
+                    movieRating = null;
+
+                if (entry.MovieRating != movieRating && movieRating != null)
+                {
+                    entry.MovieRating = movieRating;
+                    changed = true;
+                }
             }
-        }
-        else
-        {
-            TVRatings? tvRating = string.IsNullOrWhiteSpace(rated) ? null : rated.ToTVRatings();
-            if (tvRating == TVRatings.None)
-                tvRating = null;
-
-            if (entry.TVRating != tvRating && tvRating != null)
+            else
             {
-                entry.TVRating = tvRating;
-                changed = true;
+                TVRatings? tvRating = rated.ToTVRatings();
+                if (tvRating == TVRatings.None)
+                    tvRating = null;
+
+                if (entry.TVRating != tvRating && tvRating != null)
+                {
+                    entry.TVRating = tvRating;
+                    changed = true;
+                }
             }
         }
 
@@ -397,39 +416,36 @@ public class TMDB_Updater : IHostedService, IDisposable
             db.TMDB_Entries.Add(entry);
         else
             db.TMDB_Entries.Update(entry);
-        await Task.Delay(100, _cancellationToken);
-        await db.SaveChangesAsync(_cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
-        await EnsurePeopleExistAsync(credits);
-        await BridgeEntryAndPeopleAsync(entry.Id, mediaType, credits);
+        await EnsurePeopleExistAsync(db, credits, cancellationToken);
+        await BridgeEntryAndPeopleAsync(db, entry.Id, mediaType, credits, cancellationToken);
 
         return TMDBInfo.FromEntry(entry, changed);
     }
 
 
 
-    private async Task EnsurePeopleExistAsync(CreditsDTO credits)
+    private async Task EnsurePeopleExistAsync(AppDbContext db, CreditsDTO credits, CancellationToken cancellationToken)
     {
         var needed = credits.CastMembers.Select(item => item.Id).ToList();
         needed.AddRange(credits.CrewMembers.Select(item => item.Id));
         needed = needed.Distinct().ToList();
         needed.Sort();
 
-        //Process 100 at a time to keep memory usage tiny
+
         int startIdx = 0;
         while (true)
         {
-            var subNeeded = needed.Skip(startIdx).Take(100).ToList();
+            var subNeeded = needed.Skip(startIdx).Take(CHUNK_SIZE).ToList();
             if (subNeeded.Count == 0)
                 break;
-            startIdx += 100;
+            startIdx += CHUNK_SIZE;
 
-            await Task.Delay(100, _cancellationToken);
-            using var db = new AppDbContext();
             var existing = await db.TMDB_People
                 .AsNoTracking()
                 .Where(item => subNeeded.Contains(item.TMDB_Id))
-                .ToListAsync(_cancellationToken);
+                .ToListAsync(cancellationToken);
 
             foreach (var id in subNeeded)
             {
@@ -453,6 +469,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 var entry = existing.FirstOrDefault(item => item.TMDB_Id == id);
                 if (entry == null)
                 {
+                    //Add new
                     entry = db.TMDB_People.Add(new Data.Models.TMDB_Person
                     {
                         TMDB_Id = id,
@@ -460,33 +477,39 @@ public class TMDB_Updater : IHostedService, IDisposable
                         Name = personName
                     }).Entity;
                 }
-                else if (entry.Name != personName || entry.AvatarUrl != avatarUrl)
+                else
                 {
-                    entry.Name = personName;
-                    entry.AvatarUrl = avatarUrl;
-                    db.TMDB_People.Update(entry);
+                    //Update existing if different
+                    if (entry.Name != personName && personName.HasValue())
+                    {
+                        entry.Name = personName;
+                        db.TMDB_People.Update(entry);
+                    }
+
+                    if (entry.AvatarUrl != avatarUrl && avatarUrl.HasValue())
+                    {
+                        entry.AvatarUrl = avatarUrl;
+                        db.TMDB_People.Update(entry);
+                    }
                 }
             }
 
-            await Task.Delay(100, _cancellationToken);
-            await db.SaveChangesAsync(_cancellationToken);
+
+            await db.SaveChangesAsync(cancellationToken);
         }
     }
 
 
-
-    private async Task BridgeEntryAndPeopleAsync(int entryId, TMDB_MediaTypes mediaType, CreditsDTO credits)
+    /// <summary>
+    /// This WILL call SaveChangesAsync
+    /// </summary>
+    private async Task BridgeEntryAndPeopleAsync(AppDbContext db, int entryId, TMDB_MediaTypes mediaType, CreditsDTO credits, CancellationToken cancellationToken)
     {
-        //This is nothing but small lists of ints, no need to worry about memory
-
-        using var db = new AppDbContext();
-
         //Remove any that are no longer valid
-        await Task.Delay(100, _cancellationToken);
         var existing = await db.TMDB_EntryPeopleBridges
             .AsNoTracking()
             .Where(item => item.TMDB_EntryId == entryId)
-            .ToListAsync(_cancellationToken);
+            .ToListAsync(cancellationToken);
 
 
         foreach (var entry in existing)
@@ -496,6 +519,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 var castMember = credits.CastMembers
                     .Where(item => item.Id == entry.TMDB_PersonId)
                     .FirstOrDefault();
+                
                 if (castMember == null)
                     db.TMDB_EntryPeopleBridges.Remove(entry);
             }
@@ -505,33 +529,33 @@ public class TMDB_Updater : IHostedService, IDisposable
                     .Where(item => item.Id == entry.TMDB_PersonId)
                     .Where(item => TMDBService.GetCreditRole(item.Job) == entry.Role)
                     .FirstOrDefault();
+                
                 if (crewMember == null)
                     db.TMDB_EntryPeopleBridges.Remove(entry);
             }
         }
 
-        await db.SaveChangesAsync(_cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
 
 
 
         //Add new or update
-        var needed = credits.CastMembers.Select(item => item.Id).ToList();
-        needed.AddRange(credits.CrewMembers.Select(item => item.Id));
-        needed = needed.Distinct().ToList();
+        var neededIds = credits.CastMembers.Select(item => item.Id).ToList();
+        neededIds.AddRange(credits.CrewMembers.Select(item => item.Id));
+        neededIds = neededIds.Distinct().ToList();
 
-        await Task.Delay(100, _cancellationToken);
         existing = await db.TMDB_EntryPeopleBridges
             .AsNoTracking()
             .Where(item => item.TMDB_EntryId == entryId)
-            .ToListAsync(_cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        foreach (var personId in needed)
+        foreach (var personId in neededIds)
         {
+            //Set cast
             if (credits.CastMembers.Any(item => item.Id == personId))
             {
                 var castMember = credits.CastMembers.First(item => item.Id == personId);
-                //castMember.Order = credits.CastMembers.Min(item => item.Order);
 
                 var entry = existing
                     .Where(item => item.TMDB_PersonId == personId)
@@ -555,18 +579,20 @@ public class TMDB_Updater : IHostedService, IDisposable
                 }
             }
 
-
+            //Crew
             SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_DIRECTOR]);
             SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_PRODUCER]);
             SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_EXECUTIVE_PRODUCER]);
             SetCrew(db, credits.CrewMembers, existing, entryId, personId, [TMDBService.JOB_WRITER, TMDBService.JOB_SCREENPLAY]);
         }
 
-        await db.SaveChangesAsync(_cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
 
-
+    /// <summary>
+    /// This adds entitie, but does not call SaveChangesAsync
+    /// </summary>
     private static void SetCrew(AppDbContext db, List<CrewDTO> crew, List<TMDB_EntryPersonBridge> bridges, int entryId, int personId, string[] roleNames)
     {
         foreach (string roleName in roleNames)
@@ -598,30 +624,18 @@ public class TMDB_Updater : IHostedService, IDisposable
     }
 
 
-
-    private async Task DeleteTmdbMediaEntryAsync(int tmdbId, TMDB_MediaTypes mediaType)
+    /// <summary>
+    /// This runs a raw query
+    /// </summary>
+    /// <returns></returns>
+    private async Task DeleteTmdbEntry(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
     {
-        using var db = new AppDbContext();
-        using var conn = db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open)
-            await conn.OpenAsync(_cancellationToken);
-
-
         //TMDB_Entries
+        var conn = await db.GetOpenDbConnection(cancellationToken);
         var cmd = conn.CreateCommand();
-        cmd.CommandText = $"DELETE FROM {nameof(db.TMDB_Entries)} WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p1 AND {nameof(TMDB_Entry.MediaType)}=@p2";
+        cmd.CommandText = $"DELETE FROM {db.GetTableName<TMDB_Entry>()} WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p1 AND {nameof(TMDB_Entry.MediaType)}=@p2";
         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", tmdbId));
         cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", (int)mediaType));
-        await Task.Delay(100, _cancellationToken);
-        await cmd.ExecuteNonQueryAsync(_cancellationToken);
-
-
-        //MediaEntries
-        cmd = conn.CreateCommand();
-        cmd.CommandText = $"UPDATE {nameof(db.MediaEntries)} SET {nameof(MediaEntry.TMDB_Id)}=NULL, {nameof(MediaEntry.Popularity)}=NULL WHERE {nameof(MediaEntry.TMDB_Id)}=@p1 AND {nameof(MediaEntry.EntryType)}=@p2";
-        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", tmdbId));
-        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", (int)(mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series)));
-        await Task.Delay(100, _cancellationToken);
-        await cmd.ExecuteNonQueryAsync(_cancellationToken);
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 }

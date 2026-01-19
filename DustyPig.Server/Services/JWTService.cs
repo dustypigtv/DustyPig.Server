@@ -32,7 +32,9 @@ internal class JWTService : IDisposable
 
     private bool _disposed;
 
-
+    /// <summary>
+    /// This is short-lived inside http requests, injecting the AppDbContext is ok
+    /// </summary>
     public JWTService(IConfiguration configuration, AppDbContext db)
     {
         _db = db;

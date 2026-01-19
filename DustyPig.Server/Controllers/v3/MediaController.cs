@@ -6,7 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
+using DustyPig.Server.Services.TMDB_Service;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

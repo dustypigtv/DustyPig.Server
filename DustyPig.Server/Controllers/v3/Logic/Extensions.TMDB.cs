@@ -1,5 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
-using DustyPig.Server.Services;
+using DustyPig.Server.Services.TMDB_Service;
 using System;
 
 namespace DustyPig.Server.Controllers.v3.Logic

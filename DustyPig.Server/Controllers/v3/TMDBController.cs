@@ -6,7 +6,7 @@ using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
-using DustyPig.Server.Services;
+using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.TMDB.Models.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -859,7 +859,7 @@ internal class TMDBController : _BaseProfileController
     }
 
 
-    private static void FillCredits(TMDBService.CreditsDTO credits, DetailedTMDB ret)
+    private static void FillCredits(CreditsDTO credits, DetailedTMDB ret)
     {
         if (credits != null)
         {
@@ -901,7 +901,7 @@ internal class TMDBController : _BaseProfileController
     }
 
 
-    private static void AddPersonToCredits(List<BasicPerson> credits, TMDBService.CastDTO castMember)
+    private static void AddPersonToCredits(List<BasicPerson> credits, CastDTO castMember)
     {
         if (!credits.Any(item => item.TMDB_Id == castMember.Id && item.Role == CreditRoles.Cast))
             credits.Add(new BasicPerson
@@ -916,7 +916,7 @@ internal class TMDBController : _BaseProfileController
     }
 
 
-    private static void AddPersonToCredits(List<BasicPerson> credits, TMDBService.CrewDTO crewMember, CreditRoles role)
+    private static void AddPersonToCredits(List<BasicPerson> credits, CrewDTO crewMember, CreditRoles role)
     {
         if (!credits.Any(item => item.TMDB_Id == crewMember.Id && item.Role == role))
             credits.Add(new BasicPerson

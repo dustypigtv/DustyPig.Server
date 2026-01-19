@@ -12,7 +12,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DustyPig.Server.Services;
+namespace DustyPig.Server.Services.TMDB_Service;
 
 /// <summary>
 /// Provides a wrapper around Common TMDB api endpoints and objects
@@ -41,6 +41,12 @@ internal class TMDBService : TMDB.Client
     {
         _logger = logger;
         SetAuth(AuthTypes.APIKey, configuration.GetRequiredValue(CONFIG_KEY));
+
+        AutoThrowIfError = true;
+
+#if DEBUG
+        IncludeRawContentInResponse = true;
+#endif
     }
 
 
@@ -202,153 +208,4 @@ internal class TMDBService : TMDB.Client
             return DateTime.Parse(dt.Value.ToString("yyyy-MM-dd"));
         return null;
     }
-
-
-
-
-
-    public class TMDBInfo
-    {
-        /// <summary>
-        /// DB Id, not TMDB_ID
-        /// </summary>
-        public int Id { get; set; }
-        public double Popularity { get; set; }
-        public string BackdropUrl { get; set; }
-        public ulong BackdropSize { get; set; }
-        public MovieRatings? MovieRating { get; set; }
-        public TVRatings? TVRating { get; set; }
-        public string Overview { get; set; }
-        public bool Changed { get; set; }
-
-        public static TMDBInfo FromEntry(TMDB_Entry entry, bool changed)
-        {
-            return new TMDBInfo
-            {
-                Id = entry.Id,
-                BackdropUrl = entry.BackdropUrl,
-                BackdropSize = entry.BackdropSize,
-                MovieRating = entry.MovieRating,
-                Overview = entry.Description,
-                Popularity = entry.Popularity,
-                TVRating = entry.TVRating,
-                Changed = changed
-            };
-        }
-    }
-
-
-    public class CrewDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string FullImagePath { get; set; }
-        public string Job { get; set; }
-
-        public static CrewDTO FromAPI(TMDB.Models.Common.CommonCrew crewObject)
-        {
-            return new CrewDTO
-            {
-                Id = crewObject.Id,
-                Job = crewObject.Job,
-                Name = crewObject.Name,
-                FullImagePath = GetPosterPath(crewObject.ProfilePath)
-            };
-        }
-
-        public static CrewDTO FromAPI(TMDB.Models.TvSeries.Crew crewObject)
-        {
-            return new CrewDTO
-            {
-                Id = crewObject.Id,
-                Job = crewObject.Job,
-                Name = crewObject.Name,
-                FullImagePath = GetPosterPath(crewObject.ProfilePath)
-            };
-        }
-    }
-
-    public class CastDTO
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string FullImagePath { get; set; }
-        public int Order { get; set; }
-
-        public static CastDTO FromAPI(TMDB.Models.Movies.Cast castObject)
-        {
-            return new CastDTO
-            {
-                Id = castObject.Id,
-                Name = castObject.Name,
-                Order = castObject.Order,
-                FullImagePath = GetPosterPath(castObject.ProfilePath)
-            };
-        }
-
-        public static CastDTO FromAPI(TMDB.Models.Common.CommonCast1 castObject)
-        {
-            return new CastDTO
-            {
-                Id = castObject.Id,
-                Name = castObject.Name,
-                Order = castObject.Order,
-                FullImagePath = GetPosterPath(castObject.ProfilePath)
-            };
-        }
-    }
-
-    public class CreditsDTO
-    {
-        public List<CrewDTO> CrewMembers { get; } = [];
-        public List<CastDTO> CastMembers { get; } = [];
-
-        public static CreditsDTO FromAPI(TMDB.Models.Movies.Credits credits)
-        {
-            var ret = new CreditsDTO();
-            if (credits != null)
-            {
-                if (credits.Crew != null)
-                    ret.CrewMembers.AddRange(
-                        credits.Crew
-                            .Where(item => !item.Adult)
-                            .Where(item => CrewJobs.ICContains(item.Job))
-                            .Select(item => CrewDTO.FromAPI(item))
-                    );
-
-                if (credits.Cast != null)
-                    ret.CastMembers.AddRange(
-                        credits.Cast
-                        .Where(item => !item.Adult)
-                        .Select(item => CastDTO.FromAPI(item))
-                    );
-            }
-            return ret;
-        }
-
-        public static CreditsDTO FromAPI(TMDB.Models.TvSeries.Credits credits)
-        {
-            var ret = new CreditsDTO();
-            if (credits != null)
-            {
-                if (credits.Crew != null)
-                    ret.CrewMembers.AddRange(
-                        credits.Crew
-                        .Where(item => !item.Adult)
-                        .Where(item => CrewJobs.ICContains(item.Job))
-                        .Select(item => CrewDTO.FromAPI(item))
-                );
-
-                if (credits.Cast != null)
-                    ret.CastMembers.AddRange(
-                        credits.Cast
-                        .Where(item => !item.Adult)
-                        .Select(item => CastDTO.FromAPI(item))
-                    );
-            }
-            return ret;
-        }
-    }
-
-
 }

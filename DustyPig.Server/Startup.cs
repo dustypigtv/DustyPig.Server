@@ -2,6 +2,7 @@ using Asp.Versioning;
 using DustyPig.Server.Data;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Server.SwaggerHelpers;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
