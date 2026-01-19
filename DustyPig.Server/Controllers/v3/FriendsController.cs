@@ -6,6 +6,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
+using DustyPig.Server.Utilities;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -165,7 +166,7 @@ namespace DustyPig.Server.Controllers.v3
             if (friendAccount.Id == UserAccount.Id)
                 return "Cannot friend yourself";
 
-            string uniqueFriendId = LogicUtils.UniqueFriendId(UserAccount.Id, friendAccount.Id);
+            string uniqueFriendId = Friendship.ComputeHash(UserAccount.Id, friendAccount.Id);
             var friendship = await DB.Friendships
                 .Where(item => item.Hash == uniqueFriendId)
                 .SingleOrDefaultAsync();
@@ -329,7 +330,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> ShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<Result> ShareLibrary(LibraryFriendLink lnk) => DB.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
 
 
@@ -340,7 +341,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> UnShareLibrary(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<Result> UnShareLibrary(LibraryFriendLink lnk) => DB.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
     }
 }

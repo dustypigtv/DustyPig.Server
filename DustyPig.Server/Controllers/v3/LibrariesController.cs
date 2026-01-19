@@ -6,6 +6,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
+using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -227,7 +228,7 @@ namespace DustyPig.Server.Controllers.v3
                 {
                     Id = id,
                     IsTV = share.Library.IsTV,
-                    Name = LogicUtils.Coalesce(share.LibraryDisplayName, share.Library.Name),
+                    Name = Misc.Coalesce(share.LibraryDisplayName, share.Library.Name),
                     Owner = share.Friendship.GetFriendDisplayNameForAccount(UserAccount.Id)
                 };
 
@@ -514,7 +515,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> LinkToProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<Result> LinkToProfile(ProfileLibraryLink lnk) => DB.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -524,7 +525,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> UnLinkFromProfile(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<Result> UnLinkFromProfile(ProfileLibraryLink lnk) => DB.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -534,7 +535,7 @@ namespace DustyPig.Server.Controllers.v3
         [RequireMainProfile]
         [ProhibitTestUser]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> ShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<Result> ShareWithFriend(LibraryFriendLink lnk) => DB.LinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
 
         /// <summary>
@@ -544,7 +545,7 @@ namespace DustyPig.Server.Controllers.v3
         [RequireMainProfile]
         [ProhibitTestUser]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> UnShareWithFriend(LibraryFriendLink lnk) => FriendLibraryLinkLogic.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
+        public Task<Result> UnShareWithFriend(LibraryFriendLink lnk) => DB.UnLinkLibraryAndFriend(UserAccount, lnk.FriendId, lnk.LibraryId);
 
     }
 }

@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Utilities;
 using System;
 using System.Linq;
 
@@ -46,7 +47,7 @@ namespace DustyPig.Server.Controllers.v3.Logic
                 ? friend.Account2.Profiles.Where(item => item.IsMain).First().Name
                 : friend.Account1.Profiles.Where(item => item.IsMain).First().Name;
 
-            return LogicUtils.Coalesce(displayName, acctName);
+            return Misc.Coalesce(displayName, acctName);
         }
 
         /// <summary>

@@ -231,7 +231,7 @@ namespace DustyPig.Server.Controllers.v3
 
             //Build the response
             var ret = media.ToDetailedMovie(playable);
-            ret.TitleRequestPermission = TitleRequestLogic.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any());
+            ret.TitleRequestPermission = DB.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any());
 
 
 

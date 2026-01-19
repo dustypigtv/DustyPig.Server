@@ -163,7 +163,7 @@ namespace DustyPig.Server.Controllers.v3
                 LibraryId = media.LibraryId,
                 Rated = media.TVRating ?? TVRatings.None,
                 Title = media.Title,
-                TitleRequestPermission = TitleRequestLogic.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any()),
+                TitleRequestPermission = DB.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any()),
                 TMDB_Id = media.TMDB_Id,
                 Subscribed = media.Subscriptions.Any(),
             };

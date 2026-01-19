@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace DustyPig.Server.Data.Models
 {
@@ -22,7 +23,7 @@ namespace DustyPig.Server.Data.Models
         public Account Account2 { get; set; }
 
         /// <summary>
-        /// Crypto.HashString(Account1Id.ToString() + '+' + Account2Id.ToString());
+        /// Crypto.HashString(string.Join("+", new List&lt;int&gt; { Account1Id, Account2Id }.OrderBy(item => item).Select(_ => _.ToString())));
         /// </summary>
         [Required]
         [MaxLength(128)]
@@ -38,9 +39,11 @@ namespace DustyPig.Server.Data.Models
 
         public List<FriendLibraryShare> FriendLibraryShares { get; set; }
 
-        public void ComputeHash()
+        public void ComputeHash() => ComputeHash(Account1Id, Account2Id);
+
+        public static string ComputeHash(int id1, int id2)
         {
-            Hash = Crypto.HashString(Account1Id.ToString() + '+' + Account2Id.ToString());
+            return Crypto.HashString(string.Join("+", new List<int> { id1, id2 }.OrderBy(item => item).Select(_ => _.ToString())));
         }
     }
 }

@@ -4,8 +4,10 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -225,7 +227,7 @@ namespace DustyPig.Server.Controllers.v3
 
 
             var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-            profile.AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl);
+            profile.AvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
 
 
             if (info.Pin == null)
@@ -241,7 +243,7 @@ namespace DustyPig.Server.Controllers.v3
             }
 
 
-            info.Name = LogicUtils.EnsureNotNull(info.Name);
+            info.Name = info.Name.EnsureNotNull();
             bool nameExists = UserAccount.Profiles
                 .Where(item => item.Id != info.Id)
                 .Where(item => item.Name.ICEquals(info.Name))
@@ -310,7 +312,7 @@ namespace DustyPig.Server.Controllers.v3
                 .Where(p => p.Id == id)
                 .FirstAsync();
 
-            dbProfile.AvatarUrl = LogicUtils.EnsureProfilePic(null);
+            dbProfile.AvatarUrl = Misc.EnsureProfilePic(null);
             await DB.SaveChangesAsync();
 
             return Result<string>.BuildSuccess(dbProfile.AvatarUrl);
@@ -383,7 +385,7 @@ namespace DustyPig.Server.Controllers.v3
             var profile = new Profile
             {
                 AccountId = UserAccount.Id,
-                AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl),
+                AvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl),
                 MaxMovieRating = info.MaxMovieRating,
                 MaxTVRating = info.MaxTVRating,
                 Locked = info.Locked,
@@ -532,7 +534,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> LinkToLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<Result> LinkToLibrary(ProfileLibraryLink lnk) => DB.LinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         /// <summary>
@@ -542,7 +544,7 @@ namespace DustyPig.Server.Controllers.v3
         [ProhibitTestUser]
         [RequireMainProfile]
         [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
-        public Task<Result> UnLinkFromLibrary(ProfileLibraryLink lnk) => ProfileLibraryLinks.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+        public Task<Result> UnLinkFromLibrary(ProfileLibraryLink lnk) => DB.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
 
 
         protected override void Dispose(bool disposing)

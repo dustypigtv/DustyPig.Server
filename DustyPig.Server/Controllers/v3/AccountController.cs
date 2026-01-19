@@ -6,6 +6,7 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
+using DustyPig.Server.Utilities;
 using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -66,9 +67,9 @@ internal class AccountController : _BaseController
                 Account = account,
                 MaxMovieRating = MovieRatings.Unrated,
                 MaxTVRating = TVRatings.NotRated,
-                AvatarUrl = LogicUtils.EnsureProfilePic(info.AvatarUrl),
+                AvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl),
                 IsMain = true,
-                Name = LogicUtils.Coalesce(info.DisplayName, newUserRecord.Email[..newUserRecord.Email.IndexOf("@")]),
+                Name = Misc.Coalesce(info.DisplayName, newUserRecord.Email[..newUserRecord.Email.IndexOf("@")]),
                 TitleRequestPermission = TitleRequestPermissions.Enabled
             }).Entity;
 

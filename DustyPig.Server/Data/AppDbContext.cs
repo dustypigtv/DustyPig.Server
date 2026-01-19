@@ -2,6 +2,8 @@
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.HostedServices;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
@@ -88,6 +90,83 @@ namespace DustyPig.Server.Data
             });
 
         }
+
+        public async Task Migrate(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await Database.MigrateAsync(cancellationToken);
+
+                //Ensure Test account exists
+                var tstAcct = Accounts.FirstOrDefault(_ => _.Id == 1);
+
+                bool add = false;
+                if (tstAcct == null)
+                {
+                    add = true;
+                }
+                else if (tstAcct.FirebaseId != "TEST ACCOUNT")
+                {
+                    Accounts.Remove(tstAcct);
+                    await SaveChangesAsync(cancellationToken);
+                    add = true;
+                }
+
+                if (add)
+                {
+                    tstAcct = Accounts.Add(new Account
+                    {
+                        Id = 1,
+                        FirebaseId = "TEST ACCOUNT"
+                    }).Entity;
+                    await SaveChangesAsync(cancellationToken);
+                }
+
+
+                var tstProfile = Profiles.FirstOrDefault(_ => _.Id == 1);
+
+                add = false;
+                if (tstProfile == null)
+                {
+                    add = true;
+                }
+                else if (tstProfile.AccountId != 1)
+                {
+                    Profiles.Remove(tstProfile);
+                    await SaveChangesAsync(cancellationToken);
+                    add = true;
+                }
+
+                if (add)
+                {
+                    Profiles.Add(new Profile
+                    {
+                        AccountId = 1,
+                        Id = 1,
+                        IsMain = true,
+                        Name = "Test User",
+                        AvatarUrl = DustyPig.API.v3.Models.Constants.DEFAULT_PROFILE_IMAGE_GREY,
+                        MaxMovieRating = API.v3.MPAA.MovieRatings.Unrated,
+                        MaxTVRating = API.v3.MPAA.TVRatings.NotRated
+                    });
+                    await SaveChangesAsync(cancellationToken);
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error migrating database");
+                Console.WriteLine(ex.ToString());
+                Thread.Sleep(1000);
+            }
+        }
+
+
+
+
+
+
 
 
 
@@ -226,7 +305,7 @@ namespace DustyPig.Server.Data
                     AccountId = account.Id,
                     MaxMovieRating = MovieRatings.Unrated,
                     MaxTVRating = TVRatings.NotRated,
-                    AvatarUrl = LogicUtils.EnsureProfilePic(null),
+                    AvatarUrl = Misc.EnsureProfilePic(null),
                     IsMain = true,
                     Name = email[..email.IndexOf("@")].Trim().ToLower(),
                     TitleRequestPermission = TitleRequestPermissions.Enabled
@@ -524,79 +603,212 @@ namespace DustyPig.Server.Data
         }
 
 
-
-
-
-        public async Task Migrate(CancellationToken cancellationToken = default)
+        public async Task<Result> LinkLibraryAndFriend(Account account, int friendId, int libraryId)
         {
-            try
+            //Get friendship
+            var friend = await GetFriend(account, friendId);
+
+            if (friend == null)
+                return CommonResponses.ValueNotFound("Friend");
+
+            //Check if already shared
+            if (friend.FriendLibraryShares.Any(item => item.LibraryId == libraryId))
+                return Result.BuildSuccess();
+
+            //Check if this account owns the library
+            var myAcct = friend.Account1Id == account.Id ? friend.Account1 : friend.Account2;
+            if (!myAcct.Libraries.Any(item => item.Id == libraryId))
+                return CommonResponses.ValueNotFound("Library");
+
+            FriendLibraryShares.Add(new FriendLibraryShare
             {
-                await Database.MigrateAsync(cancellationToken);
+                FriendshipId = friend.Id,
+                LibraryId = libraryId
+            });
 
-                //Ensure Test account exists
-                var tstAcct = Accounts.FirstOrDefault(_ => _.Id == 1);
-
-                bool add = false;
-                if (tstAcct == null)
-                {
-                    add = true;
-                }
-                else if (tstAcct.FirebaseId != "TEST ACCOUNT")
-                {
-                    Accounts.Remove(tstAcct);
-                    await SaveChangesAsync(cancellationToken);
-                    add = true;
-                }
-
-                if (add)
-                {
-                    tstAcct = Accounts.Add(new Account
-                    {
-                        Id = 1,
-                        FirebaseId = "TEST ACCOUNT"
-                    }).Entity;
-                    await SaveChangesAsync(cancellationToken);
-                }
+            await SaveChangesAsync();
 
 
-                var tstProfile = Profiles.FirstOrDefault(_ => _.Id == 1);
+            //Scenario: Shared lib has items in a playlist. Then
+            //Lib is unshared, artwork is updated, then reshared - need
+            //to update the artwork again
+            var playlistIds = await GetPlaylistIds( account, friend, libraryId);
+            await MarkPlaylistArtworkNeedsupdate(playlistIds);
 
-                add = false;
-                if (tstProfile == null)
-                {
-                    add = true;
-                }
-                else if (tstProfile.AccountId != 1)
-                {
-                    Profiles.Remove(tstProfile);
-                    await SaveChangesAsync(cancellationToken);
-                    add = true;
-                }
-
-                if (add)
-                {
-                    Profiles.Add(new Profile
-                    {
-                        AccountId = 1,
-                        Id = 1,
-                        IsMain = true,
-                        Name = "Test User",
-                        AvatarUrl = DustyPig.API.v3.Models.Constants.DEFAULT_PROFILE_IMAGE_GREY,
-                        MaxMovieRating = API.v3.MPAA.MovieRatings.Unrated,
-                        MaxTVRating = API.v3.MPAA.TVRatings.NotRated
-                    });
-                    await SaveChangesAsync(cancellationToken);
-                }
-
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error migrating database");
-                Console.WriteLine(ex.ToString());
-                Thread.Sleep(1000);
-            }
+            return Result.BuildSuccess();
         }
+
+
+        public async Task<Result> UnLinkLibraryAndFriend(Account account, int friendId, int libraryId)
+        {
+            //Get friendship
+            var friend = await GetFriend(account, friendId);
+
+            if (friend == null)
+                return Result.BuildSuccess();
+
+            //Check if link exists
+            if (!friend.FriendLibraryShares.Any(item => item.LibraryId == libraryId))
+                return Result.BuildSuccess();
+
+            //Check if this account owns the library
+            var myAcct = friend.Account1Id == account.Id ? friend.Account1 : friend.Account2;
+            if (!myAcct.Libraries.Any(item => item.Id == libraryId))
+                return Result.BuildSuccess();
+
+            var share = new FriendLibraryShare
+            {
+                FriendshipId = friendId,
+                LibraryId = libraryId
+            };
+
+            FriendLibraryShares.Remove(share);
+            await SaveChangesAsync();
+
+            var playlistIds = await GetPlaylistIds(account, friend, libraryId);
+            await MarkPlaylistArtworkNeedsupdate(playlistIds);
+
+            return Result.BuildSuccess();
+        }
+
+
+        private Task<Friendship> GetFriend(Account account, int friendId) =>
+            Friendships
+                .AsNoTracking()
+                .Include(item => item.FriendLibraryShares)
+                .Include(item => item.Account1)
+                .ThenInclude(item => item.Libraries)
+                .Include(item => item.Account2)
+                .ThenInclude(item => item.Libraries)
+                .Where(item => item.Id == friendId)
+                .Where(item => item.Account1Id == account.Id || item.Account2Id == account.Id)
+                .FirstOrDefaultAsync();
+
+
+        private Task<List<int>> GetPlaylistIds(Account account, Friendship friend, int libraryId)
+        {
+            var friendAcct = friend.Account1Id == account.Id ? friend.Account2 : friend.Account1;
+
+            return Playlists
+                .AsNoTracking()
+                .Where(item => item.Profile.AccountId == friendAcct.Id)
+                .Where(item => item.PlaylistItems.Any(item2 => item2.MediaEntry.LibraryId == libraryId))
+                .Select(item => item.Id)
+                .Distinct()
+                .ToListAsync();
+        }
+
+
+        /// <summary>
+        /// This calls <see cref="DbContext.SaveChangesAsync(CancellationToken)"/>
+        /// </summary>
+        public async Task<Result> LinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        {
+            //Double check profile is owned by account
+            var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
+                return CommonResponses.ValueNotFound("Profile");
+
+            //See if already linked
+            var library = await Libraries
+                .AsNoTracking()
+                .Include(l => l.ProfileLibraryShares.Where(p => p.ProfileId == profileId))
+                .Include(l => l.FriendLibraryShares.Where(f => f.Friendship.Account1Id == account.Id || f.Friendship.Account2Id == account.Id))
+                .ThenInclude(item => item.Friendship)
+                .Where(l => l.Id == libraryId)
+                .SingleOrDefaultAsync();
+
+            if (library == null)
+                return CommonResponses.ValueNotFound("Library");
+
+            if (library.AccountId != account.Id)
+                if (!library.FriendLibraryShares.Any(item => item.Friendship.Account1Id == account.Id))
+                    if (!library.FriendLibraryShares.Any(item => item.Friendship.Account2Id == account.Id))
+                        return CommonResponses.ValueNotFound("Library");
+
+
+            //Main profile has access to everything at this point without links
+            if (profile.IsMain)
+                return Result.BuildSuccess();
+
+            ProfileLibraryShares.Add(new ProfileLibraryShare
+            {
+                LibraryId = libraryId,
+                ProfileId = profileId
+            });
+
+
+            await SaveChangesAsync();
+
+            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileId);
+
+            //Scenario: Linked lib has items in a playlist. Then
+            //Lib is unlinked, artwork is updated, then relinked - need
+            //to update the artwork again
+            var playlistIds = await GetPlaylistIds(profileId, libraryId);
+            await MarkPlaylistArtworkNeedsupdate(playlistIds);
+
+            return Result.BuildSuccess();
+        }
+
+
+
+        public async Task<Result> UnLinkLibraryAndProfile(Account account, int profileId, int libraryId)
+        {
+            //Double check profile is owned by account
+            var profile = account.Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
+                return Result.BuildSuccess();
+
+            //Main profile has access to libs without links, so nothing to delete
+            if (profile.IsMain)
+                return Result.BuildSuccess();
+
+            //Get the link
+            var rec = await ProfileLibraryShares
+                .Where(item => item.LibraryId == libraryId)
+                .Where(item => item.ProfileId == profileId)
+                .SingleOrDefaultAsync();
+
+            if (rec != null)
+            {
+                ProfileLibraryShares.Remove(rec);
+                await SaveChangesAsync();
+
+                FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileId);
+
+                var playlistIds = await GetPlaylistIds(profileId, libraryId);
+                await MarkPlaylistArtworkNeedsupdate(playlistIds);
+            }
+
+            return Result.BuildSuccess();
+        }
+
+        private Task<List<int>> GetPlaylistIds(int profileId, int libraryId)
+        {
+            return Playlists
+                .AsNoTracking()
+                .Where(item => item.ProfileId == profileId)
+                .Where(item => item.PlaylistItems.Any(item2 => item2.MediaEntry.LibraryId == libraryId))
+                .Select(item => item.Id)
+                .Distinct()
+                .ToListAsync();
+        }
+
+
+
+        public TitleRequestPermissions GetTitleRequestPermissions(Account account, Profile profile, bool hasFriends)
+        {
+            if (profile.IsMain)
+            {
+                if (hasFriends || account.Profiles.Count > 1)
+                    return TitleRequestPermissions.Enabled;
+                return TitleRequestPermissions.Disabled;
+            }
+            return profile.TitleRequestPermission;
+        }
+
+
     }
 }
 
