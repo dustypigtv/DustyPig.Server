@@ -26,7 +26,7 @@ public class DBCleaner : IHostedService, IDisposable
         _timer = new SafeTimer(TimerTick, TimeSpan.FromDays(1));
     }
 
-    
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _timer.Enabled = true;

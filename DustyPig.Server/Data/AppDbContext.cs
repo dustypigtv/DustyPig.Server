@@ -1,13 +1,10 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
-using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.DependencyInjection;
-using NuGet.Protocol.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -632,7 +629,7 @@ namespace DustyPig.Server.Data
             //Scenario: Shared lib has items in a playlist. Then
             //Lib is unshared, artwork is updated, then reshared - need
             //to update the artwork again
-            var playlistIds = await GetPlaylistIds( account, friend, libraryId);
+            var playlistIds = await GetPlaylistIds(account, friend, libraryId);
             await MarkPlaylistArtworkNeedsupdate(playlistIds);
 
             return Result.BuildSuccess();

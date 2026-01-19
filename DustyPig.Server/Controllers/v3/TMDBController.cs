@@ -5,8 +5,8 @@ using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
-using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services.TMDB_Service;
+using DustyPig.Server.Utilities;
 using DustyPig.TMDB.Models.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -798,7 +798,7 @@ internal class TMDBController : _BaseProfileController
         }
 
         await DB.SaveChangesAsync();
-        
+
         return Result.BuildSuccess();
     }
 

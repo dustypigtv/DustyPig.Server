@@ -1,7 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
-using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
-using DustyPig.Server.HostedServices;
+using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

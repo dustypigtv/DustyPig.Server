@@ -27,7 +27,7 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     private readonly FirestoreDb _firestoreDb;
     private readonly SafeTimer _timer;
     private readonly ILogger<FirestoreMediaChangedTriggerManager> _logger;
-    
+
     private bool _disposed;
 
     public FirestoreMediaChangedTriggerManager(FirestoreDb firestoreDb, ILogger<FirestoreMediaChangedTriggerManager> logger)
@@ -37,7 +37,7 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
         _timer = new(TimerTick, TimeSpan.FromMicroseconds(TICK_INTERVAL_MS));
     }
 
-    
+
 
     public static void QueueHomeScreen(int profileId)
     {

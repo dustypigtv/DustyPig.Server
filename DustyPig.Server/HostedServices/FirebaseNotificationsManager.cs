@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -36,7 +35,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
         _timer = new(TimerTick);
     }
 
-    
+
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -69,7 +68,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
                 .Include(p => p.Notifications.Where(n => !(n.Sent || n.Seen)))
                 .ThenInclude(n => n.Friendship)
                 .Where(p => p.Notifications.Any(n => !(n.Sent || n.Seen)))
-                
+
                 .Where(p => p.FCMTokens.Any())
 
                 .Select(_ => _.Id)
@@ -87,7 +86,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     }
 
 
-    private async Task SendNotificationsAsync(AppDbContext db, int profileId, CancellationToken  cancellationToken)
+    private async Task SendNotificationsAsync(AppDbContext db, int profileId, CancellationToken cancellationToken)
     {
         var profile = await db.Profiles
             .AsNoTracking()

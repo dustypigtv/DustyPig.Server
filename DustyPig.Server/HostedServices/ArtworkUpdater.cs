@@ -1,6 +1,5 @@
 ﻿using Amazon.S3.Model;
 using DustyPig.API.v3.Models;
-using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
@@ -15,7 +14,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +46,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
         _cleanupTimer = new(CleanupTimerTick, TimeSpan.FromDays(1));
     }
 
- 
+
 
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -311,7 +309,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
                         Constants.USER_PLAYLIST_URL_ROOT + filename :
                         Constants.USER_PROFILE_URL_ROOT + filename;
 
-                    
+
                     //Check if the url is in a playlist/PROFILE
                     using var scope = _serviceProvider.CreateScope();
                     using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -331,7 +329,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
                             .Where(_ => _.AvatarUrl == url)
                             .AnyAsync(cancellationToken);
                     }
-                    
+
 
                     if (!keep)
                     {

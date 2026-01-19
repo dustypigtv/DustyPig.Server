@@ -4,12 +4,9 @@ using DustyPig.REST;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
-using DustyPig.Server.Services;
 using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Server.Utilities;
-using DustyPig.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -263,7 +260,7 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
 
-        try 
+        try
         {
             //LastUpdated in TMDB_Entry
             var conn = await db.GetOpenDbConnection(cancellationToken);
@@ -519,7 +516,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 var castMember = credits.CastMembers
                     .Where(item => item.Id == entry.TMDB_PersonId)
                     .FirstOrDefault();
-                
+
                 if (castMember == null)
                     db.TMDB_EntryPeopleBridges.Remove(entry);
             }
@@ -529,7 +526,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                     .Where(item => item.Id == entry.TMDB_PersonId)
                     .Where(item => TMDBService.GetCreditRole(item.Job) == entry.Role)
                     .FirstOrDefault();
-                
+
                 if (crewMember == null)
                     db.TMDB_EntryPeopleBridges.Remove(entry);
             }

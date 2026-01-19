@@ -21,6 +21,7 @@ namespace DustyPig.Server.Controllers.v3
 
         public AppDbContext DB { get; private set; }
 
+
         protected override void Dispose(bool disposing)
         {
             if (!_disposed)
