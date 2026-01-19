@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DustyPig.Server;
+//namespace DustyPig.Server.Extensions;
 
 public static class DateOnlyExtensions
 {
