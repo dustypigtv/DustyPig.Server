@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DustyPig.Server.Data.Models
 {
@@ -460,14 +461,12 @@ namespace DustyPig.Server.Data.Models
                 throw new Exception("Title must have a value before creating the search title");
 
 
-            var terms = Title.NormalizedQueryString().Tokenize();
+            var terms = FormattedTitle().NormalizedQueryString().Tokenize();
 
             //This handles variations like Spider-Man and Agents of S.H.I.E.L.D.
             terms.AddRange
                 (
-                    Title
-                        .Replace("-", null)
-                        .Replace(".", null)
+                   Regex.Replace(FormattedTitle(), "[^\\w]", " ", RegexOptions.Compiled)
                         .NormalizedQueryString()
                         .Tokenize()
                         .Distinct()
@@ -479,8 +478,7 @@ namespace DustyPig.Server.Data.Models
                 terms.AddRange
                     (
                         ExtraSearchTerms.SelectMany(item =>
-                            (item + string.Empty)
-                            .Trim()
+                           item.Trim()
                             .NormalizedQueryString()
                             .Tokenize()
                             .Distinct()
@@ -490,10 +488,8 @@ namespace DustyPig.Server.Data.Models
                 terms.AddRange
                     (
                         ExtraSearchTerms.SelectMany(item =>
-                            (item + string.Empty)
+                            Regex.Replace(item, "[^\\w]", " ", RegexOptions.Compiled)
                             .Trim()
-                            .Replace("-", null)
-                            .Replace(".", null)
                             .NormalizedQueryString()
                             .Tokenize()
                             .Distinct()
@@ -506,7 +502,7 @@ namespace DustyPig.Server.Data.Models
                 .ToList();
 
 
-            string st = string.Join(" ", terms);
+            string st = FormattedTitle() + " " + string.Join(" ", terms);
             if (st.Length > MAX_SEARCH_TITLE_SIZE)
                 st = st[..MAX_SEARCH_TITLE_SIZE];
 

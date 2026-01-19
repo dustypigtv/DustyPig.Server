@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260119070030_Initial")]
+    [Migration("20260119183908_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -45,6 +45,13 @@ namespace DustyPig.Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Accounts");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1,
+                            FirebaseId = "TEST ACCOUNT"
+                        });
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.AccountToken", b =>
@@ -458,8 +465,8 @@ namespace DustyPig.Server.Data.Migrations
                         .HasColumnType("double precision");
 
                     b.Property<string>("SearchTitle")
-                        .HasMaxLength(400)
-                        .HasColumnType("character varying(400)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int?>("Season")
                         .HasColumnType("integer");
@@ -768,6 +775,20 @@ namespace DustyPig.Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Profiles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = -1,
+                            AccountId = -1,
+                            AvatarUrl = "https://s3.dustypig.tv/user-art-defaults/profile/grey.png",
+                            IsMain = true,
+                            Locked = false,
+                            MaxMovieRating = 6,
+                            MaxTVRating = 7,
+                            Name = "Test User",
+                            TitleRequestPermission = (byte)0
+                        });
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.ProfileLibraryShare", b =>

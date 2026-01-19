@@ -304,7 +304,7 @@ namespace DustyPig.Server.Data.Migrations
                     Genre_War = table.Column<bool>(type: "boolean", nullable: false),
                     Genre_Western = table.Column<bool>(type: "boolean", nullable: false),
                     EverPlayed = table.Column<bool>(type: "boolean", nullable: false),
-                    SearchTitle = table.Column<string>(type: "character varying(400)", maxLength: 400, nullable: true),
+                    SearchTitle = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     ExtraSearchTerms = table.Column<List<string>>(type: "text[]", nullable: true)
                 },
                 constraints: table =>
@@ -652,6 +652,16 @@ namespace DustyPig.Server.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                 });
+
+            migrationBuilder.InsertData(
+                table: "Accounts",
+                columns: new[] { "Id", "FirebaseId" },
+                values: new object[] { -1, "TEST ACCOUNT" });
+
+            migrationBuilder.InsertData(
+                table: "Profiles",
+                columns: new[] { "Id", "AccountId", "AvatarUrl", "IsMain", "Locked", "MaxMovieRating", "MaxTVRating", "Name", "PinNumber", "TitleRequestPermission" },
+                values: new object[] { -1, -1, "https://s3.dustypig.tv/user-art-defaults/profile/grey.png", true, false, 6, 7, "Test User", null, (byte)0 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Accounts_FirebaseId",

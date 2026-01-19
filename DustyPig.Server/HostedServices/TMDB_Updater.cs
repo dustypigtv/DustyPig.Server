@@ -147,8 +147,10 @@ public class TMDB_Updater : IHostedService, IDisposable
     /// <param name="forceUpdate">For when the tmdbId came from an unlinked MediaEntry</param>
     private async Task DoUpdateAsync(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, bool forceUpdate, CancellationToken cancellationToken)
     {
-        var entryType = (int)(mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series);
+        var entryType = mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
 
+        bool success = true;
+        int start = 0;
         try
         {
             var info = mediaType == TMDB_MediaTypes.Movie ?
@@ -157,124 +159,115 @@ public class TMDB_Updater : IHostedService, IDisposable
 
             if (info != null && (forceUpdate || info.Changed))
             {
-                var conn = await db.GetOpenDbConnection(cancellationToken);
-
-
-                //Popularity
-                var cmd = conn.CreateCommand();
-                cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.Popularity)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
-                cmd.Parameters.Add(new NpgsqlParameter("p1", info.Popularity));
-                cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-                cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
-
-
-
-                //Movie Rating
-                if (entryType == (int)MediaTypes.Movie)
+                var infoRating = mediaType == TMDB_MediaTypes.Movie ? (int?)info.MovieRating : (int?)info.TVRating;
+                
+                while (true)
                 {
-                    var infoRating = (int?)info.MovieRating;
-                    if (infoRating > 0)
+                    var mediaEntries = await db.MediaEntries
+                        .Where(_ => _.TMDB_Id == tmdbId)
+                        .Where(_ => _.EntryType == entryType)
+                        .OrderBy(_ => _.Id)
+                        .Skip(start)
+                        .Take(CHUNK_SIZE)
+                        .ToListAsync(cancellationToken);
+
+                    foreach(var mediaEntry in mediaEntries)
                     {
-                        cmd = conn.CreateCommand();
-                        cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.MovieRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.MovieRating)} IS NULL";
-                        cmd.Parameters.Add(new NpgsqlParameter("p1", infoRating.Value));
-                        cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-                        cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
-                        await cmd.ExecuteNonQueryAsync(cancellationToken);
-                    }
-                }
+                        if(!mediaEntry.Popularity.HasValue || mediaEntry.Popularity.Value != info.Popularity)
+                            mediaEntry.Popularity = info.Popularity;
+                        
+                        if(infoRating > 0)
+                        {
+                            if (mediaEntry.EntryType == MediaTypes.Movie && mediaEntry.MovieRating == null)
+                                mediaEntry.MovieRating = info.MovieRating;
+                            else if (mediaEntry.EntryType == MediaTypes.Series && mediaEntry.TVRating == null)
+                                mediaEntry.TVRating = info.TVRating;
+                        }
+                        if (mediaEntry.Description.IsNullOrWhiteSpace() && info.Overview.HasValue())
+                            mediaEntry.Description = info.Overview;
 
-                //TV Rating
-                if (entryType == (int)MediaTypes.Series)
-                {
-                    var infoRating = (int?)info.TVRating;
-                    if (infoRating > 0)
+                        if (mediaEntry.BackdropUrl.IsNullOrWhiteSpace() && info.BackdropUrl.HasValue())
+                            mediaEntry.BackdropUrl = info.BackdropUrl;
+
+                        if (mediaEntry.TMDB_EntryId == null)
+                            mediaEntry.TMDB_EntryId = info.Id;
+
+                        mediaEntry.TMDB_Updated = DateTime.UtcNow;
+                    }
+
+                    try
                     {
-                        cmd = conn.CreateCommand();
-                        cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TVRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TVRating)} IS NULL";
-                        cmd.Parameters.Add(new NpgsqlParameter("p1", infoRating.Value));
-                        cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-                        cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
-                        await cmd.ExecuteNonQueryAsync(cancellationToken);
+                        await db.SaveChangesAsync(cancellationToken);
                     }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Update media entry");
+                        success = false;
+
+                        //Stop if cancelled, otherwise continue with next batch
+                        if (ex is OperationCanceledException)
+                            throw;
+                    }
+
+                    start += CHUNK_SIZE;
                 }
 
-                //Description
-                if (info.Overview.HasValue())
-                {
-                    cmd = conn.CreateCommand();
-                    cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.Description)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.Description)} IS NULL";
-                    cmd.Parameters.Add(new NpgsqlParameter("p1", info.Overview));
-                    cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-                    cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
-                    cmd.Parameters.Add(new NpgsqlParameter("p4", ""));
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-                }
-
-                //Backdrop Url
-                if (info.BackdropUrl.HasValue())
-                {
-                    cmd = conn.CreateCommand();
-                    cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.BackdropUrl)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND {nameof(MediaEntry.BackdropUrl)} IS NULL";
-                    cmd.Parameters.Add(new NpgsqlParameter("p1", info.BackdropUrl));
-                    cmd.Parameters.Add(new NpgsqlParameter("p3", tmdbId));
-                    cmd.Parameters.Add(new NpgsqlParameter("p4", entryType));
-                    cmd.Parameters.Add(new NpgsqlParameter("p5", ""));
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-                }
-
-                //Link
-                cmd = conn.CreateCommand();
-                cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TMDB_EntryId)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TMDB_EntryId)} IS NULL";
-                cmd.Parameters.Add(new NpgsqlParameter("p1", info.Id));
-                cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-                cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
-                await cmd.ExecuteNonQueryAsync(cancellationToken);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Update entry");
+            success = false;
         }
 
 
+        if (success)
+            return;
 
-        //Makeu sure failures don't repeatedly try - wait a day!
+        //Make sure failures don't repeatedly try - wait a day!
+        start = 0;
+        while (true)
+        {
+            try
+            {
+                var mediaEntries = await db.MediaEntries
+                    .Where(_ => _.TMDB_Id == tmdbId)
+                    .Where(_ => _.EntryType == entryType)
+                    .Skip(start)
+                    .Take(CHUNK_SIZE)
+                    .ToListAsync(cancellationToken);
+
+                start += CHUNK_SIZE;
+                if (mediaEntries.Count == 0)
+                    break;
+
+                mediaEntries.ForEach(_ => _.TMDB_Updated = DateTime.UtcNow);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Set MediaEntry.TMDB_Updated");
+            }
+        }
+
+
         try
         {
-            //TMDB_Updated in MediaEntry
-            var conn = await db.GetOpenDbConnection(cancellationToken);
-            var cmd = conn.CreateCommand();
-            cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TMDB_Updated)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
-            cmd.Parameters.Add(new NpgsqlParameter("p1", DateTime.UtcNow));
-            cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-            cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Set MediaEntry.TMDB_Updated");
-        }
+            var tmdbEntry = await db.TMDB_Entries
+                .Where(_ => _.TMDB_Id == tmdbId)
+                .Where(_ => _.MediaType == mediaType)
+                .FirstOrDefaultAsync(cancellationToken);
 
+            if (tmdbEntry == null)
+                return;
 
-
-
-        try
-        {
-            //LastUpdated in TMDB_Entry
-            var conn = await db.GetOpenDbConnection(cancellationToken);
-            var cmd = conn.CreateCommand();
-            cmd.CommandText = $"UPDATE {db.GetTableName<TMDB_Entry>()} SET {nameof(TMDB_Entry.LastUpdated)}=@p1 WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p2 AND {nameof(TMDB_Entry.MediaType)}=@p3";
-            cmd.Parameters.Add(new NpgsqlParameter("p1", DateTime.UtcNow));
-            cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
-            cmd.Parameters.Add(new NpgsqlParameter("p3", (int)mediaType));
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            tmdbEntry.LastUpdated = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Set TMDB_Entry.LastUpdated");
         }
-
 
     }
 
@@ -620,18 +613,24 @@ public class TMDB_Updater : IHostedService, IDisposable
     }
 
 
-    /// <summary>
-    /// This runs a raw query
-    /// </summary>
-    /// <returns></returns>
     private async Task DeleteTmdbEntry(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
     {
-        //TMDB_Entries
-        var conn = await db.GetOpenDbConnection(cancellationToken);
-        var cmd = conn.CreateCommand();
-        cmd.CommandText = $"DELETE FROM {db.GetTableName<TMDB_Entry>()} WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p1 AND {nameof(TMDB_Entry.MediaType)}=@p2";
-        cmd.Parameters.Add(new NpgsqlParameter("p1", tmdbId));
-        cmd.Parameters.Add(new NpgsqlParameter("p2", (int)mediaType));
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        try
+        {
+            var tmdbEntry = await db.TMDB_Entries
+                .Where(_ => _.Id == tmdbId)
+                .Where(_ => _.MediaType == mediaType)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (tmdbEntry == null)
+                return;
+
+            db.TMDB_Entries.Remove(tmdbEntry);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(DeleteTmdbEntry));
+        }
     }
 }

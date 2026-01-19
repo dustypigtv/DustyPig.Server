@@ -5,14 +5,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 var seq = builder
     .AddSeq("seq")
     .WithLifetime(ContainerLifetime.Persistent)
-    .WithDataVolume()
+    .WithDataVolume("seq")
     .WithEnvironment("ACCEPT_EULA", "Y");
 
 
 var postgresdb = builder
     .AddPostgres("postgres")
     .WithPgAdmin_MyVersion()
-    .WithDataVolume()
+    .WithDataVolume("postgres")
     .WithLifetime(ContainerLifetime.Persistent)
     .AddDatabase("dustypig-v3");
 

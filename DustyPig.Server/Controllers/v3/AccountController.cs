@@ -54,7 +54,8 @@ public class AccountController : _BaseController
             var newUserRecord = await FirebaseAuth.DefaultInstance.CreateUserAsync(new UserRecordArgs
             {
                 Email = info.Email,
-                Password = info.Password
+                Password = info.Password,
+                DisplayName = info.DisplayName
             });
 
             var account = DB.Accounts.Add(new Account { FirebaseId = newUserRecord.Uid }).Entity;

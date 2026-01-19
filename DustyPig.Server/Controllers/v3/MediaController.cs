@@ -11,6 +11,7 @@ using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -269,6 +270,7 @@ public class MediaController : _MediaControllerBase
         foreach (var term in normQuery.Tokenize().Distinct())
             q = q.Where(me => me.SearchTitle.Contains(term));
 
+       
         var mediaEntries = await q
             .AsNoTracking()
             .Distinct()

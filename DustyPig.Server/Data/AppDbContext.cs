@@ -1,6 +1,7 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -20,8 +21,6 @@ namespace DustyPig.Server.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public string __X { get; } = Guid.NewGuid().ToString();
-
     public DbSet<Account> Accounts { get; set; }
     public DbSet<AccountToken> AccountTokens { get; set; }
     public DbSet<ActivationCode> ActivationCodes { get; set; }
@@ -65,66 +64,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(p => p.TitleOverride).WithMany().OnDelete(DeleteBehavior.SetNull);
         });
 
-    }
 
-    public async Task Migrate(CancellationToken cancellationToken = default)
-    {
-        await Database.MigrateAsync(cancellationToken);
-
-        //Ensure Test account exists
-        var tstAcct = Accounts.FirstOrDefault(_ => _.Id == 1);
-
-        bool add = false;
-        if (tstAcct == null)
+        modelBuilder.Entity<Account>().HasData(new Account 
         {
-            add = true;
-        }
-        else if (tstAcct.FirebaseId != "TEST ACCOUNT")
-        {
-            Accounts.Remove(tstAcct);
-            await SaveChangesAsync(cancellationToken);
-            add = true;
-        }
+            Id = TestAccount.AccountId,
+            FirebaseId = TestAccount.FirebaseId
+        });
 
-        if (add)
+        modelBuilder.Entity<Profile>().HasData(new Profile
         {
-            tstAcct = Accounts.Add(new Account
-            {
-                Id = 1,
-                FirebaseId = "TEST ACCOUNT"
-            }).Entity;
-            await SaveChangesAsync(cancellationToken);
-        }
-
-
-        var tstProfile = Profiles.FirstOrDefault(_ => _.Id == 1);
-
-        add = false;
-        if (tstProfile == null)
-        {
-            add = true;
-        }
-        else if (tstProfile.AccountId != 1)
-        {
-            Profiles.Remove(tstProfile);
-            await SaveChangesAsync(cancellationToken);
-            add = true;
-        }
-
-        if (add)
-        {
-            Profiles.Add(new Profile
-            {
-                AccountId = 1,
-                Id = 1,
-                IsMain = true,
-                Name = "Test User",
-                AvatarUrl = DustyPig.API.v3.Models.Constants.DEFAULT_PROFILE_IMAGE_GREY,
-                MaxMovieRating = API.v3.MPAA.MovieRatings.Unrated,
-                MaxTVRating = API.v3.MPAA.TVRatings.NotRated
-            });
-            await SaveChangesAsync(cancellationToken);
-        }
+            Id = TestAccount.ProfileId,
+            AccountId = TestAccount.AccountId,
+            AvatarUrl = TestAccount.AvatarUrl,
+            IsMain = true,
+            MaxMovieRating = MovieRatings.Unrated,
+            MaxTVRating = TVRatings.NotRated,
+            Name = TestAccount.Name
+        });
     }
 
 
@@ -133,24 +89,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
 
 
-
-
-
-
-
-    public string GetTableName<TEntity>() where TEntity : class
-    {
-        IEntityType entityType = Model.FindEntityType(typeof(TEntity));
-        return entityType.GetTableName()!;
-    }
-
-    public async Task<DbConnection> GetOpenDbConnection(CancellationToken cancellationToken)
-    {
-        var conn = Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open)
-            await conn.OpenAsync(cancellationToken);
-        return conn;
-    }
 
 
 
@@ -219,7 +157,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// <summary>
     /// This calls <see cref="DbContext.SaveChangesAsync(CancellationToken)"/>
     /// </summary>
-    public async Task<Account> GetOrCreateAccountAsync(string localId, string email)
+    public async Task<Account> GetOrCreateAccountAsync(string localId, string email, string displayName)
     {
         var account = await Accounts
             .AsNoTracking()
@@ -234,7 +172,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             await SaveChangesAsync();
         }
 
-        await GetOrCreateMainProfileAsync(account, email);
+        await GetOrCreateMainProfileAsync(account, email, displayName);
 
         if (account.Profiles.Count == 0)
         {
@@ -256,7 +194,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// <summary>
     /// This calls <see cref="DbContext.SaveChangesAsync(CancellationToken)"/>
     /// </summary>
-    public async Task<Profile> GetOrCreateMainProfileAsync(Account account, string email, CancellationToken cancellationToken = default)
+    public async Task<Profile> GetOrCreateMainProfileAsync(Account account, string email, string displayName, CancellationToken cancellationToken = default)
     {
         var acctProfiles = new List<Profile>();
         if (account.Profiles == null || account.Profiles.Count == 0)
@@ -282,16 +220,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 MaxTVRating = TVRatings.NotRated,
                 AvatarUrl = Misc.EnsureProfilePic(null),
                 IsMain = true,
-                Name = email[..email.IndexOf("@")].Trim().ToLower(),
+                Name = displayName.HasValue() ? displayName.Trim() : email[..email.IndexOf("@")].Trim().ToLower(),
                 TitleRequestPermission = TitleRequestPermissions.Enabled
             }).Entity;
-
-            int idx = 0;
-            while (acctProfiles.Count(_ => _.Name.ICEquals(mainProfile.Name)) > 0)
-            {
-                idx++;
-                mainProfile.Name = email[..email.IndexOf("@")].Trim().ToLower() + idx.ToString();
-            }
 
             await SaveChangesAsync(cancellationToken);
         }

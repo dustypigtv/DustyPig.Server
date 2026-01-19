@@ -8,6 +8,7 @@ using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
@@ -24,7 +25,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add service defaults & Aspire client integrations.
 // Disable seq when adding migrations
 builder.AddServiceDefaults();
-builder.AddSeqEndpoint("seq");  
+builder.AddSeqEndpoint("seq");
 builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 
 
@@ -133,10 +134,9 @@ app.MapRazorPages();
 
 
 //Apply any migrations
-using (var scope = app.Services.CreateScope())
+using(var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext())
 {
-    using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Migrate();
+    await db.Database.MigrateAsync();
 }
 
 app.Run();

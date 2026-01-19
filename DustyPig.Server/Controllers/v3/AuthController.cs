@@ -55,7 +55,7 @@ public class AuthController : _BaseController
             if (credentials.Password != TestAccount.Password)
                 return "Invalid credentials";
 
-            account = await DB.GetOrCreateAccountAsync(TestAccount.FirebaseId, TestAccount.Email);
+            account = await DB.GetOrCreateAccountAsync(TestAccount.FirebaseId, TestAccount.Email, TestAccount.Name);
         }
         else
         {
@@ -64,7 +64,7 @@ public class AuthController : _BaseController
                 return signInResponse.FirebaseError().TranslateFirebaseError(FirebaseMethods.PasswordSignin);
 
             var user = await FirebaseAuth.DefaultInstance.GetUserAsync(signInResponse.Data.LocalId);
-            account = await DB.GetOrCreateAccountAsync(user.Uid, user.Email);
+            account = await DB.GetOrCreateAccountAsync(user.Uid, user.Email, user.DisplayName);
         }
 
         var profiles = account.Profiles.Select(p => p.ToBasicProfileInfo()).ToList();

@@ -151,7 +151,7 @@ public class FriendsController : _BaseProfileController
 
         if (friendAccount == null)
         {
-            friendAccount = await DB.GetOrCreateAccountAsync(fbRec.Uid, email.Value);
+            friendAccount = await DB.GetOrCreateAccountAsync(fbRec.Uid, email.Value, fbRec.DisplayName);
 
             if (friendAccount == null)
                 return "Account does not exist";
@@ -195,7 +195,7 @@ public class FriendsController : _BaseProfileController
         var friendMainProfile = friendAccount.Profiles.FirstOrDefault(item => item.IsMain);
         if (friendMainProfile == null)
         {
-            friendMainProfile = await DB.GetOrCreateMainProfileAsync(friendAccount, email.Value);
+            friendMainProfile = await DB.GetOrCreateMainProfileAsync(friendAccount, email.Value, fbRec.DisplayName);
         }
 
         DB.Notifications.Add(new Data.Models.Notification
