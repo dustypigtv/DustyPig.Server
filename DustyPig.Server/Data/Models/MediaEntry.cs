@@ -477,48 +477,44 @@ namespace DustyPig.Server.Data.Models
 
         void SetGenreFlags(Genres? genres)
         {
-            long lg = (long)Genres.Unknown;
-            if (EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series)
-                lg = (long)(genres ?? Genres.Unknown);
-
-            Genre_Action = (lg & (long)Genres.Action) != 0;
-            Genre_Adventure = (lg & (long)Genres.Adventure) != 0;
-            Genre_Animation = (lg & (long)Genres.Animation) != 0;
-            Genre_Anime = (lg & (long)Genres.Anime) != 0;
-            Genre_Awards_Show = (lg & (long)Genres.Awards_Show) != 0;
-            Genre_Children = (lg & (long)Genres.Children) != 0;
-            Genre_Comedy = (lg & (long)Genres.Comedy) != 0;
-            Genre_Crime = (lg & (long)Genres.Crime) != 0;
-            Genre_Documentary = (lg & (long)Genres.Documentary) != 0;
-            Genre_Drama = (lg & (long)Genres.Drama) != 0;
-            Genre_Family = (lg & (long)Genres.Family) != 0;
-            Genre_Fantasy = (lg & (long)Genres.Fantasy) != 0;
-            Genre_Food = (lg & (long)Genres.Food) != 0;
-            Genre_Game_Show = (lg & (long)Genres.Game_Show) != 0;
-            Genre_History = (lg & (long)Genres.History) != 0;
-            Genre_Home_and_Garden = (lg & (long)Genres.Home_and_Garden) != 0;
-            Genre_Horror = (lg & (long)Genres.Horror) != 0;
-            Genre_Indie = (lg & (long)Genres.Indie) != 0;
-            Genre_Martial_Arts = (lg & (long)Genres.Martial_Arts) != 0;
-            Genre_Mini_Series = (lg & (long)Genres.Mini_Series) != 0;
-            Genre_Music = (lg & (long)Genres.Music) != 0;
-            Genre_Musical = (lg & (long)Genres.Musical) != 0;
-            Genre_Mystery = (lg & (long)Genres.Mystery) != 0;
-            Genre_News = (lg & (long)Genres.News) != 0;
-            Genre_Podcast = (lg & (long)Genres.Podcast) != 0;
-            Genre_Political = (lg & (long)Genres.Political) != 0;
-            Genre_Reality = (lg & (long)Genres.Reality) != 0;
-            Genre_Romance = (lg & (long)Genres.Romance) != 0;
-            Genre_Science_Fiction = (lg & (long)Genres.Science_Fiction) != 0;
-            Genre_Soap = (lg & (long)Genres.Soap) != 0;
-            Genre_Sports = (lg & (long)Genres.Sports) != 0;
-            Genre_Suspense = (lg & (long)Genres.Suspense) != 0;
-            Genre_Talk_Show = (lg & (long)Genres.Talk_Show) != 0;
-            Genre_Thriller = (lg & (long)Genres.Thriller) != 0;
-            Genre_Travel = (lg & (long)Genres.Travel) != 0;
-            Genre_TV_Movie = (lg & (long)Genres.TV_Movie) != 0;
-            Genre_War = (lg & (long)Genres.War) != 0;
-            Genre_Western = (lg & (long)Genres.Western) != 0;
+            Genre_Action = genres?.HasFlag(Genres.Action) ?? false;
+            Genre_Adventure = genres?.HasFlag(Genres.Adventure) ?? false;
+            Genre_Animation = genres?.HasFlag(Genres.Animation) ?? false;
+            Genre_Anime = genres?.HasFlag(Genres.Anime) ?? false;
+            Genre_Awards_Show = genres?.HasFlag(Genres.Awards_Show) ?? false;
+            Genre_Children = genres?.HasFlag(Genres.Children) ?? false;
+            Genre_Comedy = genres?.HasFlag(Genres.Comedy) ?? false;
+            Genre_Crime = genres?.HasFlag(Genres.Crime) ?? false;
+            Genre_Documentary = genres?.HasFlag(Genres.Documentary) ?? false;
+            Genre_Drama = genres?.HasFlag(Genres.Drama) ?? false;
+            Genre_Family = genres?.HasFlag(Genres.Family) ?? false;
+            Genre_Fantasy = genres?.HasFlag(Genres.Fantasy) ?? false;
+            Genre_Food = genres?.HasFlag(Genres.Food) ?? false;
+            Genre_Game_Show = genres?.HasFlag(Genres.Game_Show) ?? false;
+            Genre_History = genres?.HasFlag(Genres.History) ?? false;
+            Genre_Home_and_Garden = genres?.HasFlag(Genres.Home_and_Garden) ?? false;
+            Genre_Horror = genres?.HasFlag(Genres.Horror) ?? false;
+            Genre_Indie = genres?.HasFlag(Genres.Indie) ?? false;
+            Genre_Martial_Arts = genres?.HasFlag(Genres.Martial_Arts) ?? false;
+            Genre_Mini_Series = genres?.HasFlag(Genres.Mini_Series) ?? false;
+            Genre_Music = genres?.HasFlag(Genres.Music) ?? false;
+            Genre_Musical = genres?.HasFlag(Genres.Musical) ?? false;
+            Genre_Mystery = genres?.HasFlag(Genres.Mystery) ?? false;
+            Genre_News = genres?.HasFlag(Genres.News) ?? false;
+            Genre_Podcast = genres?.HasFlag(Genres.Podcast) ?? false;
+            Genre_Political = genres?.HasFlag(Genres.Political) ?? false;
+            Genre_Reality = genres?.HasFlag(Genres.Reality) ?? false;
+            Genre_Romance = genres?.HasFlag(Genres.Romance) ?? false;
+            Genre_Science_Fiction = genres?.HasFlag(Genres.Science_Fiction) ?? false;
+            Genre_Soap = genres?.HasFlag(Genres.Soap) ?? false;
+            Genre_Sports = genres?.HasFlag(Genres.Sports) ?? false;
+            Genre_Suspense = genres?.HasFlag(Genres.Suspense) ?? false;
+            Genre_Talk_Show = genres?.HasFlag(Genres.Talk_Show) ?? false;
+            Genre_Thriller = genres?.HasFlag(Genres.Thriller) ?? false;
+            Genre_Travel = genres?.HasFlag(Genres.Travel) ?? false;
+            Genre_TV_Movie = genres?.HasFlag(Genres.TV_Movie) ?? false;
+            Genre_War = genres?.HasFlag(Genres.War) ?? false;
+            Genre_Western = genres?.HasFlag(Genres.Western) ?? false;
         }
 
 

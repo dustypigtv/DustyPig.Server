@@ -1,4 +1,5 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ namespace DustyPig.Server.Data.Models
         public Account Account2 { get; set; }
 
         /// <summary>
-        /// MD5(string.Join("+", new List&lt;int&gt;{id1, id2}.OrderBy(x => x))
+        /// Crypto.HashString(Account1Id.ToString() + '+' + Account2Id.ToString());
         /// </summary>
         [Required]
         [MaxLength(128)]
@@ -36,5 +37,10 @@ namespace DustyPig.Server.Data.Models
         public bool Accepted { get; set; }
 
         public List<FriendLibraryShare> FriendLibraryShares { get; set; }
+
+        public void ComputeHash()
+        {
+            Hash = Crypto.HashString(Account1Id.ToString() + '+' + Account2Id.ToString());
+        }
     }
 }

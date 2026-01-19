@@ -4,19 +4,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models;
 
-/*
-CREATE TABLE `dustypig_v3_dev`.`ExtraSearchTerms` (
-  `Id` INT NOT NULL,
-  `MediaEntryId` INT NOT NULL,
-  `Term` VARCHAR(200) NOT NULL,
-  PRIMARY KEY (`Id`),
-  UNIQUE INDEX `IX_ExtraSearchTerms_MediaEntryId_Term` (`MediaEntryId` ASC, `Term` ASC) VISIBLE,
-  CONSTRAINT `FK_ExtraSearchTerms_MediaEntries_MediaEntryId`
-    FOREIGN KEY (`MediaEntryId`)
-    REFERENCES `dustypig_v3_dev`.`MediaEntries` (`Id`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION);
-*/
+/// <summary>
+/// Use FTs to actually search, but keep these for admin of media
+/// </summary>
 [Index(nameof(MediaEntryId), nameof(Term), IsUnique = true)]
 public class ExtraSearchTerm
 {

@@ -9,7 +9,7 @@ using System.ComponentModel.DataAnnotations;
 /*
     Method to the madness:
 
-    This is a cache of TMDB info. It should be updated about once/day, as long as a MediaEntry links to it.
+    This is a cache of TMDB info. It should be updated about once/day.
     
     First, this helps keep popularity up to date, especially when adding new media:
         After updating, Popularity is copied to MediaEntries, and any info missing from MediaEntries but found here is copyied.
