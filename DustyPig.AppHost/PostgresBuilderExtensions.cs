@@ -30,6 +30,8 @@ internal static class PostgresBuilderExtensions
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                                  .WithHttpHealthCheck("/browser")
+                                                 .WithLifetime(ContainerLifetime.Persistent)
+                                                 .WithVolume(containerName, "/var/lib/pgadmin", false)
                                                  //.ExcludeFromManifest();
                                                  ;
 

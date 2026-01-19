@@ -221,7 +221,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// </summary>
     public async Task<Account> GetOrCreateAccountAsync(string localId, string email)
     {
-        var account = await this.Accounts
+        var account = await Accounts
             .AsNoTracking()
             .Include(item => item.Profiles)
             .Where(item => item.FirebaseId == localId)
@@ -230,11 +230,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         if (account == null)
         {
             account = new Account { FirebaseId = localId };
-            this.Accounts.Add(account);
-            await this.SaveChangesAsync();
+            Accounts.Add(account);
+            await SaveChangesAsync();
         }
 
-        await this.GetOrCreateMainProfileAsync(account, email);
+        await GetOrCreateMainProfileAsync(account, email);
+
+        if (account.Profiles.Count == 0)
+        {
+            //Reload
+            account = await Accounts
+                .AsNoTracking()
+                .Include(item => item.Profiles)
+                .Where(item => item.FirebaseId == localId)
+                .FirstOrDefaultAsync();
+        }
 
         return account;
     }
@@ -251,7 +261,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         var acctProfiles = new List<Profile>();
         if (account.Profiles == null || account.Profiles.Count == 0)
         {
-            var profiles = await this.Profiles
+            var profiles = await Profiles
                 .AsNoTracking()
                 .Where(item => item.AccountId == account.Id)
                 .ToListAsync(cancellationToken);
@@ -265,7 +275,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         var mainProfile = acctProfiles.FirstOrDefault(item => item.IsMain);
         if (mainProfile == null)
         {
-            mainProfile = this.Profiles.Add(new Profile
+            mainProfile = Profiles.Add(new Profile
             {
                 AccountId = account.Id,
                 MaxMovieRating = MovieRatings.Unrated,
@@ -292,7 +302,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public IQueryable<MediaEntry> TopLevelWatchableMediaByProfileQuery(Profile profile)
     {
-        return this.MediaEntries
+        return MediaEntries
             .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
             .Where(m =>
 
@@ -342,7 +352,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public IQueryable<MediaEntry> WatchableMoviesByProfileQuery(Profile profile)
     {
-        return this.MediaEntries
+        return MediaEntries
             .Where(m => m.EntryType == MediaTypes.Movie)
             .Where(m =>
 
@@ -381,7 +391,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public IQueryable<MediaEntry> WatchableSeriesByProfileQuery(Profile profile)
     {
-        return this.MediaEntries
+        return MediaEntries
             .Where(m => m.EntryType == MediaTypes.Series)
             .Where(m =>
 
@@ -422,7 +432,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         List<int> ret = [];
 
-        var lib = await this.Libraries
+        var lib = await Libraries
             .AsNoTracking()
             .Include(l => l.Account)
             .ThenInclude(a => a.Profiles.Where(p => p.IsMain))
@@ -469,7 +479,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         List<int> ret = [];
 
-        var lib = await this.Libraries
+        var lib = await Libraries
             .AsNoTracking()
             .Include(l => l.Account)
             .ThenInclude(a => a.Profiles.Where(p => p.IsMain))
@@ -516,7 +526,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         List<int> ret = [];
 
-        var mediaEntry = await this.MediaEntries
+        var mediaEntry = await MediaEntries
             .AsNoTracking()
             .Include(m => m.Library)
             .ThenInclude(l => l.ProfileLibraryShares)
