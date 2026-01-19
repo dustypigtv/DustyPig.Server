@@ -1,11 +1,9 @@
-﻿using Asp.Versioning;
-using DustyPig.Server.Data;
+﻿using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DustyPig.Server.Controllers.v3
 {
-    [ApiVersion("3")]
     [Route("api/v{version:apiVersion}/[controller]/[action]")]
     [Produces("application/json")]
     [Consumes("application/json", IsOptional = true)]

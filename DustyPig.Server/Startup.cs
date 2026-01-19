@@ -1,9 +1,7 @@
-using Asp.Versioning;
 using DustyPig.Server.Data;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using DustyPig.Server.Services.TMDB_Service;
-using DustyPig.Server.SwaggerHelpers;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
@@ -12,19 +10,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -60,7 +52,7 @@ namespace DustyPig.Server
                 Credential = GoogleCredential.FromFile(FIREBASE_JSON_FILE)
             });
 
-
+        
 
 
         }
@@ -106,8 +98,8 @@ namespace DustyPig.Server
 
 
 
-            //*** Memory Caching ***
-            services.AddMemoryCache();
+            ////*** Memory Caching ***
+            //services.AddMemoryCache();
 
 
 
@@ -154,12 +146,12 @@ namespace DustyPig.Server
                 });
 
 
-            //*** API Versioning ***
-            services.AddApiVersioning(options =>
-            {
-                options.AssumeDefaultVersionWhenUnspecified = true;
-                options.DefaultApiVersion = new ApiVersion(3, 0);
-            });
+            ////*** API Versioning ***
+            //services.AddApiVersioning(options =>
+            //{
+            //    options.AssumeDefaultVersionWhenUnspecified = true;
+            //    options.DefaultApiVersion = new ApiVersion(3, 0);
+            //});
 
 
 
@@ -168,107 +160,107 @@ namespace DustyPig.Server
 
 
 
-            //*******************************
-            // SWAGGER
-            //*******************************
-            services.AddSwaggerGen(options =>
-            {
-                options.SwaggerDoc("v3", new OpenApiInfo
-                {
-                    Version = $"v3",
-                    Title = "Dusty Pig API",
-                    Description = "API for the Dusty Pig. Each method is marked with a level:<br /><p>" +
-                    "Requires no authorization: No authentication needed<br />" +
-                    "Requires account: User must present an account token from either Auth/LoginWithFirebaseToken or Auth/PasswordLogin<br />" +
-                    "Requires profile: User must present a profile token from auth/profilelogin<br />" +
-                    "Requires main profile: User must be the main profile on the account</p><br /><br /><p>" +
-                    $"Server: v{Program.ServerVersion}<br />" +
-                    $"Client API: v{API.v3.Client.APIVersion}</p>"
-                });
+            ////*******************************
+            //// SWAGGER
+            ////*******************************
+            //services.AddSwaggerGen(options =>
+            //{
+            //    options.SwaggerDoc("v3", new OpenApiInfo
+            //    {
+            //        Version = $"v3",
+            //        Title = "Dusty Pig API",
+            //        Description = "API for the Dusty Pig. Each method is marked with a level:<br /><p>" +
+            //        "Requires no authorization: No authentication needed<br />" +
+            //        "Requires account: User must present an account token from either Auth/LoginWithFirebaseToken or Auth/PasswordLogin<br />" +
+            //        "Requires profile: User must present a profile token from auth/profilelogin<br />" +
+            //        "Requires main profile: User must be the main profile on the account</p><br /><br /><p>" +
+            //        $"Server: v{Program.ServerVersion}<br />" +
+            //        $"Client API: v{API.v3.Client.APIVersion}</p>"
+            //    });
 
-                options.AddSecurityDefinition("bearerAuth", new OpenApiSecurityScheme
-                {
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "Bearer",
-                    BearerFormat = "JWT",
-                    In = ParameterLocation.Header,
-                    Description = "JWT Token"
-                });
+            //    options.AddSecurityDefinition("bearerAuth", new OpenApiSecurityScheme
+            //    {
+            //        Name = "Authorization",
+            //        Type = SecuritySchemeType.Http,
+            //        Scheme = "Bearer",
+            //        BearerFormat = "JWT",
+            //        In = ParameterLocation.Header,
+            //        Description = "JWT Token"
+            //    });
 
-                options.OperationFilter<AuthorizeCheckOperationFilter>();
-
-
-                options.OrderActionsBy((desc) =>
-                {
-                    string grp = desc.GroupName;
-                    if (string.IsNullOrWhiteSpace(grp))
-                        grp = desc.ActionDescriptor.RouteValues["controller"];
-
-                    return grp + "_" + desc.ActionDescriptor.DisplayName;
-                });
-
-                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
-                foreach (var referencedAssembly in Assembly.GetExecutingAssembly().GetReferencedAssemblies())
-                {
-                    if (referencedAssembly.Name.ICStartsWith("DustyPig."))
-                    {
-                        string xml = Path.Combine(AppContext.BaseDirectory, referencedAssembly.Name + ".xml");
-                        if (File.Exists(xml))
-                            options.IncludeXmlComments(xml);
-                    }
-                }
-
-                options.EnableAnnotations();
-
-                options.OperationFilter<RemoveVersionFromParameter>();
-                options.DocumentFilter<ReplaceVersionWithExactValueInPath>();
-                options.SchemaFilter<EnumTypesSchemaFilter>();
-
-                options.TagActionsBy(api =>
-                {
-                    if (api.GroupName != null)
-                        return new[] { api.GroupName };
-
-                    if (api.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor)
-                        return new[] { controllerActionDescriptor.ControllerName };
-
-                    throw new InvalidOperationException("Unable to determine tag for endpoint.");
-                });
+            //    options.OperationFilter<AuthorizeCheckOperationFilter>();
 
 
-                options.DocInclusionPredicate((version, desc) =>
-                {
-                    if (!desc.TryGetMethodInfo(out var methodInfo))
-                        return false;
+            //    options.OrderActionsBy((desc) =>
+            //    {
+            //        string grp = desc.GroupName;
+            //        if (string.IsNullOrWhiteSpace(grp))
+            //            grp = desc.ActionDescriptor.RouteValues["controller"];
+
+            //        return grp + "_" + desc.ActionDescriptor.DisplayName;
+            //    });
+
+            //    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+            //    foreach (var referencedAssembly in Assembly.GetExecutingAssembly().GetReferencedAssemblies())
+            //    {
+            //        if (referencedAssembly.Name.ICStartsWith("DustyPig."))
+            //        {
+            //            string xml = Path.Combine(AppContext.BaseDirectory, referencedAssembly.Name + ".xml");
+            //            if (File.Exists(xml))
+            //                options.IncludeXmlComments(xml);
+            //        }
+            //    }
+
+            //    options.EnableAnnotations();
+
+            //    options.OperationFilter<RemoveVersionFromParameter>();
+            //    options.DocumentFilter<ReplaceVersionWithExactValueInPath>();
+            //    options.SchemaFilter<EnumTypesSchemaFilter>();
+
+            //    options.TagActionsBy(api =>
+            //    {
+            //        if (api.GroupName != null)
+            //            return new[] { api.GroupName };
+
+            //        if (api.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor)
+            //            return new[] { controllerActionDescriptor.ControllerName };
+
+            //        throw new InvalidOperationException("Unable to determine tag for endpoint.");
+            //    });
 
 
-                    //Since I have base controllers that implement the version #, drill down
-                    var versions = new List<ApiVersion>();
-                    var parentT = methodInfo.DeclaringType;
-                    while (parentT != null)
-                    {
-                        versions.AddRange
-                        (
-                            parentT
-                                .GetCustomAttributes(true)
-                                .OfType<ApiVersionAttribute>()
-                                .SelectMany(attr => attr.Versions)
-                        );
-
-                        parentT = parentT.BaseType;
-                    }
+            //    options.DocInclusionPredicate((version, desc) =>
+            //    {
+            //        if (!desc.TryGetMethodInfo(out var methodInfo))
+            //            return false;
 
 
-                    var maps = methodInfo
-                       .GetCustomAttributes(true)
-                       .OfType<MapToApiVersionAttribute>()
-                       .SelectMany(attr => attr.Versions)
-                       .ToList();
+            //        //Since I have base controllers that implement the version #, drill down
+            //        var versions = new List<ApiVersion>();
+            //        var parentT = methodInfo.DeclaringType;
+            //        while (parentT != null)
+            //        {
+            //            versions.AddRange
+            //            (
+            //                parentT
+            //                    .GetCustomAttributes(true)
+            //                    .OfType<ApiVersionAttribute>()
+            //                    .SelectMany(attr => attr.Versions)
+            //            );
 
-                    return versions?.Any(v => $"v{v}" == version) == true && (!maps.Any() || maps.Any(v => $"v{v}" == version));
-                });
-            });
+            //            parentT = parentT.BaseType;
+            //        }
+
+
+            //        var maps = methodInfo
+            //           .GetCustomAttributes(true)
+            //           .OfType<MapToApiVersionAttribute>()
+            //           .SelectMany(attr => attr.Versions)
+            //           .ToList();
+
+            //        return versions?.Any(v => $"v{v}" == version) == true && (!maps.Any() || maps.Any(v => $"v{v}" == version));
+            //    });
+            //});
 
 
 

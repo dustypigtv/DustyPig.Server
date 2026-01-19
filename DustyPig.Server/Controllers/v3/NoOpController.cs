@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using DustyPig.API.v3.Models;
+﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Data;
 using Microsoft.AspNetCore.Http;
@@ -8,7 +7,6 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace DustyPig.Server.Controllers.v3
 {
-    [ApiVersion("3")]
     [Produces("application/json")]
     [Consumes("application/json")]
     [ApiController]
