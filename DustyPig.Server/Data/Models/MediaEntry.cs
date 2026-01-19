@@ -60,7 +60,7 @@ namespace DustyPig.Server.Data.Models
     [Index(nameof(Genre_Western))]
     public class MediaEntry
     {
-        public const int MAX_SEARCH_TITLE_SIZE = Constants.MAX_NAME_LENGTH * 2;
+        public const int MAX_SEARCH_TITLE_SIZE = 1000;
 
 
         public int Id { get; set; }
@@ -267,6 +267,7 @@ namespace DustyPig.Server.Data.Models
             return ret;
         }
 
+
         public Genres GetGenreFlags()
         {
             var ret = Genres.Unknown;
@@ -312,6 +313,50 @@ namespace DustyPig.Server.Data.Models
             return ret;
         }
 
+
+        private void SetGenreFlags(Genres? genres)
+        {
+            Genre_Action = genres?.HasFlag(Genres.Action) ?? false;
+            Genre_Adventure = genres?.HasFlag(Genres.Adventure) ?? false;
+            Genre_Animation = genres?.HasFlag(Genres.Animation) ?? false;
+            Genre_Anime = genres?.HasFlag(Genres.Anime) ?? false;
+            Genre_Awards_Show = genres?.HasFlag(Genres.Awards_Show) ?? false;
+            Genre_Children = genres?.HasFlag(Genres.Children) ?? false;
+            Genre_Comedy = genres?.HasFlag(Genres.Comedy) ?? false;
+            Genre_Crime = genres?.HasFlag(Genres.Crime) ?? false;
+            Genre_Documentary = genres?.HasFlag(Genres.Documentary) ?? false;
+            Genre_Drama = genres?.HasFlag(Genres.Drama) ?? false;
+            Genre_Family = genres?.HasFlag(Genres.Family) ?? false;
+            Genre_Fantasy = genres?.HasFlag(Genres.Fantasy) ?? false;
+            Genre_Food = genres?.HasFlag(Genres.Food) ?? false;
+            Genre_Game_Show = genres?.HasFlag(Genres.Game_Show) ?? false;
+            Genre_History = genres?.HasFlag(Genres.History) ?? false;
+            Genre_Home_and_Garden = genres?.HasFlag(Genres.Home_and_Garden) ?? false;
+            Genre_Horror = genres?.HasFlag(Genres.Horror) ?? false;
+            Genre_Indie = genres?.HasFlag(Genres.Indie) ?? false;
+            Genre_Martial_Arts = genres?.HasFlag(Genres.Martial_Arts) ?? false;
+            Genre_Mini_Series = genres?.HasFlag(Genres.Mini_Series) ?? false;
+            Genre_Music = genres?.HasFlag(Genres.Music) ?? false;
+            Genre_Musical = genres?.HasFlag(Genres.Musical) ?? false;
+            Genre_Mystery = genres?.HasFlag(Genres.Mystery) ?? false;
+            Genre_News = genres?.HasFlag(Genres.News) ?? false;
+            Genre_Podcast = genres?.HasFlag(Genres.Podcast) ?? false;
+            Genre_Political = genres?.HasFlag(Genres.Political) ?? false;
+            Genre_Reality = genres?.HasFlag(Genres.Reality) ?? false;
+            Genre_Romance = genres?.HasFlag(Genres.Romance) ?? false;
+            Genre_Science_Fiction = genres?.HasFlag(Genres.Science_Fiction) ?? false;
+            Genre_Soap = genres?.HasFlag(Genres.Soap) ?? false;
+            Genre_Sports = genres?.HasFlag(Genres.Sports) ?? false;
+            Genre_Suspense = genres?.HasFlag(Genres.Suspense) ?? false;
+            Genre_Talk_Show = genres?.HasFlag(Genres.Talk_Show) ?? false;
+            Genre_Thriller = genres?.HasFlag(Genres.Thriller) ?? false;
+            Genre_Travel = genres?.HasFlag(Genres.Travel) ?? false;
+            Genre_TV_Movie = genres?.HasFlag(Genres.TV_Movie) ?? false;
+            Genre_War = genres?.HasFlag(Genres.War) ?? false;
+            Genre_Western = genres?.HasFlag(Genres.Western) ?? false;
+        }
+
+
         public void ComputeHash()
         {
             if (EntryType == MediaTypes.Episode)
@@ -326,8 +371,7 @@ namespace DustyPig.Server.Data.Models
 
 
 
-
-        void UpdateFromTMDB(TMDB_Entry info)
+        private void UpdateFromTMDB(TMDB_Entry info)
         {
             if (info == null)
                 return;
@@ -353,14 +397,14 @@ namespace DustyPig.Server.Data.Models
                     TVRating = info.TVRating;
             }
 
-            if (string.IsNullOrWhiteSpace(Description))
+            if (Description.IsNullOrWhiteSpace())
                 Description = info.Description;
 
-            if (string.IsNullOrWhiteSpace(BackdropUrl))
+            if (BackdropUrl.IsNullOrWhiteSpace())
                 BackdropUrl = info.BackdropUrl;
         }
 
-        void ComputeXid()
+        private void ComputeXid()
         {
             if (EntryType != MediaTypes.Episode)
             {
@@ -381,7 +425,30 @@ namespace DustyPig.Server.Data.Models
             Xid = s * int.MaxValue + e;
         }
 
-        void CreateSearchTitle()
+
+        private void SetExraSearchTerms(List<string> newTerms)
+        {
+            ExtraSearchTerms ??= [];
+
+            if (!(EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series))
+            {
+                ExtraSearchTerms.Clear();
+                return;
+            }
+
+            ExtraSearchTerms = (newTerms ?? [])
+                .Where(term => term.HasValue())
+                .Select(term => term.ToLower().Trim())
+                .Distinct()
+                .ToList();
+        }
+
+
+        /// <summary>
+        /// Call this AFTER <see cref="SetExraSearchTerms(List{string})"/>
+        /// </summary>
+        /// <exception cref="Exception"></exception>
+        private void CreateSearchTitle()
         {
             if (!(EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series))
             {
@@ -389,7 +456,7 @@ namespace DustyPig.Server.Data.Models
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(Title))
+            if (Title.IsNullOrWhiteSpace())
                 throw new Exception("Title must have a value before creating the search title");
 
 
@@ -434,7 +501,7 @@ namespace DustyPig.Server.Data.Models
             }
 
             terms = terms
-                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Where(item => item.HasValue())
                 .Distinct()
                 .ToList();
 
@@ -446,75 +513,16 @@ namespace DustyPig.Server.Data.Models
             SearchTitle = st;
         }
 
-        void SetExraSearchTerms(List<string> newTerms)
-        {
-            ExtraSearchTerms ??= [];
-
-            if (!(EntryType == MediaTypes.Movie || EntryType == MediaTypes.Series))
-            {
-                ExtraSearchTerms.Clear();
-                return;
-            }
-
-            ExtraSearchTerms = (newTerms ?? [])
-                    .Where(term => term.HasValue())
-                    .Select(term => term.ToLower().Trim())
-                    .Distinct()
-                    .ToList();
-        }
 
 
-
-        void SetGenreFlags(Genres? genres)
-        {
-            Genre_Action = genres?.HasFlag(Genres.Action) ?? false;
-            Genre_Adventure = genres?.HasFlag(Genres.Adventure) ?? false;
-            Genre_Animation = genres?.HasFlag(Genres.Animation) ?? false;
-            Genre_Anime = genres?.HasFlag(Genres.Anime) ?? false;
-            Genre_Awards_Show = genres?.HasFlag(Genres.Awards_Show) ?? false;
-            Genre_Children = genres?.HasFlag(Genres.Children) ?? false;
-            Genre_Comedy = genres?.HasFlag(Genres.Comedy) ?? false;
-            Genre_Crime = genres?.HasFlag(Genres.Crime) ?? false;
-            Genre_Documentary = genres?.HasFlag(Genres.Documentary) ?? false;
-            Genre_Drama = genres?.HasFlag(Genres.Drama) ?? false;
-            Genre_Family = genres?.HasFlag(Genres.Family) ?? false;
-            Genre_Fantasy = genres?.HasFlag(Genres.Fantasy) ?? false;
-            Genre_Food = genres?.HasFlag(Genres.Food) ?? false;
-            Genre_Game_Show = genres?.HasFlag(Genres.Game_Show) ?? false;
-            Genre_History = genres?.HasFlag(Genres.History) ?? false;
-            Genre_Home_and_Garden = genres?.HasFlag(Genres.Home_and_Garden) ?? false;
-            Genre_Horror = genres?.HasFlag(Genres.Horror) ?? false;
-            Genre_Indie = genres?.HasFlag(Genres.Indie) ?? false;
-            Genre_Martial_Arts = genres?.HasFlag(Genres.Martial_Arts) ?? false;
-            Genre_Mini_Series = genres?.HasFlag(Genres.Mini_Series) ?? false;
-            Genre_Music = genres?.HasFlag(Genres.Music) ?? false;
-            Genre_Musical = genres?.HasFlag(Genres.Musical) ?? false;
-            Genre_Mystery = genres?.HasFlag(Genres.Mystery) ?? false;
-            Genre_News = genres?.HasFlag(Genres.News) ?? false;
-            Genre_Podcast = genres?.HasFlag(Genres.Podcast) ?? false;
-            Genre_Political = genres?.HasFlag(Genres.Political) ?? false;
-            Genre_Reality = genres?.HasFlag(Genres.Reality) ?? false;
-            Genre_Romance = genres?.HasFlag(Genres.Romance) ?? false;
-            Genre_Science_Fiction = genres?.HasFlag(Genres.Science_Fiction) ?? false;
-            Genre_Soap = genres?.HasFlag(Genres.Soap) ?? false;
-            Genre_Sports = genres?.HasFlag(Genres.Sports) ?? false;
-            Genre_Suspense = genres?.HasFlag(Genres.Suspense) ?? false;
-            Genre_Talk_Show = genres?.HasFlag(Genres.Talk_Show) ?? false;
-            Genre_Thriller = genres?.HasFlag(Genres.Thriller) ?? false;
-            Genre_Travel = genres?.HasFlag(Genres.Travel) ?? false;
-            Genre_TV_Movie = genres?.HasFlag(Genres.TV_Movie) ?? false;
-            Genre_War = genres?.HasFlag(Genres.War) ?? false;
-            Genre_Western = genres?.HasFlag(Genres.Western) ?? false;
-        }
-
-
+        
 
 
 
         /// <summary>
         /// Call this after setting all other fields
         /// </summary>
-        public void SetOtherInfo(List<string> extraSearchTerms, Genres? genres, TMDB_Entry tmdbInfo)
+        public void SetComputedInfo(List<string> extraSearchTerms, Genres? genres, TMDB_Entry tmdbInfo)
         {
             SetExraSearchTerms(extraSearchTerms);
             UpdateFromTMDB(tmdbInfo);

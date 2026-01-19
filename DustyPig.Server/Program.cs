@@ -88,14 +88,11 @@ builder.Services.AddScoped<JWTService>();
 builder.Services.AddScoped<TMDBService>();
 
 
-//If needs HttpClient then use that specific engine
-builder.Services.AddHttpClient<TMDBService>();
-//builder.Services.AddHttpClient<FirebaseAuthService>();
-builder.Services.AddTransient<FirebaseAuthService>();
 
 
 //Otherwise it can be singleton or transient
 builder.Services.AddTransient<S3Service>();
+builder.Services.AddTransient<FirebaseAuthService>();
 
 
 

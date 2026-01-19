@@ -352,6 +352,7 @@ public class MoviesController : _MediaControllerBase
             Date = movieInfo.Date,
             Description = movieInfo.Description,
             EntryType = MediaTypes.Movie,
+            ExtraSearchTerms = movieInfo.ExtraSearchTerms,
             IntroEndTime = movieInfo.IntroEndTime,
             IntroStartTime = movieInfo.IntroStartTime,
             Length = movieInfo.Length,
@@ -379,7 +380,7 @@ public class MoviesController : _MediaControllerBase
 
 
         var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Movie);
-        newItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.Genres, tmdbInfo);
+        newItem.SetComputedInfo(movieInfo.ExtraSearchTerms, movieInfo.Genres, tmdbInfo);
 
 
         //Save
@@ -484,6 +485,7 @@ public class MoviesController : _MediaControllerBase
         existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
         existingItem.Date = movieInfo.Date;
         existingItem.Description = movieInfo.Description;
+        existingItem.ExtraSearchTerms = movieInfo.ExtraSearchTerms;
         existingItem.IntroEndTime = movieInfo.IntroEndTime;
         existingItem.IntroStartTime = movieInfo.IntroStartTime;
         existingItem.Length = movieInfo.Length;
@@ -511,7 +513,7 @@ public class MoviesController : _MediaControllerBase
 
 
         var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Movie);
-        existingItem.SetOtherInfo(movieInfo.ExtraSearchTerms, movieInfo.Genres, tmdbInfo);
+        existingItem.SetComputedInfo(movieInfo.ExtraSearchTerms, movieInfo.Genres, tmdbInfo);
 
 
         //Save

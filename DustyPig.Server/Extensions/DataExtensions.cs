@@ -193,7 +193,7 @@ internal static class DataExtensions
             Title = self.Title,
             TMDB_Id = self.TMDB_Id,
             VideoUrl = playable ? self.VideoUrl : null,
-            ExtraSearchTerms = (self.ExtraSearchTerms ?? [])
+            ExtraSearchTerms = self.ExtraSearchTerms ?? []
         };
     }
 

@@ -143,7 +143,7 @@ public class EpisodesController : _MediaControllerBase
             return $"An episode already exists with the following parameters: {nameof(ownedSeries.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
-        newItem.SetOtherInfo(null, null, null);
+        newItem.SetComputedInfo(null, null, null);
 
 
         //Add the new item
@@ -383,7 +383,7 @@ public class EpisodesController : _MediaControllerBase
             return $"An episode already exists with the following parameters: {nameof(existingEpisode.LibraryId)}, {nameof(episodeInfo.TMDB_Id)}, {nameof(episodeInfo.Title)}";
 
 
-        existingEpisode.SetOtherInfo(null, null, null);
+        existingEpisode.SetComputedInfo(null, null, null);
 
 
         if (artChanged)

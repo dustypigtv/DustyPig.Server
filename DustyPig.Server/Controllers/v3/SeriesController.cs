@@ -247,6 +247,7 @@ public class SeriesController : _MediaControllerBase
             ArtworkUrl = seriesInfo.ArtworkUrl,
             BackdropUrl = seriesInfo.BackdropUrl,
             Description = seriesInfo.Description,
+            ExtraSearchTerms = seriesInfo.ExtraSearchTerms,
             EntryType = MediaTypes.Series,
             LibraryId = seriesInfo.LibraryId,
             TVRating = seriesInfo.Rated,
@@ -271,7 +272,7 @@ public class SeriesController : _MediaControllerBase
 
 
         var tmdbInfo = await GetTMDBInfoAsync(newItem.TMDB_Id, TMDB_MediaTypes.Series);
-        newItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
+        newItem.SetComputedInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
 
 
         //Add the new item
@@ -334,6 +335,7 @@ public class SeriesController : _MediaControllerBase
         existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
         existingItem.BackdropUrl = seriesInfo.BackdropUrl;
         existingItem.Description = seriesInfo.Description;
+        existingItem.ExtraSearchTerms = seriesInfo.ExtraSearchTerms;
         existingItem.LibraryId = seriesInfo.LibraryId;
         existingItem.TVRating = seriesInfo.Rated;
         existingItem.SortTitle = StringUtils.SortTitle(seriesInfo.Title);
@@ -357,7 +359,7 @@ public class SeriesController : _MediaControllerBase
 
 
         var tmdbInfo = await GetTMDBInfoAsync(existingItem.TMDB_Id, TMDB_MediaTypes.Series);
-        existingItem.SetOtherInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
+        existingItem.SetComputedInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
 
         //Update library/rated for episodes
         List<int> playlistIds = null;
