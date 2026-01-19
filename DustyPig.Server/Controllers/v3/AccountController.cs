@@ -1,9 +1,9 @@
 ﻿using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
-using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.Services;
 using DustyPig.Server.Utilities;
 using FirebaseAdmin.Auth;

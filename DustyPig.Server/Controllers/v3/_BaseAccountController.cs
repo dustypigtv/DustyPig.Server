@@ -1,5 +1,5 @@
-﻿using DustyPig.Server.Controllers.v3.Logic;
-using DustyPig.Server.Data;
+﻿using DustyPig.Server.Data;
+using DustyPig.Server.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Swashbuckle.AspNetCore.Annotations;

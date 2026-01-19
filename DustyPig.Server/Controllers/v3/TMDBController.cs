@@ -2,9 +2,9 @@
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
-using DustyPig.Server.Controllers.v3.Logic;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Server.Utilities;
 using DustyPig.TMDB.Models.Common;
