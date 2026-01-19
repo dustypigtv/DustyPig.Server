@@ -8,7 +8,7 @@ namespace DustyPig.Server.Services;
 /// <summary>
 /// Wraps Firebase.Auth.Client in a way that DI works correctly with IHttpClientFactory, IConfiguration and ILogger
 /// </summary>
-internal class FirebaseAuthService
+public class FirebaseAuthService
     : Firebase.Auth.Client
 {
     private const string CONFIG_KEY = "FIREBASE-AUTH-KEY";

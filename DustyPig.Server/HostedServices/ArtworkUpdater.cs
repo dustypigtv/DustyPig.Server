@@ -34,13 +34,15 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
     readonly ILogger<ArtworkUpdater> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly SafeTimer _updateTimer;
     private readonly SafeTimer _cleanupTimer;
     private bool disposedValue;
 
-    public ArtworkUpdater(IServiceProvider serviceProvider, ILogger<ArtworkUpdater> logger)
+    public ArtworkUpdater(IServiceProvider serviceProvider, IDbContextFactory<AppDbContext> dbContextFactory, ILogger<ArtworkUpdater> logger)
     {
         _serviceProvider = serviceProvider;
+        _dbContextFactory = dbContextFactory;
         _logger = logger;
         _updateTimer = new(UpdateTimerTick);
         _cleanupTimer = new(CleanupTimerTick, TimeSpan.FromDays(1));
@@ -70,8 +72,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
     {
         try
         {
-            using var scope = _serviceProvider.CreateScope();
-            using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            using var db = _dbContextFactory.CreateDbContext();
 
             //Get playlists marked for an update
             var playlist = await db.Playlists
@@ -311,8 +312,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
 
                     //Check if the url is in a playlist/PROFILE
-                    using var scope = _serviceProvider.CreateScope();
-                    using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    using var db = _dbContextFactory.CreateDbContext();
 
                     bool keep;
                     if (key == Constants.USER_PLAYLIST_PATH)

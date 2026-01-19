@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -25,13 +26,15 @@ public class TMDB_Updater : IHostedService, IDisposable
     private const int CHUNK_SIZE = 1000;
 
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly SafeTimer _timer;
     private readonly ILogger<TMDB_Updater> _logger;
 
 
-    public TMDB_Updater(IServiceProvider serviceProvider, ILogger<TMDB_Updater> logger)
+    public TMDB_Updater(IServiceProvider serviceProvider, IDbContextFactory<AppDbContext> dbContextFactory, ILogger<TMDB_Updater> logger)
     {
         _serviceProvider = serviceProvider;
+        _dbContextFactory = dbContextFactory;
         _logger = logger;
         _timer = new(TimerTick);
     }
@@ -60,18 +63,14 @@ public class TMDB_Updater : IHostedService, IDisposable
 
     private async Task TimerTick(CancellationToken cancellationToken)
     {
-        if (AppDbContext.Ready)
+        try
         {
-            try
-            {
-                using var scope = _serviceProvider.CreateScope();
-                using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                await DoUpdateAsync(db, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "DoWork");
-            }
+            using var db = _dbContextFactory.CreateDbContext();
+            await DoUpdateAsync(db, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DoWork");
         }
     }
 
@@ -164,9 +163,9 @@ public class TMDB_Updater : IHostedService, IDisposable
                 //Popularity
                 var cmd = conn.CreateCommand();
                 cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.Popularity)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
-                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Popularity));
-                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
+                cmd.Parameters.Add(new NpgsqlParameter("p1", info.Popularity));
+                cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+                cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
                 await cmd.ExecuteNonQueryAsync(cancellationToken);
 
 
@@ -179,9 +178,9 @@ public class TMDB_Updater : IHostedService, IDisposable
                     {
                         cmd = conn.CreateCommand();
                         cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.MovieRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.MovieRating)} IS NULL";
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", infoRating.Value));
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
+                        cmd.Parameters.Add(new NpgsqlParameter("p1", infoRating.Value));
+                        cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+                        cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
                         await cmd.ExecuteNonQueryAsync(cancellationToken);
                     }
                 }
@@ -194,9 +193,9 @@ public class TMDB_Updater : IHostedService, IDisposable
                     {
                         cmd = conn.CreateCommand();
                         cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TVRating)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TVRating)} IS NULL";
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", infoRating.Value));
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-                        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
+                        cmd.Parameters.Add(new NpgsqlParameter("p1", infoRating.Value));
+                        cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+                        cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
                         await cmd.ExecuteNonQueryAsync(cancellationToken);
                     }
                 }
@@ -206,10 +205,10 @@ public class TMDB_Updater : IHostedService, IDisposable
                 {
                     cmd = conn.CreateCommand();
                     cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.Description)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.Description)} IS NULL";
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Overview));
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", ""));
+                    cmd.Parameters.Add(new NpgsqlParameter("p1", info.Overview));
+                    cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+                    cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
+                    cmd.Parameters.Add(new NpgsqlParameter("p4", ""));
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
@@ -218,19 +217,19 @@ public class TMDB_Updater : IHostedService, IDisposable
                 {
                     cmd = conn.CreateCommand();
                     cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.BackdropUrl)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p3 AND {nameof(MediaEntry.EntryType)}=@p4 AND {nameof(MediaEntry.BackdropUrl)} IS NULL";
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.BackdropUrl));
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", tmdbId));
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p4", entryType));
-                    cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p5", ""));
+                    cmd.Parameters.Add(new NpgsqlParameter("p1", info.BackdropUrl));
+                    cmd.Parameters.Add(new NpgsqlParameter("p3", tmdbId));
+                    cmd.Parameters.Add(new NpgsqlParameter("p4", entryType));
+                    cmd.Parameters.Add(new NpgsqlParameter("p5", ""));
                     await cmd.ExecuteNonQueryAsync(cancellationToken);
                 }
 
                 //Link
                 cmd = conn.CreateCommand();
                 cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TMDB_EntryId)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3 AND {nameof(MediaEntry.TMDB_EntryId)} IS NULL";
-                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", info.Id));
-                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-                cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
+                cmd.Parameters.Add(new NpgsqlParameter("p1", info.Id));
+                cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+                cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
                 await cmd.ExecuteNonQueryAsync(cancellationToken);
             }
         }
@@ -248,9 +247,9 @@ public class TMDB_Updater : IHostedService, IDisposable
             var conn = await db.GetOpenDbConnection(cancellationToken);
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"UPDATE {db.GetTableName<MediaEntry>()} SET {nameof(MediaEntry.TMDB_Updated)}=@p1 WHERE {nameof(MediaEntry.TMDB_Id)}=@p2 AND {nameof(MediaEntry.EntryType)}=@p3";
-            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", DateTime.UtcNow));
-            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", entryType));
+            cmd.Parameters.Add(new NpgsqlParameter("p1", DateTime.UtcNow));
+            cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+            cmd.Parameters.Add(new NpgsqlParameter("p3", entryType));
         }
         catch (Exception ex)
         {
@@ -266,9 +265,9 @@ public class TMDB_Updater : IHostedService, IDisposable
             var conn = await db.GetOpenDbConnection(cancellationToken);
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"UPDATE {db.GetTableName<TMDB_Entry>()} SET {nameof(TMDB_Entry.LastUpdated)}=@p1 WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p2 AND {nameof(TMDB_Entry.MediaType)}=@p3";
-            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", DateTime.UtcNow));
-            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", tmdbId));
-            cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p3", (int)mediaType));
+            cmd.Parameters.Add(new NpgsqlParameter("p1", DateTime.UtcNow));
+            cmd.Parameters.Add(new NpgsqlParameter("p2", tmdbId));
+            cmd.Parameters.Add(new NpgsqlParameter("p3", (int)mediaType));
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -631,8 +630,8 @@ public class TMDB_Updater : IHostedService, IDisposable
         var conn = await db.GetOpenDbConnection(cancellationToken);
         var cmd = conn.CreateCommand();
         cmd.CommandText = $"DELETE FROM {db.GetTableName<TMDB_Entry>()} WHERE {nameof(TMDB_Entry.TMDB_Id)}=@p1 AND {nameof(TMDB_Entry.MediaType)}=@p2";
-        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p1", tmdbId));
-        cmd.Parameters.Add(new MySqlConnector.MySqlParameter("p2", (int)mediaType));
+        cmd.Parameters.Add(new NpgsqlParameter("p1", tmdbId));
+        cmd.Parameters.Add(new NpgsqlParameter("p2", (int)mediaType));
         await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 }

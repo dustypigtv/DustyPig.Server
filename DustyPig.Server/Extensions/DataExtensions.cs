@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using APIPerson = DustyPig.API.v3.Models.BasicPerson;
@@ -192,7 +193,7 @@ internal static class DataExtensions
             Title = self.Title,
             TMDB_Id = self.TMDB_Id,
             VideoUrl = playable ? self.VideoUrl : null,
-            ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(item => item.Term).Order().ToList()
+            ExtraSearchTerms = (self.ExtraSearchTerms ?? [])
         };
     }
 
@@ -212,7 +213,7 @@ internal static class DataExtensions
             Rated = self.TVRating ?? TVRatings.None,
             Title = self.Title,
             TMDB_Id = self.TMDB_Id,
-            ExtraSearchTerms = (self.ExtraSearchTerms ?? []).Select(_ => _.Term).Order().ToList(),
+            ExtraSearchTerms = self.ExtraSearchTerms ?? [],
             CanManage = true
         };
     }
@@ -395,7 +396,7 @@ internal static class DataExtensions
     }
 
 
-    public static async Task<(Account Account, Profile Profile)> VerifyAsync(this ClaimsPrincipal self)
+    public static async Task<(Account Account, Profile Profile)> VerifyAsync(this ClaimsPrincipal self, AppDbContext db)
     {
         var acctId = self.GetAccountId();
         var authTokenId = self.GetAuthTokenId();
@@ -404,8 +405,6 @@ internal static class DataExtensions
 
         if (acctId == null || authTokenId == null)
             return (null, null);
-
-        using var db = new AppDbContext();
 
         var account = await db.Accounts
             .AsNoTracking()

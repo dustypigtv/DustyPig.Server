@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DustyPig.Server.Services.TMDB_Service;
 
-internal class CreditsDTO
+public class CreditsDTO
 {
     public List<CrewDTO> CrewMembers { get; } = [];
     public List<CastDTO> CastMembers { get; } = [];

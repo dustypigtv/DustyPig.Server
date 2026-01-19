@@ -14,14 +14,14 @@ namespace DustyPig.Server.HostedServices;
 public class DBCleaner : IHostedService, IDisposable
 {
     private readonly SafeTimer _timer;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly ILogger<DBCleaner> _logger;
 
     private bool _disposed;
 
-    public DBCleaner(IServiceProvider serviceProvider, ILogger<DBCleaner> logger)
+    public DBCleaner(IDbContextFactory<AppDbContext> dbContextFactory, ILogger<DBCleaner> logger)
     {
-        _serviceProvider = serviceProvider;
+        _dbContextFactory = dbContextFactory;
         _logger = logger;
         _timer = new SafeTimer(TimerTick, TimeSpan.FromDays(1));
     }
@@ -41,8 +41,7 @@ public class DBCleaner : IHostedService, IDisposable
 
     private async Task TimerTick(CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
-        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var db = _dbContextFactory.CreateDbContext();
 
         var dt = DateTime.UtcNow.AddDays(-1);
 

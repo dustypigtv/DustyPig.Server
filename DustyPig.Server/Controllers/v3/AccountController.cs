@@ -19,9 +19,7 @@ using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
 
-[ApiController]
-[ApiExplorerSettings(GroupName = "Account")]
-internal class AccountController : _BaseController
+public class AccountController : _BaseController
 {
     private readonly FirebaseAuthService _firebaseAuthService;
 
@@ -95,7 +93,7 @@ internal class AccountController : _BaseController
         try { data.Validate(); }
         catch (ModelValidationException ex) { return Result.BuildError(ex); }
 
-        var (account, profile) = await User.VerifyAsync();
+        var (account, profile) = await User.VerifyAsync(DB);
 
         if (account.Id == TestAccount.AccountId)
             return CommonResponses.ProhibitTestUser();
@@ -144,7 +142,7 @@ internal class AccountController : _BaseController
         try { data.Validate(); }
         catch (ModelValidationException ex) { return Result.BuildError(ex); }
 
-        var (account, profile) = await User.VerifyAsync();
+        var (account, profile) = await User.VerifyAsync(DB);
         if (profile == null)
             return Unauthorized();
 
@@ -196,7 +194,7 @@ internal class AccountController : _BaseController
         try { data.Validate(); }
         catch (ModelValidationException ex) { return Result.BuildError(ex); }
 
-        var (account, profile) = await User.VerifyAsync();
+        var (account, profile) = await User.VerifyAsync(DB);
         if (profile == null)
             return Unauthorized();
 

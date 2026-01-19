@@ -14,8 +14,14 @@ namespace DustyPig.Server.Pages.FirebaseActions;
 internal class IndexModel : PageModel
 {
     private readonly FirebaseAuthService _firebaseAuthService;
+    private readonly AppDbContext _db;
 
-    public IndexModel(FirebaseAuthService client) => _firebaseAuthService = client;
+    public IndexModel(FirebaseAuthService client, AppDbContext db)
+    {
+        _firebaseAuthService = client;
+        _db = db;
+    }
+
 
     [BindProperty]
     public FirebaseActionModel FAM { get; set; }
@@ -90,8 +96,7 @@ internal class IndexModel : PageModel
             //Reset pin
             bool pinWasReset = false;
             var fbUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(ret.Data.Email);
-            var db = new AppDbContext();
-            var acct = await db.Accounts
+            var acct = await _db.Accounts
                 .AsNoTracking()
                 .Include(a => a.Profiles.Where(p => p.IsMain))
                 .Where(a => a.FirebaseId == fbUser.Uid)
@@ -103,8 +108,8 @@ internal class IndexModel : PageModel
                 if (prof != null && prof.PinNumber != null)
                 {
                     prof.PinNumber = null;
-                    db.Profiles.Update(prof);
-                    await db.SaveChangesAsync();
+                    _db.Profiles.Update(prof);
+                    await _db.SaveChangesAsync();
                     pinWasReset = true;
                 }
             }

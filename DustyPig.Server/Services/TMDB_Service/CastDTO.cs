@@ -1,6 +1,6 @@
 ﻿namespace DustyPig.Server.Services.TMDB_Service;
 
-internal class CastDTO
+public class CastDTO
 {
     public int Id { get; set; }
     public string Name { get; set; }

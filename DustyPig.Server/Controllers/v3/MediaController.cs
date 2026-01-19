@@ -21,14 +21,15 @@ using Enum = System.Enum;
 
 namespace DustyPig.Server.Controllers.v3;
 
-[ApiController]
-internal class MediaController : _MediaControllerBase
+public class MediaController : _MediaControllerBase
 {
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly TMDBService _tmdbClient;
 
-    public MediaController(AppDbContext db, TMDBService tmdbClient) : base(db)
+    public MediaController(AppDbContext db, TMDBService tmdbClient, IDbContextFactory<AppDbContext> dbContextFactory) : base(db)
     {
         _tmdbClient = tmdbClient;
+        _dbContextFactory = dbContextFactory;
     }
 
 
@@ -53,7 +54,7 @@ internal class MediaController : _MediaControllerBase
                     DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING,
                     DustyPig.API.v3.Clients.MediaClient.ID_CONTINUE_WATCHING_TITLE
                 ),
-                ContinueWatchingAsync(new AppDbContext(), 0, itemsPerSection)
+                ContinueWatchingAsync(_dbContextFactory.CreateDbContext(), 0, itemsPerSection)
            );
 
 
@@ -64,7 +65,7 @@ internal class MediaController : _MediaControllerBase
                     DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST,
                     DustyPig.API.v3.Clients.MediaClient.ID_WATCHLIST_TITLE
                 ),
-                WatchlistAsync(new AppDbContext(), 0, itemsPerSection)
+                WatchlistAsync(_dbContextFactory.CreateDbContext(), 0, itemsPerSection)
             );
 
 
@@ -75,7 +76,7 @@ internal class MediaController : _MediaControllerBase
                     DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS,
                     DustyPig.API.v3.Clients.MediaClient.ID_PLAYLISTS_TITLE
                 ),
-                PlaylistsAsync(new AppDbContext(), 0, itemsPerSection)
+                PlaylistsAsync(_dbContextFactory.CreateDbContext(), 0, itemsPerSection)
             );
 
         taskDict.Add
@@ -85,7 +86,7 @@ internal class MediaController : _MediaControllerBase
                    DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED,
                    DustyPig.API.v3.Clients.MediaClient.ID_RECENTLY_ADDED_TITLE
                ),
-               RecentlyAddedAsync(new AppDbContext(), 0, itemsPerSection)
+               RecentlyAddedAsync(_dbContextFactory.CreateDbContext(), 0, itemsPerSection)
            );
 
         taskDict.Add
@@ -95,7 +96,7 @@ internal class MediaController : _MediaControllerBase
                    DustyPig.API.v3.Clients.MediaClient.ID_POPULAR,
                    DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE
                ),
-               PopularAsync(new AppDbContext(), 0, MAX_DB_LIST_SIZE)
+               PopularAsync(_dbContextFactory.CreateDbContext(), 0, MAX_DB_LIST_SIZE)
            );
 
 

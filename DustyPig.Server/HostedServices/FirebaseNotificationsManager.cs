@@ -18,6 +18,7 @@ namespace DustyPig.Server.HostedServices;
 public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly FirestoreDb _firestoreDb;
     private readonly SafeTimer _timer;
     private readonly ILogger<FirebaseNotificationsManager> _logger;
@@ -27,9 +28,10 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     //Only delete old tokens once a day
     //private static DateTime _lastTokenDelete = DateTime.Now.AddDays(-2);
 
-    public FirebaseNotificationsManager(FirestoreDb firestoreDb, IServiceProvider serviceProvider, ILogger<FirebaseNotificationsManager> logger)
+    public FirebaseNotificationsManager(FirestoreDb firestoreDb, IServiceProvider serviceProvider, IDbContextFactory<AppDbContext> dbContextFactory, ILogger<FirebaseNotificationsManager> logger)
     {
         _serviceProvider = serviceProvider;
+        _dbContextFactory = dbContextFactory;
         _firestoreDb = firestoreDb;
         _logger = logger;
         _timer = new(TimerTick);
@@ -52,8 +54,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
 
     private async Task TimerTick(CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
-        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var db = _dbContextFactory.CreateDbContext();
 
 
         try

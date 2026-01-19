@@ -20,6 +20,8 @@
 
 
 	<ItemGroup>
+		<PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.1.0" />
+		<PackageReference Include="Aspire.Seq" Version="13.1.0" />
 		<PackageReference Include="AWSSDK.S3" Version="4.0.17.2" />
 		<PackageReference Include="DustyPig.API" Version="3.7.1.300" />
 		<PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.25" />
@@ -27,17 +29,22 @@
 		<PackageReference Include="DustyPig.TMDB" Version="3.3.0.43" />
 		<PackageReference Include="FirebaseAdmin" Version="3.4.0" />
 		<PackageReference Include="Google.Cloud.Firestore" Version="4.1.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.2">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
-		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="10.1.0" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <ProjectReference Include="..\DustyPig.ServiceDefaults\DustyPig.ServiceDefaults.csproj" />
 	</ItemGroup>
 
 </Project>

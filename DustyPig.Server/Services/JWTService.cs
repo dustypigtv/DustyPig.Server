@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace DustyPig.Server.Services;
 
-internal class JWTService : IDisposable
+public class JWTService : IDisposable
 {
     private const string CONFIG_KEY = "JWT-KEY";
 

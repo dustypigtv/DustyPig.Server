@@ -1,6 +1,6 @@
 ﻿namespace DustyPig.Server.Services.TMDB_Service;
 
-internal class CrewDTO
+public class CrewDTO
 {
     public int Id { get; set; }
     public string Name { get; set; }

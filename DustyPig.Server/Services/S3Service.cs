@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace DustyPig.Server.Services;
 
 
-internal class S3Service : IDisposable
+public class S3Service : IDisposable
 {
     private const string CONFIG_KEY_KEY = "S3-KEY";
     private const string CONFIG_KEY_SECRET = "S3-SECRET";

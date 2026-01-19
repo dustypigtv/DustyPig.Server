@@ -20,8 +20,7 @@ using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
 
-[ApiController]
-internal class AuthController : _BaseController
+public class AuthController : _BaseController
 {
     private readonly FirebaseAuthService _firebaseAuthService;
     private readonly JWTService _jwtService;
@@ -226,7 +225,7 @@ internal class AuthController : _BaseController
         try { code.Validate(); }
         catch (ModelValidationException) { return CommonResponses.InvalidValue(nameof(code)); }
 
-        var (account, profile) = await User.VerifyAsync();
+        var (account, profile) = await User.VerifyAsync(DB);
         if (profile == null)
             return Unauthorized();
 
@@ -273,14 +272,13 @@ internal class AuthController : _BaseController
         try { credentials.Validate(); }
         catch (ModelValidationException ex) { return Result<ProfileLoginResponse>.BuildError(ex); }
 
-        var (account, _) = await User.VerifyAsync();
+        var (account, _) = await User.VerifyAsync(DB);
 
         if (account == null)
             return Unauthorized();
 
-        using var db = new AppDbContext();
 
-        var profiles = await db.Profiles
+        var profiles = await DB.Profiles
             .AsNoTracking()
             .Include(item => item.FCMTokens)
             .Where(item => item.AccountId == account.Id)
@@ -324,7 +322,7 @@ internal class AuthController : _BaseController
     [SwaggerResponse((int)HttpStatusCode.Unauthorized)]
     public async Task<Result> Signout()
     {
-        var (account, profile) = await User.VerifyAsync();
+        var (account, profile) = await User.VerifyAsync(DB);
 
         if (account == null)
             return Result.BuildSuccess();
@@ -418,7 +416,7 @@ internal class AuthController : _BaseController
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
     public async Task<ActionResult<Result<string>>> UpdateFCMToken(API.v3.Models.FCMToken fcmToken)
     {
-        var (account, profile) = await User.VerifyAsync();
+        var (account, profile) = await User.VerifyAsync(DB);
 
         if (account == null || profile == null)
             return Unauthorized();

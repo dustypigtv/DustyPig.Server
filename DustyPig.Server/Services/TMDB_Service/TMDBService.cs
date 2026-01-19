@@ -15,7 +15,7 @@ namespace DustyPig.Server.Services.TMDB_Service;
 /// <summary>
 /// Provides a wrapper around Common TMDB api endpoints and objects
 /// </summary>
-internal class TMDBService : TMDB.Client
+public class TMDBService : TMDB.Client
 {
     private const string CONFIG_KEY = "TMDB-API-KEY";
 

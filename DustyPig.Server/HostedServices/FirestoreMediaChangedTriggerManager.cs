@@ -34,7 +34,7 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     {
         _firestoreDb = firestoreDb;
         _logger = logger;
-        _timer = new(TimerTick, TimeSpan.FromMicroseconds(TICK_INTERVAL_MS));
+        _timer = new(TimerTick, TimeSpan.FromMilliseconds(TICK_INTERVAL_MS));
     }
 
 
@@ -102,7 +102,6 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     {
         while (queue.TryDequeue(out int profileId))
         {
-            await Task.Delay(TimeSpan.FromMicroseconds(TICK_INTERVAL_MS), cancellationToken);
             await WriteDoc(key, profileId, cancellationToken);
         }
     }

@@ -2,35 +2,35 @@
 using DustyPig.Server.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DustyPig.Server.Controllers.v3
+namespace DustyPig.Server.Controllers.v3;
+
+[ApiController]
+[Route("api/v3/[controller]/[action]")]
+[Produces("application/json")]
+[Consumes("application/json", IsOptional = true)]
+public abstract class _BaseController : Controller
 {
-    [Route("api/v{version:apiVersion}/[controller]/[action]")]
-    [Produces("application/json")]
-    [Consumes("application/json", IsOptional = true)]
-    public abstract class _BaseController : Controller
+    private bool _disposed = false;
+
+    public _BaseController(AppDbContext db) => DB = db;
+
+    public Account UserAccount { get; set; }
+
+    public Profile UserProfile { get; set; }
+
+    public AppDbContext DB { get; private set; }
+
+
+    protected override void Dispose(bool disposing)
     {
-        private bool _disposed = false;
-
-        public _BaseController(AppDbContext db) => DB = db;
-
-        public Account UserAccount { get; set; }
-
-        public Profile UserProfile { get; set; }
-
-        public AppDbContext DB { get; private set; }
-
-
-        protected override void Dispose(bool disposing)
+        if (!_disposed)
         {
-            if (!_disposed)
+            if (disposing)
             {
-                if (disposing)
-                {
-                    DB.Dispose();
-                }
-                _disposed = true;
+                DB.Dispose();
             }
-            base.Dispose(disposing);
+            _disposed = true;
         }
+        base.Dispose(disposing);
     }
 }

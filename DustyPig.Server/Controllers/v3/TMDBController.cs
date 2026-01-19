@@ -19,9 +19,8 @@ using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
 
-[ApiController]
 [ProhibitTestUser]
-internal class TMDBController : _BaseProfileController
+public class TMDBController : _BaseProfileController
 {
     private readonly TMDBService _tmdbService;
 

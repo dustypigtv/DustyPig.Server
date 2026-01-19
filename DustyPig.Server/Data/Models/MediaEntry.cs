@@ -1,5 +1,6 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -242,7 +243,7 @@ namespace DustyPig.Server.Data.Models
 
 
 
-        public List<ExtraSearchTerm> ExtraSearchTerms { get; set; } = [];
+        public List<string> ExtraSearchTerms { get; set; } = [];
 
         public List<PlaylistItem> PlaylistItems { get; set; } = [];
 
@@ -455,22 +456,11 @@ namespace DustyPig.Server.Data.Models
                 return;
             }
 
-            newTerms = (newTerms ?? [])
-                    .Where(term => !string.IsNullOrWhiteSpace(term))
+            ExtraSearchTerms = (newTerms ?? [])
+                    .Where(term => term.HasValue())
+                    .Select(term => term.ToLower().Trim())
                     .Distinct()
                     .ToList();
-
-            ExtraSearchTerms.RemoveAll(existingTerm => !newTerms.Contains(existingTerm.Term));
-            ExtraSearchTerms.AddRange
-                (
-                    newTerms
-                        .Where(term => !ExtraSearchTerms.Any(existingTerm => existingTerm.Term == term))
-                        .Select(term => new ExtraSearchTerm
-                        {
-                            MediaEntry = this,
-                            Term = term
-                        })
-                );
         }
 
 

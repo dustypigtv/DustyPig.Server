@@ -18,4 +18,6 @@ public static class Misc
         return s;
     }
 
+
+    public static Version ServerVersion => typeof(Program).Assembly.GetName().Version;
 }
