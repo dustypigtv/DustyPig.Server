@@ -3,16 +3,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Net.Http;
 
 namespace DustyPig.Server
 {
     public class Program
     {
-        //Shared HttpClient to use across the entire app
-        public static readonly HttpClient SharedHttpClient = new();
-
-
         public static void Main(string[] args)
         {
             try
