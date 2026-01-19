@@ -23,7 +23,7 @@ public class NoOpAnyController : Controller
 
 
 [ApiExplorerSettings(GroupName = "NoOp")]
-//[Route("api/v3/NoOp/[action]")]
+[Route("api/v3/NoOp/[action]")]
 public class NoOpAccountController : _BaseAccountController
 {
     public NoOpAccountController(AppDbContext db) : base(db) { }
@@ -38,7 +38,7 @@ public class NoOpAccountController : _BaseAccountController
 
 
 [ApiExplorerSettings(GroupName = "NoOp")]
-//[Route("api/v3/NoOp/[action]")]
+[Route("api/v3/NoOp/[action]")]
 public class NoOpProfileController : _BaseProfileController
 {
     public NoOpProfileController(AppDbContext db) : base(db) { }

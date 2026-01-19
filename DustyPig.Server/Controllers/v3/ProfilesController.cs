@@ -23,6 +23,7 @@ namespace DustyPig.Server.Controllers.v3;
 /// the profile to already be signed in
 /// </summary>
 [ApiExplorerSettings(GroupName = "Profiles")]
+[Route("api/v3/Profiles/[action]")]
 public class ProfilesListController : _BaseAccountController
 {
     public ProfilesListController(AppDbContext db) : base(db) { }

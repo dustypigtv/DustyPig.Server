@@ -22,9 +22,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 // Add service defaults & Aspire client integrations.
+// Disable seq when adding migrations
 builder.AddServiceDefaults();
-builder.AddSeqEndpoint("seq");
-
+builder.AddSeqEndpoint("seq");  
 builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 
 
@@ -90,7 +90,8 @@ builder.Services.AddScoped<TMDBService>();
 
 //If needs HttpClient then use that specific engine
 builder.Services.AddHttpClient<TMDBService>();
-builder.Services.AddHttpClient<FirebaseAuthService>();
+//builder.Services.AddHttpClient<FirebaseAuthService>();
+builder.Services.AddTransient<FirebaseAuthService>();
 
 
 //Otherwise it can be singleton or transient
