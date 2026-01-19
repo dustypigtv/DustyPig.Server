@@ -323,7 +323,7 @@ namespace DustyPig.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            AppDbContext.Migrate(app.ApplicationServices);
+            //AppDbContext.Migrate(app.ApplicationServices);
 
             app.UseHealthChecks("/health");
 

@@ -19,7 +19,7 @@ using DataTMDB_Person = DustyPig.Server.Data.Models.TMDB_Person;
 
 namespace DustyPig.Server.Data
 {
-    public partial class AppDbContext : DbContext
+    public class AppDbContext : DbContext
     {
         public static bool Ready { get; private set; }
 
@@ -113,14 +113,14 @@ namespace DustyPig.Server.Data
 
 
         /// <summary>
-        /// This calls <see cref="DbContext.SaveChangesAsync(bool, CancellationToken)"/> on <paramref name="db"/>
+        /// This calls <see cref="DbContext.SaveChangesAsync(bool, CancellationToken)"/>
         /// </summary>
-        public static async Task MarkPlaylistArtworkNeedsupdate(this AppDbContext db, List<int> ids, CancellationToken cancellationToken = default)
+        public async Task MarkPlaylistArtworkNeedsupdate(List<int> ids, CancellationToken cancellationToken = default)
         {
             if (ids == null || ids.Count == 0)
                 return;
 
-            var playlists = await db.Playlists
+            var playlists = await Playlists
                 .Where(_ => ids.Contains(_.Id))
                 .ToListAsync(cancellationToken);
 
@@ -128,7 +128,7 @@ namespace DustyPig.Server.Data
                 return;
 
             playlists.ForEach(_ => _.ArtworkUpdateNeeded = true);
-            await db.SaveChangesAsync(cancellationToken);
+            await SaveChangesAsync(cancellationToken);
         }
 
 
@@ -136,10 +136,10 @@ namespace DustyPig.Server.Data
 
 
 
-        public static async Task<List<int>> GetLibraryIdsAccessableByAccount(this AppDbContext db, int accountId)
+        public async Task<List<int>> GetLibraryIdsAccessableByAccount(int accountId)
         {
             //Libs owned by the account
-            var libs = await db.Libraries
+            var libs = await Libraries
                 .AsNoTracking()
                 .Where(item => item.AccountId == accountId)
                 .Select(item => item.Id)
@@ -147,7 +147,7 @@ namespace DustyPig.Server.Data
 
 
             //Libs shared with the account
-            var sharedLibs = await db.FriendLibraryShares
+            var sharedLibs = await FriendLibraryShares
                 .AsNoTracking()
 
                 .Include(item => item.Friendship)
