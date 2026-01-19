@@ -45,8 +45,6 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BackdropUrl { get; set; }
 
-        public ulong BackdropSize { get; set; }
-
         public double Popularity { get; set; }
 
         public DateTime LastUpdated { get; set; }

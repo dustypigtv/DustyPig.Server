@@ -11,7 +11,6 @@ internal class TMDBInfo
     public int Id { get; set; }
     public double Popularity { get; set; }
     public string BackdropUrl { get; set; }
-    public ulong BackdropSize { get; set; }
     public MovieRatings? MovieRating { get; set; }
     public TVRatings? TVRating { get; set; }
     public string Overview { get; set; }
@@ -23,7 +22,6 @@ internal class TMDBInfo
         {
             Id = entry.Id,
             BackdropUrl = entry.BackdropUrl,
-            BackdropSize = entry.BackdropSize,
             MovieRating = entry.MovieRating,
             Overview = entry.Description,
             Popularity = entry.Popularity,
