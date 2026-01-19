@@ -43,7 +43,6 @@ namespace DustyPig.Server.Data
         public DbSet<GetRequest> GetRequests { get; set; }
         public DbSet<GetRequestSubscription> GetRequestSubscriptions { get; set; }
         public DbSet<Library> Libraries { get; set; }
-        public DbSet<LogEntry> Logs { get; set; }
         public DbSet<MediaEntry> MediaEntries { get; set; }
         public DbSet<DataNotifications> Notifications { get; set; }
         public DbSet<Playlist> Playlists { get; set; }
@@ -51,7 +50,6 @@ namespace DustyPig.Server.Data
         public DbSet<Profile> Profiles { get; set; }
         public DbSet<ProfileLibraryShare> ProfileLibraryShares { get; set; }
         public DbSet<ProfileMediaProgress> ProfileMediaProgresses { get; set; }
-        public DbSet<S3ArtFileToDelete> S3ArtFilesToDelete { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<TitleOverride> TitleOverrides { get; set; }
         public DbSet<WatchlistItem> WatchListItems { get; set; }
