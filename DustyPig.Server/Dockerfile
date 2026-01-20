@@ -2,13 +2,11 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-RUN apt-get update && apt-get install curl -y
 LABEL org.opencontainers.image.source="https://github.com/dustypigtv/dustypig.server"
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 VOLUME /config
-VOLUME /logs
 
 
 
