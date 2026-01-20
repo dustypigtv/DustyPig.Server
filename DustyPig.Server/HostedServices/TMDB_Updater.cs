@@ -88,6 +88,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
                 .Where(m => m.TMDB_Id.HasValue)
                 .Where(m => m.TMDB_Id > 0)
+                .Where(m => m.TMDB_Updated < DateTime.UtcNow.AddDays(-1))
                 .Select(m => new
                 {
                     m.TMDB_Id,
@@ -170,6 +171,9 @@ public class TMDB_Updater : IHostedService, IDisposable
                         .Skip(start)
                         .Take(CHUNK_SIZE)
                         .ToListAsync(cancellationToken);
+
+                    if (mediaEntries.Count == 0)
+                        break;
 
                     foreach(var mediaEntry in mediaEntries)
                     {
@@ -277,7 +281,8 @@ public class TMDB_Updater : IHostedService, IDisposable
     {
         try
         {
-            var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
+            using var scope = _serviceProvider.CreateScope();
+            var tmdbService = scope.ServiceProvider.GetRequiredService<TMDBService>();
             var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
             var movie = response.Data;
@@ -298,7 +303,8 @@ public class TMDB_Updater : IHostedService, IDisposable
     {
         try
         {
-            var tmdbService = _serviceProvider.GetRequiredService<TMDBService>();
+            using var scope = _serviceProvider.CreateScope();
+            var tmdbService = scope.ServiceProvider.GetRequiredService<TMDBService>();
             var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
             var series = response.Data;
