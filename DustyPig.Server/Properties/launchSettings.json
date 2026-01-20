@@ -20,7 +20,7 @@
       "useSSL": false,
       "containerName": "DustyPig.Server",
       "httpPort": 8080,
-      "containerRunArguments": "--mount type=bind,source=\"C:/dustypig/config\",target=\"/config\" --mount type=bind,source=\"C:/dustypig/logs\",target=\"/logs\""
+      "containerRunArguments": "--mount type=bind,source=\"C:/dustypig/db-shared\",target=\"/db-shared\""
     }
   },
   "$schema": "http://json.schemastore.org/launchsettings.json"
