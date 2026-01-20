@@ -72,7 +72,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         //Documentation says supply both async and sync versions
         optionsBuilder
-            .UseSeeding((context, _) =>
+            .UseSeeding(async (context, _) =>
             {
                 var db = context as AppDbContext;
 
@@ -89,10 +89,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                     if (!db.Libraries.Where(_ => _.Id == seedLibrary.Id).Any())
                         db.Libraries.Add(seedLibrary);
 
-                var seedMediaEntries = SeedData.SeedMediaEntries();
-                foreach (var seedMediaEntry in seedMediaEntries)
-                    if (!db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).Any())
-                        db.MediaEntries.Add(seedMediaEntry);
+                foreach (var batch in SeedData.SeedMediaEntryBatches())
+                {
+                    foreach (var seedMediaEntry in batch)
+                        if (!db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).Any())
+                            db.MediaEntries.Add(seedMediaEntry);
+                    
+                }
 
                 db.SaveChanges();
             })
@@ -113,11 +116,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                     if (!(await db.Libraries.Where(_ => _.Id == seedLibrary.Id).AnyAsync(cancellationToken)))
                         db.Libraries.Add(seedLibrary);
 
-                var seedMediaEntries = SeedData.SeedMediaEntries();
-                foreach (var seedMediaEntry in seedMediaEntries)
-                    if (!(await db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).AnyAsync(cancellationToken)))
-                        db.MediaEntries.Add(seedMediaEntry);
-            
+                foreach (var batch in SeedData.SeedMediaEntryBatches())
+                {
+                    foreach (var seedMediaEntry in batch)
+                        if (!(await db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).AnyAsync(cancellationToken)))
+                            db.MediaEntries.Add(seedMediaEntry);
+
+                }
+
                 await db.SaveChangesAsync(cancellationToken);
             });
     }

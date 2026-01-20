@@ -45,7 +45,10 @@ internal static class SeedData
         }
     };
 
-    public static MediaEntry[] SeedMediaEntries()
+    public static IReadOnlyList<MediaEntry[]> SeedMediaEntryBatches() => [SeedMovies(), SeedTVShows(), SeedEpisodes()];
+
+
+    private static MediaEntry[] SeedMovies()
     {
         var ret = new MediaEntry[]
         {
@@ -153,8 +156,19 @@ internal static class SeedData
                 Added = DateTime.UtcNow,
                 MovieRating = MovieRatings.G,
                 Genre_Animation = true
-            },
+            }
+        };
 
+        foreach (var mediaEntry in ret)
+            mediaEntry.SetComputedInfo([], mediaEntry.GetGenreFlags(), null);
+
+        return ret;
+    }
+
+    private static MediaEntry[] SeedTVShows()
+    {
+        var ret = new MediaEntry[]
+        {
             new MediaEntry
             {
                 Id = -6,
@@ -170,8 +184,19 @@ internal static class SeedData
                 Genre_Animation = true,
                 Genre_Children = true,
                 Genre_Family = true
-            },
+            }
+        };
 
+        foreach (var mediaEntry in ret)
+            mediaEntry.SetComputedInfo([], mediaEntry.GetGenreFlags(), null);
+
+        return ret;
+    }
+
+    private static MediaEntry[] SeedEpisodes()
+    {
+        var ret = new MediaEntry[]
+        {
             new MediaEntry
             {
                 Id = -7,
@@ -180,7 +205,7 @@ internal static class SeedData
                 Title = "Llama Drama",
                 Date = new DateOnly(2013, 09, 29),
                 Description = "Koro has trouble crossing an apparent desolate road, a problem that an unwitting Armadillo does not share.",
-                LinkedToId = 6,
+                LinkedToId = -6,
                 Season = 1,
                 Episode = 1,
                 Length = 90.001,
@@ -199,7 +224,7 @@ internal static class SeedData
                 Title = "Gran Dillama",
                 Date = new(2013, 11, 22),
                 Description = "Koro hunts for food on the other side of a fence and is once again inspired by the Armadillo but this time to a shocking effect.",
-                LinkedToId = 6,
+                LinkedToId = -6,
                 Season = 1,
                 Episode = 2,
                 Length = 146.008,
@@ -218,7 +243,7 @@ internal static class SeedData
                 Title = "Llamigos",
                 Date = new DateOnly(2013, 12, 20),
                 Description = "Koro meets Oti, a pesky Magellanic penguin, in an epic battle over tasty red berries during the winter.",
-                LinkedToId = 6,
+                LinkedToId = -6,
                 Season = 1,
                 Episode = 3,
                 Length = 150.048,
