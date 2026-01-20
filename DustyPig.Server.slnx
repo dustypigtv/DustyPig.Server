@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".github/workflows/release.yml" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="DustyPig.AppHost/DustyPig.AppHost.csproj" />
+  <Project Path="DustyPig.Server/DustyPig.Server.csproj" />
+  <Project Path="DustyPig.ServiceDefaults/DustyPig.ServiceDefaults.csproj" />
+</Solution>
