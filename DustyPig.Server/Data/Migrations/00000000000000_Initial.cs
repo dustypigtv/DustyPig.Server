@@ -653,16 +653,6 @@ namespace DustyPig.Server.Data.Migrations
                         onDelete: ReferentialAction.SetNull);
                 });
 
-            migrationBuilder.InsertData(
-                table: "Accounts",
-                columns: new[] { "Id", "FirebaseId" },
-                values: new object[] { -1, "TEST ACCOUNT" });
-
-            migrationBuilder.InsertData(
-                table: "Profiles",
-                columns: new[] { "Id", "AccountId", "AvatarUrl", "IsMain", "Locked", "MaxMovieRating", "MaxTVRating", "Name", "PinNumber", "TitleRequestPermission" },
-                values: new object[] { -1, -1, "https://s3.dustypig.tv/user-art-defaults/profile/grey.png", true, false, 6, 7, "Test User", null, (byte)0 });
-
             migrationBuilder.CreateIndex(
                 name: "IX_Accounts_FirebaseId",
                 table: "Accounts",

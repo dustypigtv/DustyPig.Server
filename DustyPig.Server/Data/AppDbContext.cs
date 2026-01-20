@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Runtime.InteropServices.Marshalling;
 using System.Threading;
 using System.Threading.Tasks;
 using DataFCMToken = DustyPig.Server.Data.Models.FCMToken;
@@ -45,7 +46,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DataTMDB_Person> TMDB_People { get; set; }
     public DbSet<TMDB_EntryPersonBridge> TMDB_EntryPeopleBridges { get; set; }
 
-    
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,25 +64,69 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasOne(p => p.TitleOverride).WithMany().OnDelete(DeleteBehavior.SetNull);
         });
-
-
-        modelBuilder.Entity<Account>().HasData(new Account 
-        {
-            Id = TestAccount.AccountId,
-            FirebaseId = TestAccount.FirebaseId
-        });
-
-        modelBuilder.Entity<Profile>().HasData(new Profile
-        {
-            Id = TestAccount.ProfileId,
-            AccountId = TestAccount.AccountId,
-            AvatarUrl = TestAccount.AvatarUrl,
-            IsMain = true,
-            MaxMovieRating = MovieRatings.Unrated,
-            MaxTVRating = TVRatings.NotRated,
-            Name = TestAccount.Name
-        });
     }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        //Documentation says supply both async and sync versions
+        optionsBuilder
+            .UseSeeding((context, _) =>
+            {
+                var db = context as AppDbContext;
+
+                var seedAccount = SeedData.SeedAccount();
+                if (!db.Accounts.Where(_ => _.Id == seedAccount.Id).Any())
+                    db.Accounts.Add(seedAccount);
+
+                var seedProfile = SeedData.SeedProfile();
+                if (!db.Profiles.Where(_ => _.Id == seedProfile.Id).Any())
+                    db.Profiles.Add(seedProfile);
+
+                var seedLibraries = SeedData.SeedLibraries();
+                foreach (var seedLibrary in seedLibraries)
+                    if (!db.Libraries.Where(_ => _.Id == seedLibrary.Id).Any())
+                        db.Libraries.Add(seedLibrary);
+
+                var seedMediaEntries = SeedData.SeedMediaEntries();
+                foreach (var seedMediaEntry in seedMediaEntries)
+                    if (!db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).Any())
+                        db.MediaEntries.Add(seedMediaEntry);
+
+                db.SaveChanges();
+            })
+            .UseAsyncSeeding(async (context, _, cancellationToken) =>
+            {
+                var db = context as AppDbContext;
+
+                var seedAccount = SeedData.SeedAccount();
+                if(!(await db.Accounts.Where(_ => _.Id == seedAccount.Id).AnyAsync(cancellationToken)))
+                    db.Accounts.Add(seedAccount);
+
+                var seedProfile = SeedData.SeedProfile();
+                if(!(await db.Profiles.Where(_ => _.Id == seedProfile.Id).AnyAsync(cancellationToken)))
+                    db.Profiles.Add(seedProfile);
+
+                var seedLibraries = SeedData.SeedLibraries();
+                foreach(var seedLibrary in seedLibraries)
+                    if (!(await db.Libraries.Where(_ => _.Id == seedLibrary.Id).AnyAsync(cancellationToken)))
+                        db.Libraries.Add(seedLibrary);
+
+                var seedMediaEntries = SeedData.SeedMediaEntries();
+                foreach (var seedMediaEntry in seedMediaEntries)
+                    if (!(await db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).AnyAsync(cancellationToken)))
+                        db.MediaEntries.Add(seedMediaEntry);
+            
+                await db.SaveChangesAsync(cancellationToken);
+            });
+    }
+
+
+
+
+
+
 
 
 

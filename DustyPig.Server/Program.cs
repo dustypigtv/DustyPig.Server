@@ -24,11 +24,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 // Add service defaults & Aspire client integrations.
-// Disable seq when adding migrations
+// Disable seq and FileStore when adding migrations
 builder.AddServiceDefaults();
 builder.AddSeqEndpoint("seq");
-builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 builder.AddFileStore("db-shared");
+builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 
 
 //Firebase services

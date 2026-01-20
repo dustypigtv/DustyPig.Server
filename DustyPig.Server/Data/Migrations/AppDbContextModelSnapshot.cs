@@ -42,13 +42,6 @@ namespace DustyPig.Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Accounts");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = -1,
-                            FirebaseId = "TEST ACCOUNT"
-                        });
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.AccountToken", b =>
@@ -772,20 +765,6 @@ namespace DustyPig.Server.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Profiles");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = -1,
-                            AccountId = -1,
-                            AvatarUrl = "https://s3.dustypig.tv/user-art-defaults/profile/grey.png",
-                            IsMain = true,
-                            Locked = false,
-                            MaxMovieRating = 6,
-                            MaxTVRating = 7,
-                            Name = "Test User",
-                            TitleRequestPermission = (byte)0
-                        });
                 });
 
             modelBuilder.Entity("DustyPig.Server.Data.Models.ProfileLibraryShare", b =>
