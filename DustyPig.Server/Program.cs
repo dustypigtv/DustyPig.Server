@@ -1,3 +1,4 @@
+using DustyPig.Server;
 using DustyPig.Server.Data;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
@@ -27,6 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddSeqEndpoint("seq");
 builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
+builder.AddFileStore("db-shared");
 
 
 //Firebase services
@@ -138,6 +140,7 @@ using(var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>(
 {
     await db.Database.MigrateAsync();
 }
+
 
 app.Run();
 

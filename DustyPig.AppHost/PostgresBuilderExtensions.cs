@@ -8,7 +8,7 @@ namespace DustyPig.AppHost;
 
 internal static class PostgresBuilderExtensions
 {
-    public static IResourceBuilder<T> WithPgAdmin_MyVersion<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null)
+    public static IResourceBuilder<T> WithPgAdmin_MyVersion<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = "pgadmin", string? dataVolumeName = "pgadmin", IResourceBuilder<FileStore>? fileStore = null)
         where T : PostgresServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -22,7 +22,9 @@ internal static class PostgresBuilderExtensions
         else
         {
             containerName ??= "pgadmin";
+            dataVolumeName ??= containerName;
 
+            //Don't exclude from manifest
             var pgAdminContainer = new PgAdminContainerResource(containerName);
             var pgAdminContainerBuilder = builder.ApplicationBuilder.AddResource(pgAdminContainer)
                                                  .WithImage(PostgresContainerImageTags.PgAdminImage, PostgresContainerImageTags.PgAdminTag)
@@ -31,9 +33,13 @@ internal static class PostgresBuilderExtensions
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                                  .WithHttpHealthCheck("/browser")
                                                  .WithLifetime(ContainerLifetime.Persistent)
-                                                 .WithVolume(containerName, "/var/lib/pgadmin", false)
+                                                 .WithVolume(dataVolumeName, "/var/lib/pgadmin", false)
                                                  //.ExcludeFromManifest();
                                                  ;
+
+            //Add fileStore
+            if (fileStore != null)
+                pgAdminContainerBuilder = pgAdminContainerBuilder.WithFileStore(fileStore, "/db-shared");
 
             pgAdminContainerBuilder.WithContainerFiles(
                 destinationPath: "/pgadmin4",
