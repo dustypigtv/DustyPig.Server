@@ -26,6 +26,7 @@
 		<PackageReference Include="DustyPig.API" Version="3.7.1.300" />
 		<PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.25" />
 		<PackageReference Include="DustyPig.SimpleDownloader" Version="3.2.0.18" />
+		<PackageReference Include="DustyPig.Timers" Version="1.0.0.5" />
 		<PackageReference Include="DustyPig.TMDB" Version="3.3.0.43" />
 		<PackageReference Include="FirebaseAdmin" Version="3.4.0" />
 		<PackageReference Include="Google.Cloud.Firestore" Version="4.1.0" />

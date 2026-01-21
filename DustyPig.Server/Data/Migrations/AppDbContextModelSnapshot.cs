@@ -471,7 +471,7 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int?>("TMDB_Id")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("TMDB_Updated")
+                    b.Property<DateTime?>("TMDB_Updated")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("TVRating")

@@ -242,7 +242,7 @@ namespace DustyPig.Server.Data.Migrations
                     EntryType = table.Column<int>(type: "integer", nullable: false),
                     TMDB_Id = table.Column<int>(type: "integer", nullable: true),
                     TMDB_EntryId = table.Column<int>(type: "integer", nullable: true),
-                    TMDB_Updated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TMDB_Updated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Hash = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     SortTitle = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),

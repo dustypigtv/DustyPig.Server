@@ -6,6 +6,8 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Server.Utilities;
+using DustyPig.Timers;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -281,12 +283,22 @@ public class TMDB_Updater : IHostedService, IDisposable
     {
         try
         {
+            var entry = await db.TMDB_Entries
+                .Where(item => item.TMDB_Id == tmdbId)
+                .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (entry != null)
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
+                    return TMDBInfo.FromEntry(entry, false);
+
+
             using var scope = _serviceProvider.CreateScope();
             var tmdbService = scope.ServiceProvider.GetRequiredService<TMDBService>();
             var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
             var movie = response.Data;
-            return await AddOrUpdateTMDBEntry(db, tmdbId, TMDB_MediaTypes.Movie, TMDBService.GetCommonCredits(movie), movie.BackdropPath, TMDBService.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBService.TryMapMovieRatings(movie), cancellationToken);
+            return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Movie, TMDBService.GetCommonCredits(movie), movie.BackdropPath, TMDBService.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBService.TryMapMovieRatings(movie), cancellationToken);
         }
         catch (Exception ex)
         {
@@ -303,12 +315,21 @@ public class TMDB_Updater : IHostedService, IDisposable
     {
         try
         {
+            var entry = await db.TMDB_Entries
+               .Where(item => item.TMDB_Id == tmdbId)
+               .Where(item => item.MediaType == TMDB_MediaTypes.Series)
+               .FirstOrDefaultAsync(cancellationToken);
+
+            if (entry != null)
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
+                    return TMDBInfo.FromEntry(entry, false);
+
             using var scope = _serviceProvider.CreateScope();
             var tmdbService = scope.ServiceProvider.GetRequiredService<TMDBService>();
             var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
             var series = response.Data;
-            return await AddOrUpdateTMDBEntry(db, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, TMDBService.TryGetMovieDate(series), series.Overview, series.Popularity, TMDBService.TryMapMovieRatings(series), cancellationToken);
+            return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, TMDBService.TryGetMovieDate(series), series.Overview, series.Popularity, TMDBService.TryMapMovieRatings(series), cancellationToken);
         }
         catch (Exception ex)
         {
@@ -321,18 +342,8 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
 
-    private async Task<TMDBInfo> AddOrUpdateTMDBEntry(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
+    private async Task<TMDBInfo> AddOrUpdateTMDBEntry(AppDbContext db, TMDB_Entry entry, int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
     {
-        var entry = await db.TMDB_Entries
-            .Where(item => item.TMDB_Id == tmdbId)
-            .Where(item => item.MediaType == mediaType)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (entry != null)
-            if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
-                return TMDBInfo.FromEntry(entry, false);
-
-
         var backdropUrl = TMDBService.GetPosterPath(backdropPath);
 
         bool changed = false;

@@ -66,70 +66,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
     }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        base.OnConfiguring(optionsBuilder);
-
-        //Documentation says supply both async and sync versions
-        optionsBuilder
-            .UseSeeding(async (context, _) =>
-            {
-                var db = context as AppDbContext;
-
-                var seedAccount = SeedData.SeedAccount();
-                if (!db.Accounts.Where(_ => _.Id == seedAccount.Id).Any())
-                    db.Accounts.Add(seedAccount);
-
-                var seedProfile = SeedData.SeedProfile();
-                if (!db.Profiles.Where(_ => _.Id == seedProfile.Id).Any())
-                    db.Profiles.Add(seedProfile);
-
-                var seedLibraries = SeedData.SeedLibraries();
-                foreach (var seedLibrary in seedLibraries)
-                    if (!db.Libraries.Where(_ => _.Id == seedLibrary.Id).Any())
-                        db.Libraries.Add(seedLibrary);
-
-                foreach (var batch in SeedData.SeedMediaEntryBatches())
-                {
-                    foreach (var seedMediaEntry in batch)
-                        if (!db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).Any())
-                            db.MediaEntries.Add(seedMediaEntry);
-                    
-                }
-
-                db.SaveChanges();
-            })
-            .UseAsyncSeeding(async (context, _, cancellationToken) =>
-            {
-                var db = context as AppDbContext;
-
-                var seedAccount = SeedData.SeedAccount();
-                if(!(await db.Accounts.Where(_ => _.Id == seedAccount.Id).AnyAsync(cancellationToken)))
-                    db.Accounts.Add(seedAccount);
-
-                var seedProfile = SeedData.SeedProfile();
-                if(!(await db.Profiles.Where(_ => _.Id == seedProfile.Id).AnyAsync(cancellationToken)))
-                    db.Profiles.Add(seedProfile);
-
-                var seedLibraries = SeedData.SeedLibraries();
-                foreach(var seedLibrary in seedLibraries)
-                    if (!(await db.Libraries.Where(_ => _.Id == seedLibrary.Id).AnyAsync(cancellationToken)))
-                        db.Libraries.Add(seedLibrary);
-
-                foreach (var batch in SeedData.SeedMediaEntryBatches())
-                {
-                    foreach (var seedMediaEntry in batch)
-                        if (!(await db.MediaEntries.Where(_ => _.Id == seedMediaEntry.Id).AnyAsync(cancellationToken)))
-                            db.MediaEntries.Add(seedMediaEntry);
-
-                }
-
-                await db.SaveChangesAsync(cancellationToken);
-            });
-    }
-
-
-
+    
 
 
 
