@@ -294,7 +294,6 @@ public class MoviesController : _MediaControllerBase
         var mediaEntry = await DB.MediaEntries
             .AsNoTracking()
             .Include(Item => Item.Library)
-            .Include(item => item.ExtraSearchTerms)
 
             .Include(item => item.TMDB_Entry)
             .ThenInclude(item => item.People)
@@ -443,7 +442,6 @@ public class MoviesController : _MediaControllerBase
         catch (ModelValidationException ex) { return ex; }
 
         var existingItem = await DB.MediaEntries
-            .Include(item => item.ExtraSearchTerms)
             .Include(item => item.Library)
             .ThenInclude(item => item.ProfileLibraryShares)
             .Where(item => item.Id == movieInfo.Id)
