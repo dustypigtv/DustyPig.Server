@@ -188,7 +188,6 @@ public class SeriesController : _MediaControllerBase
         var mediaEntry = await DB.MediaEntries
             .AsNoTracking()
             .Include(Item => Item.Library)
-            .Include(item => item.ExtraSearchTerms)
             .Include(item => item.TMDB_Entry)
             .ThenInclude(item => item.People)
             .ThenInclude(item => item.TMDB_Person)
