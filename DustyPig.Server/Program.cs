@@ -27,7 +27,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Disable seq and FileStore when adding migrations
 builder.AddServiceDefaults();
 builder.AddSeqEndpoint("seq");
-builder.AddFileStore("db-shared");
 builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 
 

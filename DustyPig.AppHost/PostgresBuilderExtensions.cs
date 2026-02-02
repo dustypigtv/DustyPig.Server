@@ -8,7 +8,7 @@ namespace DustyPig.AppHost;
 
 internal static class PostgresBuilderExtensions
 {
-    public static IResourceBuilder<T> WithPgAdmin_MyVersion<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = "pgadmin", string? dataVolumeName = "pgadmin", IResourceBuilder<FileStore>? fileStore = null)
+    public static IResourceBuilder<T> WithPgAdmin_MyVersion<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = "pgadmin", string? dataVolumeName = "pgadmin")
         where T : PostgresServerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -34,12 +34,10 @@ internal static class PostgresBuilderExtensions
                                                  .WithHttpHealthCheck("/browser")
                                                  .WithLifetime(ContainerLifetime.Persistent)
                                                  .WithVolume(dataVolumeName, "/var/lib/pgadmin", false)
+                                                 .WithVolume("db-shared", "/db-shared", false)
                                                  //.ExcludeFromManifest();
                                                  ;
 
-            //Add fileStore
-            if (fileStore != null)
-                pgAdminContainerBuilder = pgAdminContainerBuilder.WithFileStore(fileStore, "/db-shared");
 
             pgAdminContainerBuilder.WithContainerFiles(
                 destinationPath: "/pgadmin4",
