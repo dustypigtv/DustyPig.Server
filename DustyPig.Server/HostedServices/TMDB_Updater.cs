@@ -329,7 +329,7 @@ public class TMDB_Updater : IHostedService, IDisposable
             var response = await tmdbService.GetSeriesAsync(tmdbId, cancellationToken);
 
             var series = response.Data;
-            return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, TMDBService.TryGetMovieDate(series), series.Overview, series.Popularity, TMDBService.TryMapMovieRatings(series), cancellationToken);
+            return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, null, series.Overview, series.Popularity, TMDBService.TryMapTVRatings(series), cancellationToken);
         }
         catch (Exception ex)
         {
