@@ -2,6 +2,8 @@ using DustyPig.AppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddDockerComposeEnvironment("docker-compose");
+
 var seq = builder
     .AddSeq("seq")
     .WithLifetime(ContainerLifetime.Persistent)
