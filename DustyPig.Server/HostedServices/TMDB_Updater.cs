@@ -326,7 +326,7 @@ public class TMDB_Updater : IHostedService, IDisposable
 
             using var scope = _serviceProvider.CreateScope();
             var tmdbService = scope.ServiceProvider.GetRequiredService<TMDBService>();
-            var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
+            var response = await tmdbService.GetSeriesAsync(tmdbId, cancellationToken);
 
             var series = response.Data;
             return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, TMDBService.TryGetMovieDate(series), series.Overview, series.Popularity, TMDBService.TryMapMovieRatings(series), cancellationToken);
