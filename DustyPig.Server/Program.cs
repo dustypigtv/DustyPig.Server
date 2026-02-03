@@ -47,8 +47,6 @@ builder.Services.AddControllers()
 builder.Services.AddRouting();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.AddHttpClient();
-
 
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
