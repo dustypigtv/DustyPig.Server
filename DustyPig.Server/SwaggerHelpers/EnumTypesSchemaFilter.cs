@@ -50,20 +50,22 @@ public class EnumTypesSchemaFilter : ISchemaFilter
             schema.Description += "<p>Possible Values:</p><ul>";
         }
 
-        foreach (var enumIntVal in schema.Enum.OfType<int>())
+        
+        foreach(var jsonNode in schema.Enum)
         {
-            var enumTypeVal = Enum.Parse(context.Type, enumIntVal.ToString()).ToString();
+            var longVal = jsonNode.GetValue<long>();
+            var typeVal = Enum.Parse(context.Type, longVal.ToString()).ToString();
             if (format != null)
-                enumTypeVal = format(enumTypeVal);
+                typeVal = format(typeVal);
 
             if (flags)
             {
-                string enumHexVal = "0x" + enumIntVal.ToString($"X{cnt}");
-                schema.Description += $"<li>{enumHexVal} = {enumTypeVal}</li>";
+                string enumHexVal = "0x" + longVal.ToString($"X{cnt}");
+                schema.Description += $"<li>{enumHexVal} = {typeVal}</li>";
             }
             else
             {
-                schema.Description += $"<li>{enumIntVal} = {enumTypeVal}</li>";
+                schema.Description += $"<li>{longVal} = {typeVal}</li>";
             }
         }
         schema.Description += "</ul>";

@@ -20,14 +20,14 @@ public class AuthorizeCheckOperationFilter : IOperationFilter
 
         if (hasAuthorize)
         {
-            var jwtBearerScheme = new OpenApiSecuritySchemeReference("bearer", context.Document);           
-            operation.Security = new List<OpenApiSecurityRequirement>
-            {
+            var jwtBearerScheme = new OpenApiSecuritySchemeReference("Bearer", context.Document);           
+            operation.Security =
+            [
                 new OpenApiSecurityRequirement
                 {
                     [jwtBearerScheme] = []
                 }
-            };
+            ];
         }
     }
 }

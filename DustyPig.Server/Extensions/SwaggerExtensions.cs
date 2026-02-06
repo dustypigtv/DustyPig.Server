@@ -12,7 +12,7 @@ namespace DustyPig.Server.Extensions;
 
 internal static class SwaggerExtensions
 {
-    public static IServiceCollection AddSWagger(this IServiceCollection services)
+    public static IServiceCollection AddSwagger(this IServiceCollection services)
     {
         services.AddSwaggerGen(options =>
         {
@@ -29,7 +29,7 @@ internal static class SwaggerExtensions
                 $"Client API: v{DustyPig.API.v3.Client.APIVersion}</p>"
             });
 
-            options.AddSecurityDefinition("Bearer Token", new OpenApiSecurityScheme
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
                 Type = SecuritySchemeType.Http,
@@ -38,6 +38,7 @@ internal static class SwaggerExtensions
                 In = ParameterLocation.Header,
                 Description = "JWT Token"
             });
+            
 
             options.OperationFilter<AuthorizeCheckOperationFilter>();
 

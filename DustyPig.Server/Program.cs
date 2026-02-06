@@ -77,7 +77,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddSWagger();
+builder.Services.AddSwagger();
 
 
 
