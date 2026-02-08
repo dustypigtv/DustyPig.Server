@@ -49,8 +49,8 @@ public static partial class AspireEFPostgreSqlExtensions_MyVersion
     public static void AddNpgsqlDbContext_MyVersion<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings = null,
+        Action<DbContextOptionsBuilder> configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
@@ -112,7 +112,7 @@ public static partial class AspireEFPostgreSqlExtensions_MyVersion
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
     public static void EnrichNpgsqlDbContext_MyVersion<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
             this IHostApplicationBuilder builder,
-            Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null)
+            Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings = null)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -131,7 +131,6 @@ public static partial class AspireEFPostgreSqlExtensions_MyVersion
 
         void ConfigureRetry()
         {
-#pragma warning disable EF1001 // Internal EF Core API usage.
             if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
                 builder.CheckDbContextRegistered<TContext>();
@@ -190,7 +189,6 @@ public static partial class AspireEFPostgreSqlExtensions_MyVersion
                         }
                     });
                 }
-#pragma warning restore EF1001 // Internal EF Core API usage.
             }
         }
     }
@@ -254,7 +252,7 @@ public static partial class AspireEFPostgreSqlExtensions_MyVersion
         return oldDbContextOptionsDescriptor;
     }
 
-    private static TSettings GetDbContextSettings<TContext, TSettings>(this IHostApplicationBuilder builder, string defaultConfigSectionName, string? connectionName, Action<TSettings, IConfiguration> bindSettings)
+    private static TSettings GetDbContextSettings<TContext, TSettings>(this IHostApplicationBuilder builder, string defaultConfigSectionName, string connectionName, Action<TSettings, IConfiguration> bindSettings)
         where TSettings : new()
     {
         TSettings settings = new();
@@ -277,7 +275,7 @@ public static partial class AspireEFPostgreSqlExtensions_MyVersion
         return settings;
     }
 
-    private static void ValidateConnectionString(string? connectionString, string connectionName, string defaultConfigSectionName, string? typeSpecificSectionName = null, bool isEfDesignTime = false)
+    private static void ValidateConnectionString(string connectionString, string connectionName, string defaultConfigSectionName, string typeSpecificSectionName = null, bool isEfDesignTime = false)
     {
         if (string.IsNullOrWhiteSpace(connectionString) && !isEfDesignTime)
         {
