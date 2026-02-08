@@ -15,6 +15,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
@@ -613,8 +614,8 @@ public class SeriesController : _MediaControllerBase
     [HttpPost]
     [RequireMainProfile]
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
-    public Task<Result<List<BasicMedia>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request) =>
-        AdminSearchAsync(libraryId, request.Query, MediaTypes.Series);
+    public Task<Result<List<BasicMedia>>> AdminSearch([FromQuery] int libraryId, [FromBody] SearchRequest request, CancellationToken cancellationToken) =>
+        AdminSearchAsync(libraryId, request.Query, MediaTypes.Series, cancellationToken);
 
 
 

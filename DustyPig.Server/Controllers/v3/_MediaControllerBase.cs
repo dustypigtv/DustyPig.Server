@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
@@ -286,71 +287,79 @@ public abstract class _MediaControllerBase : _BaseProfileController
     }
 
 
-    internal async Task<Result<List<BasicMedia>>> AdminSearchAsync(int libraryId, string query, MediaTypes mediaType)
+    internal async Task<Result<List<BasicMedia>>> AdminSearchAsync(int libraryId, string query, MediaTypes mediaType, CancellationToken cancellationToken)
     {
         var ret = new List<BasicMedia>();
 
-        var normQuery = query.NormalizedQueryString();
-        if (string.IsNullOrWhiteSpace(normQuery))
-            return ret;
-
-        var libQ = DB.Libraries
-            .AsNoTracking()
-            .Where(lib => lib.AccountId == UserAccount.Id);
-        if (libraryId > 0)
-            libQ = libQ.Where(lib => lib.Id == libraryId);
-        var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
-
-        if (libIds.Count == 0)
-            return CommonResponses.ValueNotFound(nameof(libraryId));
-
-        
-        var mediaEntries = await DB.MediaEntries
-            .AsNoTracking()
-            .Where(_ => libIds.Contains(_.LibraryId))
-            .Where(_ => _.EntryType == mediaType)
-            .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
-            .Select(_ => new
-            {
-                Val = _,
-                Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
-            })
-            .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
-            .ThenByDescending(_ => _.Rank)
-            .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
-            .ThenBy(_ => _.Val.SortTitle)
-            .ThenBy(_ => _.Val.Title)
-            .Take(MAX_DB_LIST_SIZE)
-            .ToListAsync();
-
-        if (mediaEntries.Count > 0)
+        try
         {
-            ret.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
-        }
-        else
-        {
-            //FTS works better, but often needs full words before it returns results.
-            //For example, "star wa" returns nothing, but "star war"
-            //is stemmed "star wars" and will return resuts.
-            //So use the non-fts as a backup
+            var normQuery = query.NormalizedQueryString();
+            if (string.IsNullOrWhiteSpace(normQuery))
+                return ret;
 
-            var q = DB.MediaEntries.AsNoTracking();
-            foreach (var term in normQuery.Tokenize().Distinct())
-                q = q.Where(me => me.SearchTitle.Contains(term));
+            var libQ = DB.Libraries
+                .AsNoTracking()
+                .Where(lib => lib.AccountId == UserAccount.Id);
+            if (libraryId > 0)
+                libQ = libQ.Where(lib => lib.Id == libraryId);
+            var libIds = await libQ.Select(lib => lib.Id).ToListAsync(cancellationToken);
 
-            var mediaEntriesBak = await q
-                .Where(item => item.EntryType == mediaType)
-                .Where(item => libIds.Contains(item.LibraryId))
-                .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
-                .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
-                .ThenBy(_ => _.SortTitle)
-                .ThenBy(_ => _.Title)
+            if (libIds.Count == 0)
+                return CommonResponses.ValueNotFound(nameof(libraryId));
+
+
+            var mediaEntries = await DB.MediaEntries
+                .AsNoTracking()
+                .Where(_ => libIds.Contains(_.LibraryId))
+                .Where(_ => _.EntryType == mediaType)
+                .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
+                .Select(_ => new
+                {
+                    Val = _,
+                    Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
+                })
+                .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
+                .ThenByDescending(_ => _.Rank)
+                .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
+                .ThenBy(_ => _.Val.SortTitle)
+                .ThenBy(_ => _.Val.Title)
                 .Take(MAX_DB_LIST_SIZE)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
-            mediaEntriesBak.SortSearchResults(normQuery);
+            if (mediaEntries.Count > 0)
+            {
+                ret.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
+            }
+            else
+            {
+                //FTS works better, but often needs full words before it returns results.
+                //For example, "star wa" returns nothing, but "star war"
+                //is stemmed "star wars" and will return resuts.
+                //So use the non-fts as a backup
 
-            ret.AddRange(mediaEntriesBak.Select(me => me.ToBasicMedia()));
+                var q = DB.MediaEntries.AsNoTracking();
+                foreach (var term in normQuery.Tokenize().Distinct())
+                    q = q.Where(me => me.SearchTitle.Contains(term));
+
+                var mediaEntriesBak = await q
+                    .Where(item => item.EntryType == mediaType)
+                    .Where(item => libIds.Contains(item.LibraryId))
+                    .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
+                    .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
+                    .ThenBy(_ => _.SortTitle)
+                    .ThenBy(_ => _.Title)
+                    .Take(MAX_DB_LIST_SIZE)
+                    .ToListAsync(cancellationToken);
+
+                mediaEntriesBak.SortSearchResults(normQuery);
+
+                ret.AddRange(mediaEntriesBak.Select(me => me.ToBasicMedia()));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            //Typing in the client search bars will cancel the request.
+            //We don't need to fill up logs with expected behavior, so ignore these
         }
 
         return ret;

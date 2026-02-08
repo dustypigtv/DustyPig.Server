@@ -261,131 +261,139 @@ public class MediaController : _MediaControllerBase
     {
         var ret = new SearchResults();
 
-        var normQuery = request.Query.NormalizedQueryString();
-        if (string.IsNullOrWhiteSpace(normQuery))
-            return ret;
-
-        var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
-            .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
-            .Select(_ => new
-            {
-                Val = _,
-                Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
-            });
-
-
-        var mediaEntries = await q
-            .AsNoTracking()
-            .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
-            .ThenByDescending(_ => _.Rank)
-            .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
-            .ThenBy(_ => _.Val.SortTitle)
-            .ThenBy(_ => _.Val.Title)
-            .Take(DEFAULT_LIST_SIZE)
-            .ToListAsync(cancellationToken);
-
-        if (mediaEntries.Count > 0)
+        try
         {
-            ret.Available.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
-        }
-        else
-        {
-            //FTS works better, but often needs full words before it returns results.
-            //For example, "star wa" returns nothing, but "star war"
-            //is stemmed "star wars" and will return resuts.
-            //So use the non-fts as a backup
+            var normQuery = request.Query.NormalizedQueryString();
+            if (string.IsNullOrWhiteSpace(normQuery))
+                return ret;
 
-            var qBak = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-            foreach (var term in normQuery.Tokenize().Distinct())
-                qBak = qBak.Where(me => me.SearchTitle.Contains(term));
+            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+                .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
+                .Select(_ => new
+                {
+                    Val = _,
+                    Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
+                });
 
-            var mediaEntriesBak = await qBak
+
+            var mediaEntries = await q
                 .AsNoTracking()
-                .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
-                .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
-                .ThenBy(_ => _.SortTitle)
-                .ThenBy(_ => _.Title)
-                .Take(MAX_DB_LIST_SIZE)
+                .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
+                .ThenByDescending(_ => _.Rank)
+                .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
+                .ThenBy(_ => _.Val.SortTitle)
+                .ThenBy(_ => _.Val.Title)
+                .Take(DEFAULT_LIST_SIZE)
                 .ToListAsync(cancellationToken);
 
-            if (mediaEntriesBak.Count > 0)
+            if (mediaEntries.Count > 0)
             {
-                mediaEntriesBak.SortSearchResults(normQuery);
-                ret.Available.AddRange(mediaEntriesBak.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
+                ret.Available.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
             }
-        }
-
-
-
-        /****************************************
-        * Search online databases
-        ****************************************/
-        ret.OtherTitlesAllowed = UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled;
-        if (UserProfile.Id == TestAccount.ProfileId)
-            ret.OtherTitlesAllowed = false;
-
-
-        var searchOtherTitles = request.SearchTMDB && ret.OtherTitlesAllowed;
-        if (request.SearchPeople || searchOtherTitles)
-        {
-            var response = await _tmdbClient.Endpoints.Search.MultiAsync(normQuery, cancellationToken: cancellationToken);
-            if (response.Success && response.Data.Results.Count > 0)
+            else
             {
-                if (searchOtherTitles)
+                //FTS works better, but often needs full words before it returns results.
+                //For example, "star wa" returns nothing, but "star war"
+                //is stemmed "star wars" and will return resuts.
+                //So use the non-fts as a backup
+
+                var qBak = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+                foreach (var term in normQuery.Tokenize().Distinct())
+                    qBak = qBak.Where(me => me.SearchTitle.Contains(term));
+
+                var mediaEntriesBak = await qBak
+                    .AsNoTracking()
+                    .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
+                    .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
+                    .ThenBy(_ => _.SortTitle)
+                    .ThenBy(_ => _.Title)
+                    .Take(MAX_DB_LIST_SIZE)
+                    .ToListAsync(cancellationToken);
+
+                if (mediaEntriesBak.Count > 0)
                 {
-                    ret.OtherTitles.AddRange
-                        (
-                            response.Data.Results
-                                .Where(item => item.MediaType != TMDB.Models.Common.CommonMediaTypes.Person)
-                                .Where(item => !string.IsNullOrWhiteSpace(item.PosterPath))
-                                .Select(item => item.ToBasicTMDBInfo())
-                                .Take(DEFAULT_LIST_SIZE)
-                        );
+                    mediaEntriesBak.SortSearchResults(normQuery);
+                    ret.Available.AddRange(mediaEntriesBak.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
                 }
+            }
 
-                if (request.SearchPeople)
+
+
+            /****************************************
+            * Search online databases
+            ****************************************/
+            ret.OtherTitlesAllowed = UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled;
+            if (UserProfile.Id == TestAccount.ProfileId)
+                ret.OtherTitlesAllowed = false;
+
+
+            var searchOtherTitles = request.SearchTMDB && ret.OtherTitlesAllowed;
+            if (request.SearchPeople || searchOtherTitles)
+            {
+                var response = await _tmdbClient.Endpoints.Search.MultiAsync(normQuery, cancellationToken: cancellationToken);
+                if (response.Success && response.Data.Results.Count > 0)
                 {
-                    var apiPeopleIds = response.Data.Results
-                        .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
-                        .Select(item => item.Id)
-                        .Distinct()
-                        .Take(DEFAULT_LIST_SIZE)
-                        .ToList();
-
-                    var dbPeopleIds = await DB.TMDB_People
-                        .AsNoTracking()
-                        .Where(item => apiPeopleIds.Contains(item.TMDB_Id))
-                        .Select(item => item.TMDB_Id)
-                        .Distinct()
-                        .Take(DEFAULT_LIST_SIZE)
-                        .ToListAsync();
-
-                    if (dbPeopleIds.Count > 0)
-                    {
-                        //Keep the sort order of the api request
-                        ret.AvailablePeople.AddRange
-                            (
-                                response.Data.Results
-                                    .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
-                                    .Where(item => dbPeopleIds.Contains(item.Id))
-                                    .Select(item => item.ToTMDBPerson())
-                                    .Take(DEFAULT_LIST_SIZE)
-                            );
-                    }
-
-
                     if (searchOtherTitles)
                     {
-                        ret.OtherPeople.AddRange
+                        ret.OtherTitles.AddRange
                             (
                                 response.Data.Results
-                                    .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
-                                    .Select(item => item.ToTMDBPerson())
+                                    .Where(item => item.MediaType != TMDB.Models.Common.CommonMediaTypes.Person)
+                                    .Where(item => !string.IsNullOrWhiteSpace(item.PosterPath))
+                                    .Select(item => item.ToBasicTMDBInfo())
                                     .Take(DEFAULT_LIST_SIZE)
                             );
                     }
+
+                    if (request.SearchPeople)
+                    {
+                        var apiPeopleIds = response.Data.Results
+                            .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
+                            .Select(item => item.Id)
+                            .Distinct()
+                            .Take(DEFAULT_LIST_SIZE)
+                            .ToList();
+
+                        var dbPeopleIds = await DB.TMDB_People
+                            .AsNoTracking()
+                            .Where(item => apiPeopleIds.Contains(item.TMDB_Id))
+                            .Select(item => item.TMDB_Id)
+                            .Distinct()
+                            .Take(DEFAULT_LIST_SIZE)
+                            .ToListAsync();
+
+                        if (dbPeopleIds.Count > 0)
+                        {
+                            //Keep the sort order of the api request
+                            ret.AvailablePeople.AddRange
+                                (
+                                    response.Data.Results
+                                        .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
+                                        .Where(item => dbPeopleIds.Contains(item.Id))
+                                        .Select(item => item.ToTMDBPerson())
+                                        .Take(DEFAULT_LIST_SIZE)
+                                );
+                        }
+
+
+                        if (searchOtherTitles)
+                        {
+                            ret.OtherPeople.AddRange
+                                (
+                                    response.Data.Results
+                                        .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
+                                        .Select(item => item.ToTMDBPerson())
+                                        .Take(DEFAULT_LIST_SIZE)
+                                );
+                        }
+                    }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            //Typing in the client search bars will cancel the request.
+            //We don't need to fill up logs with expected behavior, so ignore these
         }
 
         return ret;
