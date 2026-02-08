@@ -266,25 +266,51 @@ public class MediaController : _MediaControllerBase
         if (string.IsNullOrWhiteSpace(normQuery))
             return ret;
 
-        var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-        foreach (var term in normQuery.Tokenize().Distinct())
-            q = q.Where(me => me.SearchTitle.Contains(term));
+        //var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+        //foreach (var term in normQuery.Tokenize().Distinct())
+        //    q = q.Where(me => me.SearchTitle.Contains(term));
 
-       
+        //var mediaEntries = await q
+        //    .AsNoTracking()
+        //    .Distinct()
+        //    .Take(MAX_DB_LIST_SIZE)
+        //    .ToListAsync(cancellationToken);
+
+        ////Search sort
+        //if (mediaEntries.Count > 0)
+        //{
+        //    mediaEntries.SortSearchResults(normQuery);
+        //    ret.Available ??= new();
+        //    ret.Available.AddRange(mediaEntries.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
+        //}
+
+        var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+            .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
+            .Select(_ => new
+            {
+                Val = _,
+                Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
+            });
+
+        
         var mediaEntries = await q
             .AsNoTracking()
-            .Distinct()
-            .Take(MAX_DB_LIST_SIZE)
+            .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
+            .ThenByDescending(_ => _.Rank)
+            .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
+            .ThenBy(_ => _.Val.SortTitle)
+            .ThenBy(_ => _.Val.Title)
+            .Take(DEFAULT_LIST_SIZE)
             .ToListAsync(cancellationToken);
 
-
-        //Search sort
-        if (mediaEntries.Count > 0)
+        if(mediaEntries.Count > 0)
         {
-            mediaEntries.SortSearchResults(normQuery);
             ret.Available ??= new();
-            ret.Available.AddRange(mediaEntries.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
+            ret.Available.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
         }
+
+
+        
 
         /****************************************
          * Search online databases

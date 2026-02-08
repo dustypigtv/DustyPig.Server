@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
@@ -294,11 +295,10 @@ public abstract class _MediaControllerBase : _BaseProfileController
         if (string.IsNullOrWhiteSpace(normQuery))
             return ret;
 
-        var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-        foreach (var term in normQuery.Tokenize().Distinct())
-            q = q.Where(me => me.SearchTitle.Contains(term));
-
-
+        //var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+        //foreach (var term in normQuery.Tokenize().Distinct())
+        //    q = q.Where(me => me.SearchTitle.Contains(term));
+        
         var libQ = DB.Libraries
             .AsNoTracking()
             .Where(lib => lib.AccountId == UserAccount.Id);
@@ -306,18 +306,40 @@ public abstract class _MediaControllerBase : _BaseProfileController
             libQ = libQ.Where(lib => lib.Id == libraryId);
         var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
 
+        if (libIds.Count == 0)
+            return CommonResponses.ValueNotFound(nameof(libraryId));
 
-        var mediaEntries = await q
+        //var mediaEntries = await q
+        //    .AsNoTracking()
+        //    .Where(item => item.EntryType == mediaType)
+        //    .Where(item => libIds.Contains(item.LibraryId))
+        //    .Distinct()
+        //    .Take(MAX_DB_LIST_SIZE)
+        //    .ToListAsync();
+
+        //mediaEntries.SortSearchResults(normQuery);
+
+        //ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
+        
+        var mediaEntries = await DB.MediaEntries
             .AsNoTracking()
-            .Where(item => item.EntryType == mediaType)
-            .Where(item => libIds.Contains(item.LibraryId))
-            .Distinct()
+            .Where(_ => libIds.Contains(_.LibraryId))
+            .Where(_ => _.EntryType == mediaType)
+            .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
+            .Select(_ => new
+            {
+                Val = _,
+                Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
+            })
+            .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
+            .ThenByDescending(_ => _.Rank)
+            .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
+            .ThenBy(_ => _.Val.SortTitle)
+            .ThenBy(_ => _.Val.Title)
             .Take(MAX_DB_LIST_SIZE)
             .ToListAsync();
 
-        mediaEntries.SortSearchResults(normQuery);
-
-        ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
+        ret.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
 
         return ret;
     }

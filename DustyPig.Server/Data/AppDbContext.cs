@@ -64,6 +64,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(p => p.MediaEntry).WithMany().OnDelete(DeleteBehavior.SetNull);
             e.HasOne(p => p.TitleOverride).WithMany().OnDelete(DeleteBehavior.SetNull);
         });
+
+        //Full Text Search
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.SearchTitle)
+            .HasMethod("GIN")
+            .IsTsVectorExpressionIndex("english");
     }
 
     
