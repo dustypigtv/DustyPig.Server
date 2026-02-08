@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
@@ -298,7 +297,7 @@ public abstract class _MediaControllerBase : _BaseProfileController
         //var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
         //foreach (var term in normQuery.Tokenize().Distinct())
         //    q = q.Where(me => me.SearchTitle.Contains(term));
-        
+
         var libQ = DB.Libraries
             .AsNoTracking()
             .Where(lib => lib.AccountId == UserAccount.Id);
@@ -320,7 +319,7 @@ public abstract class _MediaControllerBase : _BaseProfileController
         //mediaEntries.SortSearchResults(normQuery);
 
         //ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
-        
+
         var mediaEntries = await DB.MediaEntries
             .AsNoTracking()
             .Where(_ => libIds.Contains(_.LibraryId))

@@ -2,7 +2,6 @@
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace DustyPig.Server.SwaggerHelpers;
@@ -20,7 +19,7 @@ public class AuthorizeCheckOperationFilter : IOperationFilter
 
         if (hasAuthorize)
         {
-            var jwtBearerScheme = new OpenApiSecuritySchemeReference("Bearer", context.Document);           
+            var jwtBearerScheme = new OpenApiSecuritySchemeReference("Bearer", context.Document);
             operation.Security =
             [
                 new OpenApiSecurityRequirement

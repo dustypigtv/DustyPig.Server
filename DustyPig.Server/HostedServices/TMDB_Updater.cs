@@ -5,14 +5,11 @@ using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.Services.TMDB_Service;
-using DustyPig.Server.Utilities;
 using DustyPig.Timers;
-using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -163,7 +160,7 @@ public class TMDB_Updater : IHostedService, IDisposable
             if (info != null && (forceUpdate || info.Changed))
             {
                 var infoRating = mediaType == TMDB_MediaTypes.Movie ? (int?)info.MovieRating : (int?)info.TVRating;
-                
+
                 while (true)
                 {
                     var mediaEntries = await db.MediaEntries
@@ -177,12 +174,12 @@ public class TMDB_Updater : IHostedService, IDisposable
                     if (mediaEntries.Count == 0)
                         break;
 
-                    foreach(var mediaEntry in mediaEntries)
+                    foreach (var mediaEntry in mediaEntries)
                     {
-                        if(!mediaEntry.Popularity.HasValue || mediaEntry.Popularity.Value != info.Popularity)
+                        if (!mediaEntry.Popularity.HasValue || mediaEntry.Popularity.Value != info.Popularity)
                             mediaEntry.Popularity = info.Popularity;
-                        
-                        if(infoRating > 0)
+
+                        if (infoRating > 0)
                         {
                             if (mediaEntry.EntryType == MediaTypes.Movie && mediaEntry.MovieRating == null)
                                 mediaEntry.MovieRating = info.MovieRating;

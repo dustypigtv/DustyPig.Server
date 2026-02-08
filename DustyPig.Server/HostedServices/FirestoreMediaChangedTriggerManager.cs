@@ -1,5 +1,4 @@
 ﻿using DustyPig.API.v3.Models;
-using DustyPig.Server.Utilities;
 using DustyPig.Timers;
 using Google.Cloud.Firestore;
 using Microsoft.Extensions.Hosting;

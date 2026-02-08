@@ -11,7 +11,7 @@ public class EnumTypesSchemaFilter : ISchemaFilter
 {
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
-        
+
     }
 
     public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
@@ -50,8 +50,8 @@ public class EnumTypesSchemaFilter : ISchemaFilter
             schema.Description += "<p>Possible Values:</p><ul>";
         }
 
-        
-        foreach(var jsonNode in schema.Enum)
+
+        foreach (var jsonNode in schema.Enum)
         {
             var longVal = jsonNode.GetValue<long>();
             var typeVal = Enum.Parse(context.Type, longVal.ToString()).ToString();

@@ -1,11 +1,9 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
-using DustyPig.Server.Utilities;
 using DustyPig.Timers;
 using FirebaseAdmin.Messaging;
 using Google.Cloud.Firestore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;

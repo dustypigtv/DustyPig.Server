@@ -1,22 +1,15 @@
-using DustyPig.Server;
 using DustyPig.Server.Data;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Services;
 using DustyPig.Server.Services.TMDB_Service;
-using DustyPig.Server.SwaggerHelpers;
-using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
 using System;
-using System.IO;
-using System.Reflection;
 using System.Text.Json.Serialization;
 
 
@@ -133,7 +126,7 @@ app.MapRazorPages();
 
 
 //Apply any migrations
-using(var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext())
+using (var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext())
 {
     await db.Database.MigrateAsync();
 }

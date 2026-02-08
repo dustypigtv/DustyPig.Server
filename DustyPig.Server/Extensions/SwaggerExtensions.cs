@@ -38,7 +38,7 @@ internal static class SwaggerExtensions
                 In = ParameterLocation.Header,
                 Description = "JWT Token"
             });
-            
+
 
             options.OperationFilter<AuthorizeCheckOperationFilter>();
 

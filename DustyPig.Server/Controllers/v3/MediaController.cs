@@ -11,7 +11,6 @@ using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
@@ -292,7 +291,7 @@ public class MediaController : _MediaControllerBase
                 Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
             });
 
-        
+
         var mediaEntries = await q
             .AsNoTracking()
             .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
@@ -303,14 +302,14 @@ public class MediaController : _MediaControllerBase
             .Take(DEFAULT_LIST_SIZE)
             .ToListAsync(cancellationToken);
 
-        if(mediaEntries.Count > 0)
+        if (mediaEntries.Count > 0)
         {
             ret.Available ??= new();
             ret.Available.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
         }
 
 
-        
+
 
         /****************************************
          * Search online databases
