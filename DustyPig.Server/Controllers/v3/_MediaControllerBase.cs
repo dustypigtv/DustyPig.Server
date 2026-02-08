@@ -294,10 +294,6 @@ public abstract class _MediaControllerBase : _BaseProfileController
         if (string.IsNullOrWhiteSpace(normQuery))
             return ret;
 
-        //var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-        //foreach (var term in normQuery.Tokenize().Distinct())
-        //    q = q.Where(me => me.SearchTitle.Contains(term));
-
         var libQ = DB.Libraries
             .AsNoTracking()
             .Where(lib => lib.AccountId == UserAccount.Id);
@@ -308,18 +304,7 @@ public abstract class _MediaControllerBase : _BaseProfileController
         if (libIds.Count == 0)
             return CommonResponses.ValueNotFound(nameof(libraryId));
 
-        //var mediaEntries = await q
-        //    .AsNoTracking()
-        //    .Where(item => item.EntryType == mediaType)
-        //    .Where(item => libIds.Contains(item.LibraryId))
-        //    .Distinct()
-        //    .Take(MAX_DB_LIST_SIZE)
-        //    .ToListAsync();
-
-        //mediaEntries.SortSearchResults(normQuery);
-
-        //ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
-
+        
         var mediaEntries = await DB.MediaEntries
             .AsNoTracking()
             .Where(_ => libIds.Contains(_.LibraryId))
@@ -338,7 +323,35 @@ public abstract class _MediaControllerBase : _BaseProfileController
             .Take(MAX_DB_LIST_SIZE)
             .ToListAsync();
 
-        ret.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
+        if (mediaEntries.Count > 0)
+        {
+            ret.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
+        }
+        else
+        {
+            //FTS works better, but often needs full words before it returns results.
+            //For example, "star wa" returns nothing, but "star war"
+            //is stemmed "star wars" and will return resuts.
+            //So use the non-fts as a backup
+
+            var q = DB.MediaEntries.AsNoTracking();
+            foreach (var term in normQuery.Tokenize().Distinct())
+                q = q.Where(me => me.SearchTitle.Contains(term));
+
+            var mediaEntriesBak = await q
+                .Where(item => item.EntryType == mediaType)
+                .Where(item => libIds.Contains(item.LibraryId))
+                .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
+                .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
+                .ThenBy(_ => _.SortTitle)
+                .ThenBy(_ => _.Title)
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync();
+
+            mediaEntriesBak.SortSearchResults(normQuery);
+
+            ret.AddRange(mediaEntriesBak.Select(me => me.ToBasicMedia()));
+        }
 
         return ret;
     }

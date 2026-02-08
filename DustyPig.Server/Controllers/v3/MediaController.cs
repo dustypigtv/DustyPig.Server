@@ -265,24 +265,6 @@ public class MediaController : _MediaControllerBase
         if (string.IsNullOrWhiteSpace(normQuery))
             return ret;
 
-        //var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-        //foreach (var term in normQuery.Tokenize().Distinct())
-        //    q = q.Where(me => me.SearchTitle.Contains(term));
-
-        //var mediaEntries = await q
-        //    .AsNoTracking()
-        //    .Distinct()
-        //    .Take(MAX_DB_LIST_SIZE)
-        //    .ToListAsync(cancellationToken);
-
-        ////Search sort
-        //if (mediaEntries.Count > 0)
-        //{
-        //    mediaEntries.SortSearchResults(normQuery);
-        //    ret.Available ??= new();
-        //    ret.Available.AddRange(mediaEntries.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
-        //}
-
         var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
             .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
             .Select(_ => new
@@ -304,16 +286,40 @@ public class MediaController : _MediaControllerBase
 
         if (mediaEntries.Count > 0)
         {
-            ret.Available ??= new();
             ret.Available.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
+        }
+        else
+        {
+            //FTS works better, but often needs full words before it returns results.
+            //For example, "star wa" returns nothing, but "star war"
+            //is stemmed "star wars" and will return resuts.
+            //So use the non-fts as a backup
+
+            var qBak = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+            foreach (var term in normQuery.Tokenize().Distinct())
+                qBak = qBak.Where(me => me.SearchTitle.Contains(term));
+
+            var mediaEntriesBak = await qBak
+                .AsNoTracking()
+                .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
+                .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
+                .ThenBy(_ => _.SortTitle)
+                .ThenBy(_ => _.Title)
+                .Take(MAX_DB_LIST_SIZE)
+                .ToListAsync(cancellationToken);
+
+            if (mediaEntriesBak.Count > 0)
+            {
+                mediaEntriesBak.SortSearchResults(normQuery);
+                ret.Available.AddRange(mediaEntriesBak.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
+            }
         }
 
 
 
-
         /****************************************
-         * Search online databases
-         ****************************************/
+        * Search online databases
+        ****************************************/
         ret.OtherTitlesAllowed = UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.Disabled;
         if (UserProfile.Id == TestAccount.ProfileId)
             ret.OtherTitlesAllowed = false;
@@ -327,7 +333,6 @@ public class MediaController : _MediaControllerBase
             {
                 if (searchOtherTitles)
                 {
-                    ret.OtherTitles ??= [];
                     ret.OtherTitles.AddRange
                         (
                             response.Data.Results
@@ -358,7 +363,6 @@ public class MediaController : _MediaControllerBase
                     if (dbPeopleIds.Count > 0)
                     {
                         //Keep the sort order of the api request
-                        ret.AvailablePeople ??= [];
                         ret.AvailablePeople.AddRange
                             (
                                 response.Data.Results
@@ -372,7 +376,6 @@ public class MediaController : _MediaControllerBase
 
                     if (searchOtherTitles)
                     {
-                        ret.OtherPeople ??= [];
                         ret.OtherPeople.AddRange
                             (
                                 response.Data.Results
