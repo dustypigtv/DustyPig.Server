@@ -361,7 +361,7 @@ public class SeriesController : _MediaControllerBase
         existingItem.SetComputedInfo(seriesInfo.ExtraSearchTerms, seriesInfo.Genres, tmdbInfo);
 
         //Update library/rated for episodes
-        List<int> playlistIds = null;
+        List<int> playlistIds = [];
         if (library_changed || rated_changed || artwork_changed)
         {
             var episodes = await DB.MediaEntries
