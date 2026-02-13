@@ -355,6 +355,12 @@ public class PlaylistsController : _MediaControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
     public async Task<Result> SetPlaylistProgress(PlaybackProgress info)
     {
+        try { info.Validate(); }
+        catch (ModelValidationException ex) { return ex; }
+
+        info.AsOfUTC = DateTime.SpecifyKind(info.AsOfUTC, DateTimeKind.Utc);
+
+
         var playlist = await DB.PlaylistItems
             .Include(pli => pli.Playlist)
             .Where(pli => pli.Id == info.Id)

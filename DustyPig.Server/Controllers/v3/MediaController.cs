@@ -467,6 +467,8 @@ public class MediaController : _MediaControllerBase
         try { newProgress.Validate(); }
         catch (ModelValidationException ex) { return ex; }
 
+        newProgress.AsOfUTC = DateTime.SpecifyKind(newProgress.AsOfUTC, DateTimeKind.Utc);
+
         var maybeEpisode = await DB.MediaEntries
             .AsNoTracking()
             .Where(m => m.Id == newProgress.Id)
