@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3.Models;
+﻿using Amazon.Runtime.Internal.Util;
+using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.REST;
 using DustyPig.Server.Data;
@@ -6,6 +7,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Timers;
+using Google.Apis.Util;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -64,8 +66,7 @@ public class TMDB_Updater : IHostedService, IDisposable
     {
         try
         {
-            using var db = _dbContextFactory.CreateDbContext();
-            await DoUpdateAsync(db, cancellationToken);
+            await DoUpdateAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -75,8 +76,10 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
 
-    private async Task DoUpdateAsync(AppDbContext db, CancellationToken cancellationToken)
+    private async Task DoUpdateAsync(CancellationToken cancellationToken)
     {
+        using var db = _dbContextFactory.CreateDbContext();
+        
         //Get tmdb_ids from MediaEntries that have not yet been linked to a TMDB_Entry.
         //These are newly added and should update first
         int start = 0;
@@ -107,10 +110,20 @@ public class TMDB_Updater : IHostedService, IDisposable
             foreach (var item in newItemsLst)
             {
                 var tmdbType = item.EntryType == MediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series;
-                await DoUpdateAsync(db, item.TMDB_Id.Value, tmdbType, true, cancellationToken);
+                await DoUpdateAsync(item.TMDB_Id.Value, tmdbType, true, cancellationToken);
+
+#if DEBUG
+                // Debug: Break after 1
+                break;
+#endif
             }
 
             start += CHUNK_SIZE;
+
+#if DEBUG
+            // Debug: Break after 1
+            break;
+#endif
         }
 
 
@@ -137,7 +150,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 break;
 
             foreach (var item in updateItemsLst)
-                await DoUpdateAsync(db, item.TMDB_Id, item.MediaType, false, cancellationToken);
+                await DoUpdateAsync(item.TMDB_Id, item.MediaType, false, cancellationToken);
 
             start += CHUNK_SIZE;
         }
@@ -145,8 +158,10 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
     /// <param name="forceUpdate">For when the tmdbId came from an unlinked MediaEntry</param>
-    private async Task DoUpdateAsync(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, bool forceUpdate, CancellationToken cancellationToken)
+    private async Task DoUpdateAsync(int tmdbId, TMDB_MediaTypes mediaType, bool forceUpdate, CancellationToken cancellationToken)
     {
+        using var db = _dbContextFactory.CreateDbContext();
+
         var entryType = mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
 
         bool success = true;
@@ -154,9 +169,9 @@ public class TMDB_Updater : IHostedService, IDisposable
         try
         {
             var info = mediaType == TMDB_MediaTypes.Movie ?
-                await UpdateTMDBMovie(db, tmdbId, cancellationToken) :
-                await UpdateTMDBSeries(db, tmdbId, cancellationToken);
-
+                await UpdateTMDBMovie(tmdbId, cancellationToken) :
+                await UpdateTMDBSeries(tmdbId, cancellationToken);
+            
             if (info != null && (forceUpdate || info.Changed))
             {
                 var infoRating = mediaType == TMDB_MediaTypes.Movie ? (int?)info.MovieRating : (int?)info.TVRating;
@@ -202,14 +217,14 @@ public class TMDB_Updater : IHostedService, IDisposable
                     {
                         await db.SaveChangesAsync(cancellationToken);
                     }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
                     catch (Exception ex)
                     {
                         _logger?.LogError(ex, "Update media entry");
                         success = false;
-
-                        //Stop if cancelled, otherwise continue with next batch
-                        if (ex is OperationCanceledException)
-                            throw;
                     }
 
                     start += CHUNK_SIZE;
@@ -227,6 +242,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         if (success)
             return;
 
+
         //Make sure failures don't repeatedly try - wait a day!
         start = 0;
         while (true)
@@ -236,6 +252,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 var mediaEntries = await db.MediaEntries
                     .Where(_ => _.TMDB_Id == tmdbId)
                     .Where(_ => _.EntryType == entryType)
+                    .OrderBy(_ => _.Id)
                     .Skip(start)
                     .Take(CHUNK_SIZE)
                     .ToListAsync(cancellationToken);
@@ -276,10 +293,11 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
 
-    private async Task<TMDBInfo> UpdateTMDBMovie(AppDbContext db, int tmdbId, CancellationToken cancellationToken)
+    private async Task<TMDBInfo> UpdateTMDBMovie(int tmdbId, CancellationToken cancellationToken)
     {
         try
         {
+            using var db = _dbContextFactory.CreateDbContext();
             var entry = await db.TMDB_Entries
                 .Where(item => item.TMDB_Id == tmdbId)
                 .Where(item => item.MediaType == TMDB_MediaTypes.Movie)
@@ -288,7 +306,6 @@ public class TMDB_Updater : IHostedService, IDisposable
             if (entry != null)
                 if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
                     return TMDBInfo.FromEntry(entry, false);
-
 
             using var scope = _serviceProvider.CreateScope();
             var tmdbService = scope.ServiceProvider.GetRequiredService<TMDBService>();
@@ -301,17 +318,18 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(UpdateTMDBMovie) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                await DeleteTmdbEntry(db, tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
+                await DeleteTmdbEntry(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
             throw;
         }
     }
 
 
 
-    private async Task<TMDBInfo> UpdateTMDBSeries(AppDbContext db, int tmdbId, CancellationToken cancellationToken)
+    private async Task<TMDBInfo> UpdateTMDBSeries(int tmdbId, CancellationToken cancellationToken)
     {
         try
         {
+            using var db = _dbContextFactory.CreateDbContext();
             var entry = await db.TMDB_Entries
                .Where(item => item.TMDB_Id == tmdbId)
                .Where(item => item.MediaType == TMDB_MediaTypes.Series)
@@ -332,7 +350,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(UpdateTMDBSeries) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                await DeleteTmdbEntry(db, tmdbId, TMDB_MediaTypes.Series, cancellationToken);
+                await DeleteTmdbEntry(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
             throw;
         }
     }
@@ -344,26 +362,20 @@ public class TMDB_Updater : IHostedService, IDisposable
         var backdropUrl = TMDBService.GetPosterPath(backdropPath);
 
         bool changed = false;
-        bool newEntry = false;
         if (entry == null)
         {
-            entry = new TMDB_Entry
+            entry = db.TMDB_Entries.Add(new TMDB_Entry
             {
                 TMDB_Id = tmdbId,
                 MediaType = mediaType
-            };
+            }).Entity;
             changed = true;
-            newEntry = true;
         }
 
         if (entry.BackdropUrl != backdropUrl && backdropUrl.HasValue())
         {
-            try
-            {
-                entry.BackdropUrl = backdropUrl;
-                changed = true;
-            }
-            catch { }
+            entry.BackdropUrl = backdropUrl;
+            changed = true;
         }
 
         if (entry.Date != date && date.HasValue)
@@ -414,23 +426,23 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
         //Save changes
+        //Always update timestamp, but that doesn't mean other data has changed. 
+        //That's why I use the changed variable with extra code
         entry.LastUpdated = DateTime.UtcNow;
-        if (newEntry)
-            db.TMDB_Entries.Add(entry);
-        else
-            db.TMDB_Entries.Update(entry);
         await db.SaveChangesAsync(cancellationToken);
 
-        await EnsurePeopleExistAsync(db, credits, cancellationToken);
-        await BridgeEntryAndPeopleAsync(db, entry.Id, mediaType, credits, cancellationToken);
+        await EnsurePeopleExistAsync(credits, cancellationToken);
+        await BridgeEntryAndPeopleAsync(entry.Id, mediaType, credits, cancellationToken);
 
         return TMDBInfo.FromEntry(entry, changed);
     }
 
 
 
-    private async Task EnsurePeopleExistAsync(AppDbContext db, CreditsDTO credits, CancellationToken cancellationToken)
+    private async Task EnsurePeopleExistAsync(CreditsDTO credits, CancellationToken cancellationToken)
     {
+        using var db = _dbContextFactory.CreateDbContext();
+        
         var needed = credits.CastMembers.Select(item => item.Id).ToList();
         needed.AddRange(credits.CrewMembers.Select(item => item.Id));
         needed = needed.Distinct().ToList();
@@ -506,8 +518,10 @@ public class TMDB_Updater : IHostedService, IDisposable
     /// <summary>
     /// This WILL call SaveChangesAsync
     /// </summary>
-    private async Task BridgeEntryAndPeopleAsync(AppDbContext db, int entryId, TMDB_MediaTypes mediaType, CreditsDTO credits, CancellationToken cancellationToken)
+    private async Task BridgeEntryAndPeopleAsync(int entryId, TMDB_MediaTypes mediaType, CreditsDTO credits, CancellationToken cancellationToken)
     {
+        using var db = _dbContextFactory.CreateDbContext();
+
         //Remove any that are no longer valid
         var existing = await db.TMDB_EntryPeopleBridges
             .AsNoTracking()
@@ -594,7 +608,7 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
     /// <summary>
-    /// This adds entitie, but does not call SaveChangesAsync
+    /// This adds entity, but does not call SaveChangesAsync
     /// </summary>
     private static void SetCrew(AppDbContext db, List<CrewDTO> crew, List<TMDB_EntryPersonBridge> bridges, int entryId, int personId, string[] roleNames)
     {
@@ -627,10 +641,11 @@ public class TMDB_Updater : IHostedService, IDisposable
     }
 
 
-    private async Task DeleteTmdbEntry(AppDbContext db, int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
+    private async Task DeleteTmdbEntry(int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
     {
         try
         {
+            using var db = _dbContextFactory.CreateDbContext();
             var tmdbEntry = await db.TMDB_Entries
                 .Where(_ => _.Id == tmdbId)
                 .Where(_ => _.MediaType == mediaType)
