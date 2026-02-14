@@ -389,17 +389,11 @@ public abstract class _MediaControllerBase : _BaseProfileController
             .Where(item => libIds.Contains(item.LibraryId))
             .Where(item => item.TMDB_Id == tmdbId)
             .Distinct()
+            .OrderBy(item => item.SortTitle)
+            .ThenByDescending(item => item.Popularity == null ? 0 : item.Popularity)
             .Take(MAX_DB_LIST_SIZE)
             .ToListAsync();
 
-
-        mediaEntries.Sort((x, y) =>
-        {
-            int ret = x.SortTitle.CompareTo(y.SortTitle);
-            if (ret == 0)
-                ret = (x.Popularity ?? 0).CompareTo(y.Popularity ?? 0);
-            return ret;
-        });
 
         ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
 
