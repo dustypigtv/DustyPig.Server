@@ -392,7 +392,7 @@ public class SeriesController : _MediaControllerBase
 
         if (library_changed)
             profileIdsToNotifyViaFirestore.AddRange(await DB.ProfilesWithAccessToTopLevel(existingItem.LibraryId));
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
+        MediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
 
 
         //Playlists
@@ -513,7 +513,7 @@ public class SeriesController : _MediaControllerBase
         {
             DB.ProfileMediaProgresses.Remove(prog);
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
+            MediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
         }
 
         return Result.BuildSuccess();
@@ -600,7 +600,7 @@ public class SeriesController : _MediaControllerBase
         }
 
         await DB.SaveChangesAsync();
-        FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
+        MediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
         return Result.BuildSuccess();
     }

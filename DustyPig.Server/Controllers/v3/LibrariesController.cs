@@ -498,7 +498,7 @@ public class LibrariesController : _BaseProfileController
 
             DB.Libraries.Remove(lib);
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIds);
+            MediaChangedTriggerManager.QueueHomeScreen(profileIds);
             await DB.MarkPlaylistArtworkNeedsupdate(playlistIds);
         }
 

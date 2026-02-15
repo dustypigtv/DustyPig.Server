@@ -388,7 +388,7 @@ public class MoviesController : _MediaControllerBase
         await DB.SaveChangesAsync();
 
         var profileIdsToNotify = await DB.ProfilesWithAccessToLibraryAndRating(newItem.LibraryId, newItem.MovieRating ?? MovieRatings.Unrated);
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotify);
+        MediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotify);
 
         //Notifications
         if (newItem.TMDB_Id > 0)
@@ -523,7 +523,7 @@ public class MoviesController : _MediaControllerBase
             var newProfileIdsWithAccess = await DB.ProfilesWithAccessToTopLevel(movieInfo.Id);
             profileIdsToNotifyViaFirestore.AddRange(newProfileIdsWithAccess);
         }
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore.Distinct());
+        MediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore.Distinct());
 
         //Playlists
         List<int> playlistIds = null;
@@ -570,7 +570,7 @@ public class MoviesController : _MediaControllerBase
         movie.EverPlayed = true;
         DB.ProfileMediaProgresses.Remove(movie.ProfileMediaProgress.First());
         await DB.SaveChangesAsync();
-        FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
+        MediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
         return Result.BuildSuccess();
     }

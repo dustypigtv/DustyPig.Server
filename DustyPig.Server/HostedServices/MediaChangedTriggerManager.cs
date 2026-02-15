@@ -1,6 +1,8 @@
 ﻿using DustyPig.API.v3.Models;
+using DustyPig.Server.Services;
 using DustyPig.Timers;
 using Google.Cloud.Firestore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -15,7 +17,7 @@ namespace DustyPig.Server.HostedServices;
 /// <summary>
 /// This is used to notify profiles via firestore that media they have access to has changed, and they should refresh things like the home screen
 /// </summary>
-public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
+public class MediaChangedTriggerManager : IHostedService, IDisposable
 {
     private const int TICK_INTERVAL_MS = 100;
 
@@ -25,14 +27,16 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
     private static readonly ConcurrentQueue<int> _playlist = new();
 
     private readonly FirestoreDb _firestoreDb;
+    private readonly IServiceProvider _serviceProvider;
     private readonly SafeTimer _timer;
-    private readonly ILogger<FirestoreMediaChangedTriggerManager> _logger;
+    private readonly ILogger<MediaChangedTriggerManager> _logger;
 
     private bool _disposed;
 
-    public FirestoreMediaChangedTriggerManager(FirestoreDb firestoreDb, ILogger<FirestoreMediaChangedTriggerManager> logger)
+    public MediaChangedTriggerManager(FirestoreDb firestoreDb, IServiceProvider serviceProvider, ILogger<MediaChangedTriggerManager> logger)
     {
         _firestoreDb = firestoreDb;
+        _serviceProvider = serviceProvider;
         _logger = logger;
         _timer = new(TimerTick, TimeSpan.FromMilliseconds(TICK_INTERVAL_MS));
     }
@@ -92,27 +96,28 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
 
     private async Task TimerTick(CancellationToken cancellationToken)
     {
-        await ProcessQueue(_homescreen, Constants.FDB_KEY_HOMESCREEN_COLLECTION, cancellationToken);
-        await ProcessQueue(_watchlist, Constants.FDB_KEY_WATCHLIST, cancellationToken);
-        await ProcessQueue(_playlist, Constants.FDB_KEY_PLAYLIST, cancellationToken);
-        await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING, cancellationToken);
+        await ProcessQueue(_homescreen, Constants.FDB_KEY_HOMESCREEN_COLLECTION, Constants.UPDATE_POLLING_HOMESCREEN_PATH, cancellationToken);
+        await ProcessQueue(_watchlist, Constants.FDB_KEY_WATCHLIST, Constants.UPDATE_POLLING_WATCHLIST_PATH, cancellationToken);
+        await ProcessQueue(_playlist, Constants.FDB_KEY_PLAYLIST, Constants.UPDATE_POLLING_PLAYLISTS_PATH, cancellationToken);
+        await ProcessQueue(_continueWatching, Constants.FDB_KEY_CONTINUE_WATCHING, Constants.UPDATE_POLLING_CONTINUE_WATCHING_PATH, cancellationToken);
     }
 
-    private async Task ProcessQueue(ConcurrentQueue<int> queue, string key, CancellationToken cancellationToken)
+    private async Task ProcessQueue(ConcurrentQueue<int> queue, string firestoreKey, string pollingKey, CancellationToken cancellationToken)
     {
         while (queue.TryDequeue(out int profileId))
         {
-            await WriteDoc(key, profileId, cancellationToken);
+            await WriteFirestoreDoc(firestoreKey, profileId, cancellationToken);
+            await WriteS3Doc(pollingKey, profileId, cancellationToken);
         }
     }
 
-    private async Task WriteDoc(string key, int profileId, CancellationToken cancellationToken)
+    private async Task WriteFirestoreDoc(string firestoreKey, int profileId, CancellationToken cancellationToken)
     {
         try
         {
             //The clients only wait for a change to the document, and don't care what the changes are
             //A 1-char key and 8 byte timestamp is small, fast and always updates
-            DocumentReference docRef = _firestoreDb.Collection(key).Document(profileId.ToString());
+            DocumentReference docRef = _firestoreDb.Collection(firestoreKey).Document(profileId.ToString());
             Dictionary<string, object> data = new Dictionary<string, object>
             {
                 { "t", DateTime.UtcNow.Ticks }
@@ -121,7 +126,20 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, nameof(WriteDoc));
+            _logger.LogError(ex, nameof(WriteFirestoreDoc));
+        }
+    }
+
+    private async Task WriteS3Doc(string pollingKey, int profileId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var s3 = _serviceProvider.GetRequiredService<S3Service>();
+            await s3.WritePollingFileAsync(pollingKey + profileId.ToString(), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(WriteS3Doc));
         }
     }
 
@@ -131,26 +149,14 @@ public class FirestoreMediaChangedTriggerManager : IHostedService, IDisposable
         {
             if (disposing)
             {
-                // TODO: dispose managed state (managed objects)
                 _timer.Dispose();
             }
-
-            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-            // TODO: set large fields to null
             _disposed = true;
         }
     }
 
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    // ~FirestoreMediaChangedTriggerManager()
-    // {
-    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-    //     Dispose(disposing: false);
-    // }
-
     public void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }

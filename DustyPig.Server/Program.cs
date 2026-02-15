@@ -76,14 +76,12 @@ builder.Services.AddSwagger();
 
 
 //*** Dependency Injection ***
-//Anything that requires AppDbContext should be scoped
 builder.Services.AddScoped<JWTService>();
 builder.Services.AddScoped<TMDBService>();
 
 
 
 
-//Otherwise it can be singleton or transient
 builder.Services.AddTransient<S3Service>();
 builder.Services.AddTransient<FirebaseAuthService>();
 
@@ -93,7 +91,7 @@ builder.Services.AddTransient<FirebaseAuthService>();
 //Add hosted services
 builder.Services.AddHostedService<TMDB_Updater>();
 builder.Services.AddHostedService<FirebaseNotificationsManager>();
-builder.Services.AddHostedService<FirestoreMediaChangedTriggerManager>();
+builder.Services.AddHostedService<MediaChangedTriggerManager>();
 builder.Services.AddHostedService<DBCleaner>();
 builder.Services.AddHostedService<ArtworkUpdater>();
 

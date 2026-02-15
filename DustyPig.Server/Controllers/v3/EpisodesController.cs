@@ -254,7 +254,7 @@ public class EpisodesController : _MediaControllerBase
 
 
         //Queue notifications
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
+        MediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
 
         return newItem.Id;
     }
@@ -313,7 +313,7 @@ public class EpisodesController : _MediaControllerBase
         }
 
         await DB.SaveChangesAsync();
-        FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
+        MediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
         return Result.BuildSuccess();
     }
@@ -404,7 +404,7 @@ public class EpisodesController : _MediaControllerBase
         await DB.SaveChangesAsync();
 
         var profileIdsToNotifyViaFirestore = await DB.ProfilesWithAccessToTopLevel(episodeInfo.SeriesId);
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
+        MediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
 
         return Result.BuildSuccess();
     }

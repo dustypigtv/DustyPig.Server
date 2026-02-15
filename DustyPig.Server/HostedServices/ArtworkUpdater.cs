@@ -252,7 +252,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
                     uploadKey += ".backdrop";
                 uploadKey += ".jpg";
 
-                var s3Service = _serviceProvider.GetRequiredService<S3Service>();
+                using var s3Service = _serviceProvider.GetRequiredService<S3Service>();
                 await s3Service.UploadImageAsync(ms, uploadKey, cancellationToken);
             }
             catch (Exception ex)
@@ -275,7 +275,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
     private async Task CleanupTimerTick(CancellationToken cancellationToken)
     {
-        var s3Service = _serviceProvider.GetRequiredService<S3Service>();
+        using var s3Service = _serviceProvider.GetRequiredService<S3Service>();
 
         foreach (string key in new string[] { Constants.USER_PLAYLIST_PATH, Constants.USER_PROFILE_PATH })
         {

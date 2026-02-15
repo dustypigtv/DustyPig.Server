@@ -37,14 +37,14 @@ public class S3Service : IDisposable
         _logger = logger;
     }
 
-    public async Task UploadImageAsync(Stream ms, string key, CancellationToken cancellationToken)
+    public async Task UploadImageAsync(Stream imageStream, string key, CancellationToken cancellationToken)
     {
         try
         {
             var req = new TransferUtilityUploadRequest
             {
                 BucketName = Constants.DEFAULT_HOST,
-                InputStream = ms,
+                InputStream = imageStream,
                 Key = key,
                 AutoResetStreamPosition = true,
                 AutoCloseStream = true,
@@ -117,7 +117,30 @@ public class S3Service : IDisposable
         }
     }
 
-
+    public async Task WritePollingFileAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            //Write current ticks to a text file. Small, fast, always updates
+            using var ms = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(DateTime.UtcNow.Ticks.ToString()));
+            
+            var req = new TransferUtilityUploadRequest
+            {
+                BucketName = Constants.DEFAULT_HOST,
+                InputStream = ms,
+                Key = key,
+                DisablePayloadSigning = true,
+                DisableDefaultChecksumValidation = true,
+            };
+            
+            await _transferUtility.UploadAsync(req, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(UploadImageAsync));
+            throw;
+        }
+    }
 
     protected virtual void Dispose(bool disposing)
     {

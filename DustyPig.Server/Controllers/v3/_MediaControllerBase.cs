@@ -83,7 +83,7 @@ public abstract class _MediaControllerBase : _BaseProfileController
 
         DB.MediaEntries.Remove(mediaEntry);
         await DB.SaveChangesAsync();
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
+        MediaChangedTriggerManager.QueueHomeScreen(profileIdsToNotifyViaFirestore);
 
         return Result.BuildSuccess();
     }

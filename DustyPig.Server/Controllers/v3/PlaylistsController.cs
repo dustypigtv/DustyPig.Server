@@ -272,7 +272,7 @@ public class PlaylistsController : _MediaControllerBase
 
         DB.Playlists.Add(playlist);
         await DB.SaveChangesAsync();
-        FirestoreMediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
+        MediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
 
         return playlist.Id;
     }
@@ -318,7 +318,7 @@ public class PlaylistsController : _MediaControllerBase
 
         playlist.Name = info.Name;
         await DB.SaveChangesAsync();
-        FirestoreMediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
+        MediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
 
         return Result.BuildSuccess();
     }
@@ -340,7 +340,7 @@ public class PlaylistsController : _MediaControllerBase
         {
             DB.Playlists.Remove(playlist);
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
+            MediaChangedTriggerManager.QueuePlaylist(UserProfile.Id);
         }
 
         return Result.BuildSuccess();

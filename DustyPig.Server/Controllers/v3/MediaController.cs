@@ -427,7 +427,7 @@ public class MediaController : _MediaControllerBase
             });
 
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueWatchlist(UserProfile.Id);
+            MediaChangedTriggerManager.QueueWatchlist(UserProfile.Id);
         }
 
         return Result.BuildSuccess();
@@ -449,7 +449,7 @@ public class MediaController : _MediaControllerBase
         {
             DB.WatchListItems.Remove(item);
             await DB.SaveChangesAsync();
-            FirestoreMediaChangedTriggerManager.QueueWatchlist(UserProfile.Id);
+            MediaChangedTriggerManager.QueueWatchlist(UserProfile.Id);
         }
 
         return Result.BuildSuccess();
@@ -542,7 +542,7 @@ public class MediaController : _MediaControllerBase
 
         await DB.SaveChangesAsync();
         if (updateFirestore)
-            FirestoreMediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
+            MediaChangedTriggerManager.QueueContinueWatching(UserProfile.Id);
 
         return Result.BuildSuccess();
     }
@@ -1155,7 +1155,7 @@ public class MediaController : _MediaControllerBase
 
         await DB.SaveChangesAsync();
 
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileIds);
+        MediaChangedTriggerManager.QueueHomeScreen(profileIds);
         return Result.BuildSuccess();
     }
 

@@ -637,7 +637,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         await SaveChangesAsync();
 
-        FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileId);
+        MediaChangedTriggerManager.QueueHomeScreen(profileId);
 
         //Scenario: Linked lib has items in a playlist. Then
         //Lib is unlinked, artwork is updated, then relinked - need
@@ -672,7 +672,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             ProfileLibraryShares.Remove(rec);
             await SaveChangesAsync();
 
-            FirestoreMediaChangedTriggerManager.QueueHomeScreen(profileId);
+            MediaChangedTriggerManager.QueueHomeScreen(profileId);
 
             var playlistIds = await GetPlaylistIds(profileId, libraryId);
             await MarkPlaylistArtworkNeedsupdate(playlistIds);
