@@ -1,9 +1,11 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.Server.Data;
+using DustyPig.Server.Services;
 using DustyPig.Timers;
 using FirebaseAdmin.Messaging;
 using Google.Cloud.Firestore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -23,9 +25,6 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     private readonly ILogger<FirebaseNotificationsManager> _logger;
 
     private bool _disposed;
-
-    //Only delete old tokens once a day
-    //private static DateTime _lastTokenDelete = DateTime.Now.AddDays(-2);
 
     public FirebaseNotificationsManager(FirestoreDb firestoreDb, IServiceProvider serviceProvider, IDbContextFactory<AppDbContext> dbContextFactory, ILogger<FirebaseNotificationsManager> logger)
     {
@@ -53,11 +52,11 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
 
     private async Task TimerTick(CancellationToken cancellationToken)
     {
-        using var db = _dbContextFactory.CreateDbContext();
-
-
         try
         {
+            using var db = _dbContextFactory.CreateDbContext();
+            using var s3 = _serviceProvider.GetRequiredService<S3Service>();
+
             var profileIds = await db.Profiles
                 .AsNoTracking()
                 .Include(p => p.FCMTokens)
@@ -76,7 +75,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
                 .ToListAsync();
 
             foreach (var profileId in profileIds)
-                await SendNotificationsAsync(db, profileId, cancellationToken);
+                await SendNotificationsAsync(db, s3, profileId, cancellationToken);
 
         }
         catch (Exception ex)
@@ -86,7 +85,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
     }
 
 
-    private async Task SendNotificationsAsync(AppDbContext db, int profileId, CancellationToken cancellationToken)
+    private async Task SendNotificationsAsync(AppDbContext db, S3Service s3, int profileId, CancellationToken cancellationToken)
     {
         var profile = await db.Profiles
             .AsNoTracking()
@@ -126,6 +125,17 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating alerts in Firestore");
+        }
+
+
+        // Update polling clients
+        try
+        {
+            await s3.WritePollingFileAsync(Constants.UPDATE_POLLING_ALERT_PATH + profileId.ToString(), cancellationToken);
+        }
+        catch  (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating alerts in polling file");
         }
 
 
@@ -239,26 +249,14 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
         {
             if (disposing)
             {
-                // TODO: dispose managed state (managed objects)
                 _timer.Dispose();
             }
-
-            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-            // TODO: set large fields to null
             _disposed = true;
         }
     }
 
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    // ~FirebaseNotificationsManager()
-    // {
-    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-    //     Dispose(disposing: false);
-    // }
-
     public void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
