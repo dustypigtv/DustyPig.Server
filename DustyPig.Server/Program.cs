@@ -123,6 +123,8 @@ app.MapControllers();
 app.MapRazorPages();
 
 
+app.UseStaticFiles();
+
 //Apply any migrations
 using (var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext())
 {

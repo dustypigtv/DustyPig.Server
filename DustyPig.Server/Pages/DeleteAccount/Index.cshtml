@@ -1,0 +1,62 @@
+﻿@page
+@model DustyPig.Server.Pages.DeleteAccount.IndexModel
+@{
+}
+
+<br />
+<br />
+
+<div class="container justify-content-center col-md-4">
+
+    @if (Model.Credentials.State != DeleteAccountModel.States.Deleted)
+    {
+        <p style="color: white">
+            To delete your account, enter your email and password.
+        </p>
+
+        <p class="text-danger">
+            WARNING: There will NOT be any confirmation dialog! When you click on 'Delete Account', your account will be IMMEDIATELY DELETED!!
+        </p>
+
+        <br />
+        <br />
+    }
+
+    @if (Model.Credentials.State == DeleteAccountModel.States.Error)
+    {
+        <p class="text-danger">
+            Sorry, nice try, but the demo account cannot be deleted.
+        </p>
+    }
+    else if (Model.Credentials.State == DeleteAccountModel.States.Deleted)
+    {
+        <p class="text-danger">
+            Your account has been deleted.
+        </p>
+    }
+    else
+    {
+        <form method="post">
+
+            <div class="form-group">
+                <label asp-for="Credentials.Email" class="control-label" style="color: white"></label>
+                <input asp-for="Credentials.Email" class="form-control" />
+                <span asp-validation-for="Credentials.Email" class="text-danger"></span>
+            </div>
+
+            <br />
+
+            <div class="form-group">
+                <label asp-for="Credentials.Password" class="control-label" style="color: white"></label>
+                <input asp-for="Credentials.Password" class="form-control" />
+                <span asp-validation-for="Credentials.Password" class="text-danger"></span>
+            </div>
+
+            <br />
+
+            <div class="form-group">
+                <input type="submit" value="Delete Account" class="btn btn-primary btn-danger" />
+            </div>
+        </form>
+    }
+</div>
