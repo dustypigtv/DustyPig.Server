@@ -51,6 +51,7 @@ public class DBCleaner : IHostedService, IDisposable
             {
                 var codes = await db.ActivationCodes
                     .Where(_ => _.Created < dt)
+                    .OrderBy(_ => _.Created)
                     .Take(100)
                     .ToListAsync(cancellationToken);
 
@@ -59,7 +60,6 @@ public class DBCleaner : IHostedService, IDisposable
 
                 db.ActivationCodes.RemoveRange(codes);
                 await db.SaveChangesAsync(cancellationToken);
-                await Task.Delay(1000, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -77,6 +77,7 @@ public class DBCleaner : IHostedService, IDisposable
             {
                 var tokens = await db.FCMTokens
                     .Where(_ => _.LastSeen < dt)
+                    .OrderBy(_ => _.LastSeen)
                     .Take(100)
                     .ToListAsync(cancellationToken);
 
@@ -85,7 +86,6 @@ public class DBCleaner : IHostedService, IDisposable
 
                 db.FCMTokens.RemoveRange(tokens);
                 await db.SaveChangesAsync(cancellationToken);
-                await Task.Delay(1000, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -100,26 +100,14 @@ public class DBCleaner : IHostedService, IDisposable
         {
             if (disposing)
             {
-                // TODO: dispose managed state (managed objects)
                 _timer.Dispose();
             }
-
-            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-            // TODO: set large fields to null
             _disposed = true;
         }
     }
 
-    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-    // ~DBCleaner()
-    // {
-    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-    //     Dispose(disposing: false);
-    // }
-
     public void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
