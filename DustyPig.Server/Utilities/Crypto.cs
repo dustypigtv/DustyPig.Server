@@ -10,7 +10,7 @@ public static partial class Crypto
 {
     private static readonly SHA512 _hasher = SHA512.Create();
 
-    [GeneratedRegex("[^\\w]")]
+    [GeneratedRegex("[^a-z0-9]")]
     private static partial Regex NormalizedHashRegex();
 
 
