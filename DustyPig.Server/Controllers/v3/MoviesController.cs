@@ -361,6 +361,8 @@ public class MoviesController : _MediaControllerBase
             SortTitle = StringUtils.SortTitle(movieInfo.Title),
             Title = movieInfo.Title,
             TMDB_Id = movieInfo.TMDB_Id,
+            TVDB_Id = movieInfo.TVDB_Id,
+            IMDB_Id = movieInfo.IMDB_Id,
             VideoUrl = movieInfo.VideoUrl
         };
 
@@ -493,6 +495,8 @@ public class MoviesController : _MediaControllerBase
         existingItem.SortTitle = StringUtils.SortTitle(movieInfo.Title);
         existingItem.Title = movieInfo.Title;
         existingItem.TMDB_Id = movieInfo.TMDB_Id;
+        existingItem.TVDB_Id = movieInfo.TVDB_Id;
+        existingItem.IMDB_Id = movieInfo.IMDB_Id;
         existingItem.VideoUrl = movieInfo.VideoUrl;
 
 
@@ -599,5 +603,29 @@ public class MoviesController : _MediaControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
     public Task<Result<List<BasicMedia>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId) =>
         AdminSearchByTmdbIdAsync(libraryId, tmdbId, MediaTypes.Movie);
+
+
+
+    /// <summary>
+    /// Requires main profile
+    /// </summary>
+    /// <remarks>Designed for admin tools, this will return info on any movie owned by the account with the specified tvdb id</remarks>
+    [HttpGet]
+    [RequireMainProfile]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+    public Task<Result<List<BasicMedia>>> AdminSearchByTvdbId([FromQuery] int libraryId, [FromQuery] int tvdbId) =>
+        AdminSearchByTvdbIdAsync(libraryId, tvdbId, MediaTypes.Movie);
+
+
+
+    /// <summary>
+    /// Requires main profile
+    /// </summary>
+    /// <remarks>Designed for admin tools, this will return info on any movie owned by the account with the specified imdb id</remarks>
+    [HttpGet]
+    [RequireMainProfile]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+    public Task<Result<List<BasicMedia>>> AdminSearchByImdbId([FromQuery] int libraryId, [FromQuery] string imdbId) =>
+        AdminSearchByImdbIdAsync(libraryId, imdbId, MediaTypes.Movie);
 
 }

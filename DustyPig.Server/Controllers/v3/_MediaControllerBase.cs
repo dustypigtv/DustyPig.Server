@@ -167,6 +167,8 @@ public abstract class _MediaControllerBase : _BaseProfileController
             Title = media.Title,
             TitleRequestPermission = DB.GetTitleRequestPermissions(UserAccount, UserProfile, media.Library.FriendLibraryShares.Any()),
             TMDB_Id = media.TMDB_Id,
+            TVDB_Id = media.TVDB_Id,
+            IMDB_Id = media.IMDB_Id,
             Subscribed = media.Subscriptions.Any(),
         };
 
@@ -232,6 +234,8 @@ public abstract class _MediaControllerBase : _BaseProfileController
                     SeriesId = id,
                     Title = dbEp.Title,
                     TMDB_Id = dbEp.TMDB_Id,
+                    TVDB_Id = dbEp.TVDB_Id,
+                    IMDB_Id = dbEp.IMDB_Id,
                     VideoUrl = playable ? dbEp.VideoUrl : null,
                 };
 
@@ -388,6 +392,76 @@ public abstract class _MediaControllerBase : _BaseProfileController
             .Where(item => item.EntryType == mediaType)
             .Where(item => libIds.Contains(item.LibraryId))
             .Where(item => item.TMDB_Id == tmdbId)
+            .Distinct()
+            .OrderBy(item => item.SortTitle)
+            .ThenByDescending(item => item.Popularity == null ? 0 : item.Popularity)
+            .Take(MAX_DB_LIST_SIZE)
+            .ToListAsync();
+
+
+        ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
+
+        return ret;
+    }
+
+
+
+    internal async Task<Result<List<BasicMedia>>> AdminSearchByTvdbIdAsync(int libraryId, int tvdbId, MediaTypes mediaType)
+    {
+        var ret = new List<BasicMedia>();
+
+        if (tvdbId <= 0)
+            return ret;
+
+        var libQ = DB.Libraries
+            .AsNoTracking()
+            .Where(lib => lib.AccountId == UserAccount.Id)
+            .Where(lib => lib.IsTV);
+        if (libraryId > 0)
+            libQ = libQ.Where(lib => lib.Id == libraryId);
+        var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+        var mediaEntries = await DB.MediaEntries
+            .AsNoTracking()
+            .Where(item => item.EntryType == mediaType)
+            .Where(item => libIds.Contains(item.LibraryId))
+            .Where(item => item.TVDB_Id == tvdbId)
+            .Distinct()
+            .OrderBy(item => item.SortTitle)
+            .ThenByDescending(item => item.Popularity == null ? 0 : item.Popularity)
+            .Take(MAX_DB_LIST_SIZE)
+            .ToListAsync();
+
+
+        ret.AddRange(mediaEntries.Select(me => me.ToBasicMedia()));
+
+        return ret;
+    }
+
+
+
+    internal async Task<Result<List<BasicMedia>>> AdminSearchByImdbIdAsync(int libraryId, string imdbId, MediaTypes mediaType)
+    {
+        var ret = new List<BasicMedia>();
+
+        if (string.IsNullOrWhiteSpace(imdbId))
+            return ret;
+
+        var libQ = DB.Libraries
+            .AsNoTracking()
+            .Where(lib => lib.AccountId == UserAccount.Id)
+            .Where(lib => lib.IsTV);
+        if (libraryId > 0)
+            libQ = libQ.Where(lib => lib.Id == libraryId);
+        var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+        var mediaEntries = await DB.MediaEntries
+            .AsNoTracking()
+            .Where(item => item.EntryType == mediaType)
+            .Where(item => libIds.Contains(item.LibraryId))
+            .Where(item => item.IMDB_Id == imdbId)
             .Distinct()
             .OrderBy(item => item.SortTitle)
             .ThenByDescending(item => item.Popularity == null ? 0 : item.Popularity)

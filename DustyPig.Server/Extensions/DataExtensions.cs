@@ -191,6 +191,8 @@ internal static class DataExtensions
             Rated = self.MovieRating ?? MovieRatings.None,
             Title = self.Title,
             TMDB_Id = self.TMDB_Id,
+            TVDB_Id = self.TVDB_Id,
+            IMDB_Id = self.IMDB_Id,
             VideoUrl = playable ? self.VideoUrl : null,
             ExtraSearchTerms = self.ExtraSearchTerms ?? []
         };
@@ -212,6 +214,8 @@ internal static class DataExtensions
             Rated = self.TVRating ?? TVRatings.None,
             Title = self.Title,
             TMDB_Id = self.TMDB_Id,
+            TVDB_Id = self.TVDB_Id,
+            IMDB_Id = self.IMDB_Id,
             ExtraSearchTerms = self.ExtraSearchTerms ?? [],
             CanManage = true
         };
@@ -236,6 +240,8 @@ internal static class DataExtensions
             SeriesId = self.LinkedToId.Value,
             Title = self.Title,
             TMDB_Id = self.TMDB_Id,
+            TVDB_Id = self.TVDB_Id,
+            IMDB_Id = self.IMDB_Id,
             VideoUrl = self.VideoUrl,
         };
 

@@ -253,7 +253,9 @@ public class SeriesController : _MediaControllerBase
             TVRating = seriesInfo.Rated,
             SortTitle = StringUtils.SortTitle(seriesInfo.Title),
             Title = seriesInfo.Title,
-            TMDB_Id = seriesInfo.TMDB_Id
+            TMDB_Id = seriesInfo.TMDB_Id,
+            TVDB_Id = seriesInfo.TVDB_Id,
+            IMDB_Id = seriesInfo.IMDB_Id
         };
 
 
@@ -341,7 +343,8 @@ public class SeriesController : _MediaControllerBase
         existingItem.SortTitle = StringUtils.SortTitle(seriesInfo.Title);
         existingItem.Title = seriesInfo.Title;
         existingItem.TMDB_Id = seriesInfo.TMDB_Id;
-
+        existingItem.TVDB_Id = seriesInfo.TVDB_Id;
+        existingItem.IMDB_Id = seriesInfo.IMDB_Id;
 
         //Dup check
         existingItem.ComputeHash();
@@ -628,4 +631,29 @@ public class SeriesController : _MediaControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
     public Task<Result<List<BasicMedia>>> AdminSearchByTmdbId([FromQuery] int libraryId, [FromQuery] int tmdbId) =>
         AdminSearchByTmdbIdAsync(libraryId, tmdbId, MediaTypes.Series);
+
+
+
+
+    /// <summary>
+    /// Requires main profile
+    /// </summary>
+    /// <remarks>Designed for admin tools, this will return info on any series owned by the account with the specified tvdb id</remarks>
+    [HttpGet]
+    [RequireMainProfile]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+    public Task<Result<List<BasicMedia>>> AdminSearchByTvdbId([FromQuery] int libraryId, [FromQuery] int tvdbId) =>
+        AdminSearchByTvdbIdAsync(libraryId, tvdbId, MediaTypes.Series);
+
+
+
+    /// <summary>
+    /// Requires main profile
+    /// </summary>
+    /// <remarks>Designed for admin tools, this will return info on any series by the account with the specified imdb id</remarks>
+    [HttpGet]
+    [RequireMainProfile]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+    public Task<Result<List<BasicMedia>>> AdminSearchByImdbId([FromQuery] int libraryId, [FromQuery] string imdbId) =>
+        AdminSearchByImdbIdAsync(libraryId, imdbId, MediaTypes.Series);
 }

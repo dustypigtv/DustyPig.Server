@@ -3,10 +3,12 @@ using DustyPig.API.v3.Models;
 using DustyPig.Server.Controllers.v3.Filters;
 using DustyPig.Server.Data;
 using DustyPig.Server.Data.Models;
+using DustyPig.Server.Extensions;
 using DustyPig.Server.HostedServices;
 using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
@@ -66,6 +68,8 @@ public class EpisodesController : _MediaControllerBase
             SeriesTitle = series.Title,
             Title = episode.Title,
             TMDB_Id = episode.TMDB_Id,
+            TVDB_Id = episode.TVDB_Id,
+            IMDB_Id = episode.IMDB_Id,
             UpNext = episode.UpNext,
             VideoUrl = series.CanPlay ? episode.VideoUrl : null,
         };
@@ -125,6 +129,8 @@ public class EpisodesController : _MediaControllerBase
             Season = episodeInfo.SeasonNumber,
             Title = episodeInfo.Title,
             TMDB_Id = episodeInfo.TMDB_Id,
+            TVDB_Id = episodeInfo.TVDB_Id,
+            IMDB_Id = episodeInfo.IMDB_Id,
             VideoUrl = episodeInfo.VideoUrl,
         };
 
@@ -365,6 +371,8 @@ public class EpisodesController : _MediaControllerBase
         existingEpisode.Season = episodeInfo.SeasonNumber;
         existingEpisode.Title = episodeInfo.Title;
         existingEpisode.TMDB_Id = episodeInfo.TMDB_Id;
+        existingEpisode.TVDB_Id = episodeInfo.TVDB_Id;
+        existingEpisode.IMDB_Id = episodeInfo.IMDB_Id;
         existingEpisode.VideoUrl = episodeInfo.VideoUrl;
 
 
@@ -418,4 +426,94 @@ public class EpisodesController : _MediaControllerBase
     [ProhibitTestUser]
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
     public Task<Result> Delete(int id) => DeleteMedia(id);
+
+
+
+
+
+
+
+
+    /// <summary>
+    /// Requires main profile
+    /// </summary>
+    /// <remarks>Designed for admin tools, this will return info on any episode owned by the account with the specified tvdb id</remarks>
+    [HttpGet]
+    [RequireMainProfile]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+    public async Task<Result<List<DetailedEpisode>>> AdminSearchByTvdbId([FromQuery] int libraryId, [FromQuery] int tvdbId)
+    {
+        var ret = new List<DetailedEpisode>();
+
+        if (tvdbId <= 0)
+            return ret;
+
+        var libQ = DB.Libraries
+            .AsNoTracking()
+            .Where(lib => lib.AccountId == UserAccount.Id)
+            .Where(lib => lib.IsTV);
+        if (libraryId > 0)
+            libQ = libQ.Where(lib => lib.Id == libraryId);
+        var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+        var mediaEntries = await DB.MediaEntries
+            .AsNoTracking()
+            .Include(item => item.LinkedTo)
+            .Where(item => item.EntryType == MediaTypes.Episode)
+            .Where(item => libIds.Contains(item.LibraryId))
+            .Where(item => item.TVDB_Id == tvdbId)
+            .Distinct()
+            .OrderBy(item => item.LinkedTo.SortTitle)
+            .ThenByDescending(item => item.LinkedTo.Popularity == null ? 0 : item.LinkedTo.Popularity)
+            .Take(MAX_DB_LIST_SIZE)
+            .ToListAsync();
+
+
+        ret.AddRange(mediaEntries.Select(me => me.ToAdminDetailedEpisode()));
+
+        return ret;
+    }
+
+
+    /// <summary>
+    /// Requires main profile
+    /// </summary>
+    /// <remarks>Designed for admin tools, this will return info on any movie series by the account with the specified imdb id</remarks>
+    [HttpGet]
+    [RequireMainProfile]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<List<BasicMedia>>))]
+    public async Task<Result<List<DetailedEpisode>>> AdminSearchByImdbId([FromQuery] int libraryId, [FromQuery] string imdbId)
+    {
+        var ret = new List<DetailedEpisode>();
+
+        if (string.IsNullOrWhiteSpace(imdbId))
+            return ret;
+
+        var libQ = DB.Libraries
+            .AsNoTracking()
+            .Where(lib => lib.AccountId == UserAccount.Id)
+            .Where(lib => lib.IsTV);
+        if (libraryId > 0)
+            libQ = libQ.Where(lib => lib.Id == libraryId);
+        var libIds = await libQ.Select(lib => lib.Id).ToListAsync();
+
+
+        var mediaEntries = await DB.MediaEntries
+            .AsNoTracking()
+            .Include(item => item.LinkedTo)
+            .Where(item => item.EntryType == MediaTypes.Episode)
+            .Where(item => libIds.Contains(item.LibraryId))
+            .Where(item => item.IMDB_Id == imdbId)
+            .Distinct()
+            .OrderBy(item => item.LinkedTo.SortTitle)
+            .ThenByDescending(item => item.LinkedTo.Popularity == null ? 0 : item.LinkedTo.Popularity)
+            .Take(MAX_DB_LIST_SIZE)
+            .ToListAsync();
+
+
+        ret.AddRange(mediaEntries.Select(me => me.ToAdminDetailedEpisode()));
+
+        return ret;
+    }
 }

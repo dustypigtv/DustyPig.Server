@@ -47,6 +47,7 @@ namespace DustyPig.Server.Data.Models
 
         public int? TVDB_Id { get; set; }
 
+        [MaxLength(Constants.IMDB_ID_MAX_LENGTH)]
         public string IMDB_Id { get; set; }
 
         [Required]
