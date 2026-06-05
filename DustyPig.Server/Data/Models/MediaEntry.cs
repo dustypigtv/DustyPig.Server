@@ -293,7 +293,7 @@ namespace DustyPig.Server.Data.Models
         }
 
 
-        private void SetGenreFlags(Genres? genres)
+        public void SetGenreFlags(Genres? genres)
         {
             Genre_Action = genres?.HasFlag(Genres.Action) ?? false;
             Genre_Adventure = genres?.HasFlag(Genres.Adventure) ?? false;
@@ -381,6 +381,9 @@ namespace DustyPig.Server.Data.Models
 
             if (BackdropUrl.IsNullOrWhiteSpace())
                 BackdropUrl = info.BackdropUrl;
+
+            if (GetGenreFlags() == Genres.Unknown)
+                SetGenreFlags(info.GetGenres());
         }
 
         private void ComputeXid()

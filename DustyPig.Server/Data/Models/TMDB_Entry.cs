@@ -3,6 +3,7 @@ using DustyPig.API.v3.MPAA;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 
@@ -33,6 +34,12 @@ namespace DustyPig.Server.Data.Models
 
         public TMDB_MediaTypes MediaType { get; set; }
 
+        /// <summary>
+        /// Storing as a long enum doesnt seem to work correctly
+        /// </summary>
+        [DefaultValue(0)]
+        public long Genres { get; set; }
+
         [MaxLength(Constants.MAX_DESCRIPTION_LENGTH)]
         public string Description { get; set; }
 
@@ -54,5 +61,9 @@ namespace DustyPig.Server.Data.Models
 
         [DeleteBehavior(DeleteBehavior.SetNull)]
         public List<MediaEntry> MediaEntries { get; set; }
+
+        public void SetGenres(Genres g) => Genres = (long)g;
+
+        public Genres GetGenres() => (Genres)Genres;
     }
 }

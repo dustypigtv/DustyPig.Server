@@ -213,6 +213,9 @@ public class TMDB_Updater : IHostedService, IDisposable
                         if (mediaEntry.TMDB_EntryId == null)
                             mediaEntry.TMDB_EntryId = info.Id;
 
+                        if (mediaEntry.GetGenreFlags() == Genres.Unknown && info.Genres != Genres.Unknown)
+                            mediaEntry.SetGenreFlags(info.Genres);
+
                         mediaEntry.TMDB_Updated = DateTime.UtcNow;
                     }
 
@@ -315,7 +318,15 @@ public class TMDB_Updater : IHostedService, IDisposable
             var response = await tmdbService.GetMovieAsync(tmdbId, cancellationToken);
 
             var movie = response.Data;
-            return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Movie, TMDBService.GetCommonCredits(movie), movie.BackdropPath, TMDBService.TryGetMovieDate(movie), movie.Overview, movie.Popularity, TMDBService.TryMapMovieRatings(movie), cancellationToken);
+            return await AddOrUpdateTMDBEntry
+                (
+                    db, entry, tmdbId, TMDB_MediaTypes.Movie, 
+                    TMDBService.GetCommonCredits(movie), movie.BackdropPath, 
+                    TMDBService.TryGetMovieDate(movie), movie.Overview,
+                    movie.Popularity, 
+                    TMDBService.TryMapMovieRatings(movie), TMDBService.GetGenres(movie.Genres),
+                    cancellationToken
+                );
         }
         catch (Exception ex)
         {
@@ -347,7 +358,14 @@ public class TMDB_Updater : IHostedService, IDisposable
             var response = await tmdbService.GetSeriesAsync(tmdbId, cancellationToken);
 
             var series = response.Data;
-            return await AddOrUpdateTMDBEntry(db, entry, tmdbId, TMDB_MediaTypes.Series, TMDBService.GetCommonCredits(series), series.BackdropPath, null, series.Overview, series.Popularity, TMDBService.TryMapTVRatings(series), cancellationToken);
+            return await AddOrUpdateTMDBEntry
+                (
+                    db, entry, tmdbId, TMDB_MediaTypes.Series, 
+                    TMDBService.GetCommonCredits(series), series.BackdropPath, 
+                    null, series.Overview, series.Popularity, 
+                    TMDBService.TryMapTVRatings(series), TMDBService.GetGenres(series.Genres),
+                    cancellationToken
+                );
         }
         catch (Exception ex)
         {
@@ -360,7 +378,7 @@ public class TMDB_Updater : IHostedService, IDisposable
 
 
 
-    private async Task<TMDBInfo> AddOrUpdateTMDBEntry(AppDbContext db, TMDB_Entry entry, int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, CancellationToken cancellationToken)
+    private async Task<TMDBInfo> AddOrUpdateTMDBEntry(AppDbContext db, TMDB_Entry entry, int tmdbId, TMDB_MediaTypes mediaType, CreditsDTO credits, string backdropPath, DateOnly? date, string overview, double popularity, string rated, Genres genres, CancellationToken cancellationToken)
     {
         var backdropUrl = TMDBService.GetPosterPath(backdropPath);
 
@@ -425,6 +443,13 @@ public class TMDB_Updater : IHostedService, IDisposable
                     changed = true;
                 }
             }
+        }
+
+        var lg = (long)genres;
+        if(entry.Genres != lg)
+        {
+            entry.Genres = lg;
+            changed = true;
         }
 
 

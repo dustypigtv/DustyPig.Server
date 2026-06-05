@@ -5,6 +5,7 @@ using DustyPig.Server.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -206,4 +207,6 @@ public class TMDBService : TMDB.Client
             return DateTime.Parse(dt.Value.ToString("yyyy-MM-dd"));
         return null;
     }
+
+    public static Genres GetGenres(List<TMDB.Models.Common.CommonName> lst) => string.Join(',', (lst ?? []).Select(_ => _.Name)).ToGenres();
 }

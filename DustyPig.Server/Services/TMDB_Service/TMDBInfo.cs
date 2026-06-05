@@ -14,8 +14,9 @@ internal class TMDBInfo
     public MovieRatings? MovieRating { get; set; }
     public TVRatings? TVRating { get; set; }
     public string Overview { get; set; }
+    public Genres Genres { get; set; }
     public bool Changed { get; set; }
-
+    
     public static TMDBInfo FromEntry(TMDB_Entry entry, bool changed = false)
     {
         return new TMDBInfo
@@ -26,7 +27,9 @@ internal class TMDBInfo
             Overview = entry.Description,
             Popularity = entry.Popularity,
             TVRating = entry.TVRating,
-            Changed = changed
+            Genres = entry.GetGenres(),
+
+            Changed = changed,
         };
     }
 }
