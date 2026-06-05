@@ -14,6 +14,8 @@ namespace DustyPig.Server.Data.Models
     [Index(nameof(LibraryId), nameof(EntryType), nameof(TMDB_Id), nameof(Hash), IsUnique = true)]
     [Index(nameof(LibraryId))]
     [Index(nameof(TMDB_Id))]
+    [Index(nameof(TVDB_Id))]
+    [Index(nameof(IMDB_Id))]
     [Index(nameof(MovieRating))]
     [Index(nameof(TVRating))]
     [Index(nameof(LinkedToId))]
@@ -41,6 +43,11 @@ namespace DustyPig.Server.Data.Models
         public TMDB_Entry TMDB_Entry { get; set; }
 
         public DateTime? TMDB_Updated { get; set; }
+
+
+        public int? TVDB_Id { get; set; }
+
+        public string IMDB_Id { get; set; }
 
         [Required]
         [MaxLength(Constants.MAX_NAME_LENGTH)]
