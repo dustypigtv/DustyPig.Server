@@ -751,7 +751,7 @@ public class MediaController : _MediaControllerBase
             {
                 var profInfo = new ProfileTitleOverride
                 {
-                    AvatarUrl = profile.AvatarUrl,
+                    AvatarUrl = profile.CacheBusterAvatar(),
                     ProfileId = profile.Id,
                     Name = profile.Name
                 };
@@ -821,7 +821,7 @@ public class MediaController : _MediaControllerBase
 
                     var profInfo = new ProfileTitleOverride
                     {
-                        AvatarUrl = profile.AvatarUrl,
+                        AvatarUrl = profile.CacheBusterAvatar(),
                         ProfileId = profile.Id,
                         Name = profile.Name
                     };

@@ -78,8 +78,8 @@ internal static class DataExtensions
     public static string GetFriendAvatar(this Friendship friend, int accountId)
     {
         return friend.Account1Id == accountId
-            ? friend.Account2.Profiles.Where(item => item.IsMain).First().AvatarUrl
-            : friend.Account1.Profiles.Where(item => item.IsMain).First().AvatarUrl;
+            ? friend.Account2.Profiles.Where(item => item.IsMain).First().CacheBusterAvatar()
+            : friend.Account1.Profiles.Where(item => item.IsMain).First().CacheBusterAvatar();
     }
 
     public static BasicLibrary ToBasicLibraryInfo(this Library self) => new BasicLibrary
@@ -155,8 +155,8 @@ internal static class DataExtensions
         var ret = new BasicMedia
         {
             Id = self.Id,
-            ArtworkUrl = self.ArtworkUrl,
-            BackdropUrl = self.BackdropUrl,
+            ArtworkUrl = self.CacheBusterArtwork(),
+            BackdropUrl = self.CacheBusterBackdrop(),
             MediaType = self.EntryType,
             Title = self.FormattedTitle()
         };
@@ -174,8 +174,8 @@ internal static class DataExtensions
         return new DetailedMovie
         {
             Added = self.Added,
-            ArtworkUrl = self.ArtworkUrl,
-            BackdropUrl = self.BackdropUrl,
+            ArtworkUrl = self.CacheBusterArtwork(),
+            BackdropUrl = self.CacheBusterBackdrop(),
             BifUrl = playable ? self.BifUrl : null,
             Credits = self.GetPeople(),
             CreditsStartTime = self.CreditsStartTime,
@@ -204,8 +204,8 @@ internal static class DataExtensions
         return new DetailedSeries
         {
             Added = self.Added,
-            ArtworkUrl = self.ArtworkUrl,
-            BackdropUrl = self.BackdropUrl,
+            ArtworkUrl = self.CacheBusterArtwork(),
+            BackdropUrl = self.CacheBusterBackdrop(),
             Credits = self.GetPeople(),
             Description = self.Description,
             Genres = self.GetGenreFlags(),
@@ -226,7 +226,7 @@ internal static class DataExtensions
         var ret = new DetailedEpisode
         {
             Added = self.Added,
-            ArtworkUrl = self.ArtworkUrl,
+            ArtworkUrl = self.CacheBusterArtwork(),
             BifUrl = self.BifUrl,
             CreditsStartTime = self.CreditsStartTime,
             Date = self.Date.Value,
@@ -353,7 +353,7 @@ internal static class DataExtensions
         Id = self.Id,
         Name = self.Name,
         Initials = self.Name.GetInitials(),
-        AvatarUrl = self.AvatarUrl,
+        AvatarUrl = self.CacheBusterAvatar(),
         HasPin = self.PinNumber != null && self.PinNumber >= 1000,
         IsMain = self.IsMain
     };

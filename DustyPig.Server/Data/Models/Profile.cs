@@ -1,8 +1,10 @@
 ﻿using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace DustyPig.Server.Data.Models
@@ -27,6 +29,9 @@ namespace DustyPig.Server.Data.Models
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string AvatarUrl { get; set; }
+
+        [DefaultValue(0)]
+        public long AvatarVersion { get; set; }
 
         public bool Locked { get; set; }
 
@@ -60,5 +65,7 @@ namespace DustyPig.Server.Data.Models
                 ret = Name.CompareTo(comp.Name);
             return ret;
         }
+
+        public string CacheBusterAvatar() => Misc.CacheBuster(AvatarUrl, AvatarVersion);
     }
 }

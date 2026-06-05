@@ -42,11 +42,16 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string ArtworkUrl { get; set; }
 
+        [DefaultValue(1)]
+        public long ArtworkVersion { get; set; }
+
         [Required]
         [DefaultValue(Constants.DEFAULT_PLAYLIST_BACKDROP)]
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BackdropUrl { get; set; }
 
+        [DefaultValue(1)]
+        public long BackdropVersion { get; set; }
 
         public bool ArtworkUpdateNeeded { get; set; }
 

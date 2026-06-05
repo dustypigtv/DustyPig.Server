@@ -333,9 +333,20 @@ public class SeriesController : _MediaControllerBase
         bool library_changed = existingItem.LibraryId != seriesInfo.LibraryId;
         bool rated_changed = existingItem.TVRating != seriesInfo.Rated;
         bool artwork_changed = existingItem.ArtworkUrl != seriesInfo.ArtworkUrl;
+        bool backdrop_changed = existingItem.BackdropUrl != seriesInfo.BackdropUrl;
 
-        existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
-        existingItem.BackdropUrl = seriesInfo.BackdropUrl;
+        if (artwork_changed)
+        {
+            existingItem.ArtworkUrl = seriesInfo.ArtworkUrl;
+            existingItem.ArtworkVersion++;
+        }
+
+        if (backdrop_changed)
+        {
+            existingItem.BackdropUrl = seriesInfo.BackdropUrl;
+            existingItem.BackdropVersion++;
+        }
+
         existingItem.Description = seriesInfo.Description;
         existingItem.ExtraSearchTerms = seriesInfo.ExtraSearchTerms;
         existingItem.LibraryId = seriesInfo.LibraryId;

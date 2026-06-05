@@ -359,7 +359,12 @@ public class EpisodesController : _MediaControllerBase
 
         bool artChanged = existingEpisode.ArtworkUrl != episodeInfo.ArtworkUrl;
 
-        existingEpisode.ArtworkUrl = episodeInfo.ArtworkUrl;
+        if (artChanged)
+        {
+            existingEpisode.ArtworkUrl = episodeInfo.ArtworkUrl;
+            existingEpisode.ArtworkVersion++;
+        }
+
         existingEpisode.BifUrl = episodeInfo.BifUrl;
         existingEpisode.CreditsStartTime = episodeInfo.CreditsStartTime;
         existingEpisode.Date = episodeInfo.Date;

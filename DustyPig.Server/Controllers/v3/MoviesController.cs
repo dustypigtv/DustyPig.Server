@@ -478,10 +478,21 @@ public class MoviesController : _MediaControllerBase
         bool library_changed = existingItem.LibraryId != movieInfo.LibraryId;
         bool rated_changed = existingItem.MovieRating != movieInfo.Rated;
         bool artwork_changed = existingItem.ArtworkUrl != movieInfo.ArtworkUrl;
+        bool backdrop_changed = existingItem.BackdropUrl != movieInfo.BackdropUrl;
 
         //Don't update Added
-        existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
-        existingItem.BackdropUrl = movieInfo.BackdropUrl;
+        if (artwork_changed)
+        {
+            existingItem.ArtworkUrl = movieInfo.ArtworkUrl;
+            existingItem.ArtworkVersion++;
+        }
+
+        if (backdrop_changed)
+        {
+            existingItem.BackdropUrl = movieInfo.BackdropUrl;
+            existingItem.BackdropVersion++;
+        }
+
         existingItem.BifUrl = movieInfo.BifUrl;
         existingItem.CreditsStartTime = movieInfo.CreditsStartTime;
         existingItem.Date = movieInfo.Date;

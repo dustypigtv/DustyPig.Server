@@ -5,6 +5,7 @@ using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -105,8 +106,14 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string ArtworkUrl { get; set; }
 
+        [DefaultValue(0)]
+        public long ArtworkVersion { get; set; }
+
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string BackdropUrl { get; set; }
+
+        [DefaultValue(0)]
+        public long BackdropVersion { get; set; }
 
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
@@ -498,6 +505,12 @@ namespace DustyPig.Server.Data.Models
             ComputeXid();
             ComputeHash();
         }
+
+
+
+        public string CacheBusterArtwork() => Misc.CacheBuster(ArtworkUrl, ArtworkVersion);
+
+        public string CacheBusterBackdrop() => Misc.CacheBuster(BackdropUrl, BackdropVersion);
 
     }
 }

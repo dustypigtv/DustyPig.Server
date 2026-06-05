@@ -654,7 +654,7 @@ public class TMDBController : _BaseProfileController
             ret.Add(new TitleRequestSource
             {
                 Name = mainProfile.Name,
-                AvatarUrl = mainProfile.AvatarUrl
+                AvatarUrl = mainProfile.CacheBusterAvatar()
             });
 
         if (UserProfile.IsMain || UserProfile.TitleRequestPermission != TitleRequestPermissions.RequiresAuthorization)

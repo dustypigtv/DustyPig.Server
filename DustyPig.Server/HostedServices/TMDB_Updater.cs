@@ -205,7 +205,10 @@ public class TMDB_Updater : IHostedService, IDisposable
                             mediaEntry.Description = info.Overview;
 
                         if (mediaEntry.BackdropUrl.IsNullOrWhiteSpace() && info.BackdropUrl.HasValue())
+                        {
                             mediaEntry.BackdropUrl = info.BackdropUrl;
+                            mediaEntry.BackdropVersion++;
+                        }
 
                         if (mediaEntry.TMDB_EntryId == null)
                             mediaEntry.TMDB_EntryId = info.Id;

@@ -156,8 +156,8 @@ public abstract class _MediaControllerBase : _BaseProfileController
         {
             Id = id,
             Added = media.Added,
-            ArtworkUrl = media.ArtworkUrl,
-            BackdropUrl = media.BackdropUrl,
+            ArtworkUrl = media.CacheBusterArtwork(),
+            BackdropUrl = media.CacheBusterBackdrop(),
             CanPlay = playable,
             Credits = media.GetPeople(),
             Description = media.Description,
@@ -220,7 +220,7 @@ public abstract class _MediaControllerBase : _BaseProfileController
                 var ep = new DetailedEpisode
                 {
                     Added = dbEp.Added,
-                    ArtworkUrl = dbEp.ArtworkUrl,
+                    ArtworkUrl = dbEp.CacheBusterArtwork(),
                     BifUrl = playable ? dbEp.BifUrl : null,
                     CreditsStartTime = dbEp.CreditsStartTime,
                     Date = dbEp.Date.Value,

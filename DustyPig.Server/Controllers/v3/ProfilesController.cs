@@ -80,7 +80,7 @@ public class ProfilesController : _BaseProfileController
 
         var ret = new DetailedProfile
         {
-            AvatarUrl = profile.AvatarUrl,
+            AvatarUrl = profile.CacheBusterAvatar(),
             Id = id,
             IsMain = profile.IsMain,
             Locked = profile.Locked,
@@ -222,8 +222,13 @@ public class ProfilesController : _BaseProfileController
 
 
         var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
-        profile.AvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
 
+        var newAvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
+        if (profile.AvatarUrl != newAvatarUrl)
+        {
+            profile.AvatarUrl = newAvatarUrl;
+            profile.AvatarVersion++;
+        }
 
         if (info.Pin == null)
         {
@@ -308,9 +313,10 @@ public class ProfilesController : _BaseProfileController
             .FirstAsync();
 
         dbProfile.AvatarUrl = Misc.EnsureProfilePic(null);
+        dbProfile.AvatarVersion++;
         await DB.SaveChangesAsync();
 
-        return Result<string>.BuildSuccess(dbProfile.AvatarUrl);
+        return Result<string>.BuildSuccess(dbProfile.CacheBusterAvatar());
     }
 
 
@@ -350,11 +356,12 @@ public class ProfilesController : _BaseProfileController
 
         //Swap
         profile.AvatarUrl = urlPath;
+        profile.AvatarVersion++;
         DB.Profiles.Update(profile);
 
         await DB.SaveChangesAsync();
 
-        return Result<string>.BuildSuccess(urlPath);
+        return Result<string>.BuildSuccess(profile.CacheBusterAvatar());
     }
 
 
@@ -447,7 +454,7 @@ public class ProfilesController : _BaseProfileController
 
         var ret = new DetailedProfile
         {
-            AvatarUrl = profile.AvatarUrl,
+            AvatarUrl = profile.CacheBusterAvatar(),
             Id = profile.Id,
             IsMain = profile.IsMain,
             Locked = profile.Locked,

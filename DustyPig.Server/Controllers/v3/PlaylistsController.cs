@@ -184,16 +184,16 @@ public class PlaylistsController : _MediaControllerBase
 
                     pli.Title = $"{dbPlaylistItem.MediaEntry.LinkedTo.Title} - s{dbPlaylistItem.MediaEntry.Season:00}e{dbPlaylistItem.MediaEntry.Episode:00} - {dbPlaylistItem.MediaEntry.Title}";
                     pli.SeriesId = dbPlaylistItem.MediaEntry.LinkedToId;
-                    pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                    pli.ArtworkUrl = dbPlaylistItem.MediaEntry.CacheBusterArtwork();
                     break;
 
                 case MediaTypes.Movie:
 
                     pli.Title = dbPlaylistItem.MediaEntry.Title + $" ({dbPlaylistItem.MediaEntry.Date.Value.Year})";
                     if (string.IsNullOrWhiteSpace(dbPlaylistItem.MediaEntry.BackdropUrl))
-                        pli.ArtworkUrl = dbPlaylistItem.MediaEntry.ArtworkUrl;
+                        pli.ArtworkUrl = dbPlaylistItem.MediaEntry.CacheBusterArtwork();
                     else
-                        pli.ArtworkUrl = dbPlaylistItem.MediaEntry.BackdropUrl;
+                        pli.ArtworkUrl = dbPlaylistItem.MediaEntry.CacheBusterBackdrop();
                     break;
             }
 
