@@ -25,6 +25,7 @@ namespace DustyPig.Server.HostedServices;
 public class TMDB_Updater : IHostedService, IDisposable
 {
     private const int CHUNK_SIZE = 1000;
+    private const int MAX_FAILURE_COUNT = 10;
 
     private readonly IServiceProvider _serviceProvider;
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
@@ -134,6 +135,7 @@ public class TMDB_Updater : IHostedService, IDisposable
             var updateItemsLst = await db.TMDB_Entries
                 .AsNoTracking()
                 .Where(m => m.LastUpdated < DateTime.UtcNow.AddDays(-1))
+                .Where(m => m.FailureCount < MAX_FAILURE_COUNT)
                 .Select(m => new
                 {
                     m.TMDB_Id,
@@ -310,7 +312,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entry != null)
-                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1) || entry.FailureCount >= MAX_FAILURE_COUNT)
                     return TMDBInfo.FromEntry(entry, false);
 
             using var scope = _serviceProvider.CreateScope();
@@ -332,7 +334,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(UpdateTMDBMovie) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                await DeleteTmdbEntry(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
+                await MarkUpdateFailed(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
             throw;
         }
     }
@@ -350,7 +352,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                .FirstOrDefaultAsync(cancellationToken);
 
             if (entry != null)
-                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1))
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1) || entry.FailureCount >= MAX_FAILURE_COUNT)
                     return TMDBInfo.FromEntry(entry, false);
 
             using var scope = _serviceProvider.CreateScope();
@@ -371,7 +373,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(UpdateTMDBSeries) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                await DeleteTmdbEntry(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
+                await MarkUpdateFailed(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
             throw;
         }
     }
@@ -457,6 +459,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         //Always update timestamp, but that doesn't mean other data has changed. 
         //That's why I use the changed variable with extra code
         entry.LastUpdated = DateTime.UtcNow;
+        entry.FailureCount = 0;
         await db.SaveChangesAsync(cancellationToken);
 
         await EnsurePeopleExistAsync(credits, cancellationToken);
@@ -669,7 +672,7 @@ public class TMDB_Updater : IHostedService, IDisposable
     }
 
 
-    private async Task DeleteTmdbEntry(int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
+    private async Task MarkUpdateFailed(int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
     {
         try
         {
@@ -682,12 +685,12 @@ public class TMDB_Updater : IHostedService, IDisposable
             if (tmdbEntry == null)
                 return;
 
-            db.TMDB_Entries.Remove(tmdbEntry);
+            tmdbEntry.FailureCount++;
             await db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, nameof(DeleteTmdbEntry));
+            _logger.LogError(ex, nameof(MarkUpdateFailed));
         }
     }
 }
