@@ -56,11 +56,8 @@ namespace DustyPig.Server.Data.Models
 
         public DateTime LastUpdated { get; set; }
 
-        /// <summary>
-        /// How many times in a row this has failed, reset after success. For detecting removed ids
-        /// </summary>
-        [DefaultValue(0)]
-        public int FailureCount { get; set; }
+        [DefaultValue(false)]
+        public bool PermanentlyFailed { get; set; }
 
         [DeleteBehavior(DeleteBehavior.Cascade)]
         public List<TMDB_EntryPersonBridge> People { get; set; }

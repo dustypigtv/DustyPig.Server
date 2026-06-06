@@ -25,7 +25,6 @@ namespace DustyPig.Server.HostedServices;
 public class TMDB_Updater : IHostedService, IDisposable
 {
     private const int CHUNK_SIZE = 1000;
-    private const int MAX_FAILURE_COUNT = 10;
 
     private readonly IServiceProvider _serviceProvider;
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
@@ -69,6 +68,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             await DoUpdateAsync(cancellationToken);
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             _logger.LogError(ex, "DoWork");
@@ -80,7 +80,7 @@ public class TMDB_Updater : IHostedService, IDisposable
     private async Task DoUpdateAsync(CancellationToken cancellationToken)
     {
         using var db = _dbContextFactory.CreateDbContext();
-        
+
         //Get tmdb_ids from MediaEntries that have not yet been linked to a TMDB_Entry.
         //These are newly added and should update first
         int start = 0;
@@ -91,15 +91,14 @@ public class TMDB_Updater : IHostedService, IDisposable
                 .Where(m => Constants.TOP_LEVEL_MEDIA_TYPES.Contains(m.EntryType))
                 .Where(m => m.TMDB_Id.HasValue)
                 .Where(m => m.TMDB_Id > 0)
-                .Where(m => m.TMDB_Updated < DateTime.UtcNow.AddDays(-1))
+                .Where(m => m.TMDB_EntryId == null)
                 .Select(m => new
                 {
                     m.TMDB_Id,
-                    m.EntryType,
-                    m.TMDB_Updated
+                    m.EntryType
                 })
                 .Distinct()
-                .OrderBy(m => m.TMDB_Updated)
+                .OrderBy(m => m.TMDB_Id)
                 .Skip(start)
                 .Take(CHUNK_SIZE)
                 .ToListAsync(cancellationToken);
@@ -112,30 +111,21 @@ public class TMDB_Updater : IHostedService, IDisposable
             {
                 var tmdbType = item.EntryType == MediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series;
                 await DoUpdateAsync(item.TMDB_Id.Value, tmdbType, true, cancellationToken);
-
-#if DEBUG
-                // Debug: Break after 1
-                break;
-#endif
             }
 
             start += CHUNK_SIZE;
-
-#if DEBUG
-            // Debug: Break after 1
-            break;
-#endif
         }
 
 
+        
         start = 0;
         while (true)
         {
             //Now get any existing tmdb entries that are due to update
             var updateItemsLst = await db.TMDB_Entries
                 .AsNoTracking()
+                .Where(m => m.PermanentlyFailed == false)
                 .Where(m => m.LastUpdated < DateTime.UtcNow.AddDays(-1))
-                .Where(m => m.FailureCount < MAX_FAILURE_COUNT)
                 .Select(m => new
                 {
                     m.TMDB_Id,
@@ -166,7 +156,6 @@ public class TMDB_Updater : IHostedService, IDisposable
 
         var entryType = mediaType == TMDB_MediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
 
-        bool success = true;
         int start = 0;
         try
         {
@@ -193,6 +182,8 @@ public class TMDB_Updater : IHostedService, IDisposable
 
                     foreach (var mediaEntry in mediaEntries)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
+
                         if (!mediaEntry.Popularity.HasValue || mediaEntry.Popularity.Value != info.Popularity)
                             mediaEntry.Popularity = info.Popularity;
 
@@ -217,22 +208,16 @@ public class TMDB_Updater : IHostedService, IDisposable
 
                         if (mediaEntry.GetGenreFlags() == Genres.Unknown && info.Genres != Genres.Unknown)
                             mediaEntry.SetGenreFlags(info.Genres);
-
-                        mediaEntry.TMDB_Updated = DateTime.UtcNow;
                     }
 
                     try
                     {
                         await db.SaveChangesAsync(cancellationToken);
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
+                    catch (OperationCanceledException) { throw; }
                     catch (Exception ex)
                     {
                         _logger?.LogError(ex, "Update media entry");
-                        success = false;
                     }
 
                     start += CHUNK_SIZE;
@@ -240,63 +225,11 @@ public class TMDB_Updater : IHostedService, IDisposable
 
             }
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Update entry");
-            success = false;
         }
-
-
-        if (success)
-            return;
-
-
-        //Make sure failures don't repeatedly try - wait a day!
-        start = 0;
-        while (true)
-        {
-            try
-            {
-                var mediaEntries = await db.MediaEntries
-                    .Where(_ => _.TMDB_Id == tmdbId)
-                    .Where(_ => _.EntryType == entryType)
-                    .OrderBy(_ => _.Id)
-                    .Skip(start)
-                    .Take(CHUNK_SIZE)
-                    .ToListAsync(cancellationToken);
-
-                start += CHUNK_SIZE;
-                if (mediaEntries.Count == 0)
-                    break;
-
-                mediaEntries.ForEach(_ => _.TMDB_Updated = DateTime.UtcNow);
-                await db.SaveChangesAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Set MediaEntry.TMDB_Updated");
-            }
-        }
-
-
-        try
-        {
-            var tmdbEntry = await db.TMDB_Entries
-                .Where(_ => _.TMDB_Id == tmdbId)
-                .Where(_ => _.MediaType == mediaType)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (tmdbEntry == null)
-                return;
-
-            tmdbEntry.LastUpdated = DateTime.UtcNow;
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Set TMDB_Entry.LastUpdated");
-        }
-
     }
 
 
@@ -312,7 +245,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (entry != null)
-                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1) || entry.FailureCount >= MAX_FAILURE_COUNT)
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1) || entry.PermanentlyFailed)
                     return TMDBInfo.FromEntry(entry, false);
 
             using var scope = _serviceProvider.CreateScope();
@@ -330,13 +263,12 @@ public class TMDB_Updater : IHostedService, IDisposable
                     cancellationToken
                 );
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             _logger.LogError(ex, nameof(UpdateTMDBMovie) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 await MarkPermanentlyFailed(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
-            else if (ex is not OperationCanceledException)
-                await MarkUpdateFailed(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
             throw;
         }
     }
@@ -354,7 +286,7 @@ public class TMDB_Updater : IHostedService, IDisposable
                .FirstOrDefaultAsync(cancellationToken);
 
             if (entry != null)
-                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1) || entry.FailureCount >= MAX_FAILURE_COUNT)
+                if (entry.LastUpdated > DateTime.UtcNow.AddDays(-1) || entry.PermanentlyFailed)
                     return TMDBInfo.FromEntry(entry, false);
 
             using var scope = _serviceProvider.CreateScope();
@@ -371,13 +303,12 @@ public class TMDB_Updater : IHostedService, IDisposable
                     cancellationToken
                 );
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             _logger.LogError(ex, nameof(UpdateTMDBSeries) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
                 await MarkPermanentlyFailed(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
-            else if(ex is not OperationCanceledException)
-                await MarkUpdateFailed(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
             throw;
         }
     }
@@ -452,7 +383,7 @@ public class TMDB_Updater : IHostedService, IDisposable
         }
 
         var lg = (long)genres;
-        if(entry.Genres != lg)
+        if(genres != Genres.Unknown && entry.Genres != lg)
         {
             entry.Genres = lg;
             changed = true;
@@ -463,7 +394,6 @@ public class TMDB_Updater : IHostedService, IDisposable
         //Always update timestamp, but that doesn't mean other data has changed. 
         //That's why I use the changed variable with extra code
         entry.LastUpdated = DateTime.UtcNow;
-        entry.FailureCount = 0;
         await db.SaveChangesAsync(cancellationToken);
 
         await EnsurePeopleExistAsync(credits, cancellationToken);
@@ -687,36 +617,21 @@ public class TMDB_Updater : IHostedService, IDisposable
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (tmdbEntry == null)
-                return;
+                tmdbEntry = db.TMDB_Entries.Add(new TMDB_Entry
+                {
+                    Id = tmdbId,
+                    MediaType = mediaType,
+                }).Entity;
 
-            tmdbEntry.FailureCount = MAX_FAILURE_COUNT;
+            tmdbEntry.LastUpdated = DateTime.UtcNow;
+            tmdbEntry.PermanentlyFailed = true;
             await db.SaveChangesAsync(cancellationToken);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
-            _logger.LogError(ex, nameof(MarkUpdateFailed));
+            _logger.LogError(ex, nameof(MarkPermanentlyFailed));
         }
     }
-
-    private async Task MarkUpdateFailed(int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var db = _dbContextFactory.CreateDbContext();
-            var tmdbEntry = await db.TMDB_Entries
-                .Where(_ => _.Id == tmdbId)
-                .Where(_ => _.MediaType == mediaType)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (tmdbEntry == null)
-                return;
-
-            tmdbEntry.FailureCount++;
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, nameof(MarkUpdateFailed));
-        }
-    }
+        
 }

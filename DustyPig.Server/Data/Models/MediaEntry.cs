@@ -43,9 +43,7 @@ namespace DustyPig.Server.Data.Models
         public int? TMDB_EntryId { get; set; }
         public TMDB_Entry TMDB_Entry { get; set; }
 
-        public DateTime? TMDB_Updated { get; set; }
-
-
+        
         public int? TVDB_Id { get; set; }
 
         [MaxLength(Constants.IMDB_ID_MAX_LENGTH)]
