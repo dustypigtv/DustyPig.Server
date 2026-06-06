@@ -334,6 +334,8 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(UpdateTMDBMovie) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                await MarkPermanentlyFailed(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
+            else if (ex is not OperationCanceledException)
                 await MarkUpdateFailed(tmdbId, TMDB_MediaTypes.Movie, cancellationToken);
             throw;
         }
@@ -362,9 +364,9 @@ public class TMDB_Updater : IHostedService, IDisposable
             var series = response.Data;
             return await AddOrUpdateTMDBEntry
                 (
-                    db, entry, tmdbId, TMDB_MediaTypes.Series, 
-                    TMDBService.GetCommonCredits(series), series.BackdropPath, 
-                    null, series.Overview, series.Popularity, 
+                    db, entry, tmdbId, TMDB_MediaTypes.Series,
+                    TMDBService.GetCommonCredits(series), series.BackdropPath,
+                    null, series.Overview, series.Popularity,
                     TMDBService.TryMapTVRatings(series), TMDBService.GetGenres(series.Genres),
                     cancellationToken
                 );
@@ -373,6 +375,8 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             _logger.LogError(ex, nameof(UpdateTMDBSeries) + "({tmdbid})", tmdbId);
             if (ex is RestException rex && rex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                await MarkPermanentlyFailed(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
+            else if(ex is not OperationCanceledException)
                 await MarkUpdateFailed(tmdbId, TMDB_MediaTypes.Series, cancellationToken);
             throw;
         }
@@ -671,6 +675,28 @@ public class TMDB_Updater : IHostedService, IDisposable
         }
     }
 
+
+    private async Task MarkPermanentlyFailed(int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+            var tmdbEntry = await db.TMDB_Entries
+                .Where(_ => _.Id == tmdbId)
+                .Where(_ => _.MediaType == mediaType)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (tmdbEntry == null)
+                return;
+
+            tmdbEntry.FailureCount = MAX_FAILURE_COUNT;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, nameof(MarkUpdateFailed));
+        }
+    }
 
     private async Task MarkUpdateFailed(int tmdbId, TMDB_MediaTypes mediaType, CancellationToken cancellationToken)
     {
