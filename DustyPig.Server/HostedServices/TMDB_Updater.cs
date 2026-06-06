@@ -612,14 +612,14 @@ public class TMDB_Updater : IHostedService, IDisposable
         {
             using var db = _dbContextFactory.CreateDbContext();
             var tmdbEntry = await db.TMDB_Entries
-                .Where(_ => _.Id == tmdbId)
+                .Where(_ => _.TMDB_Id == tmdbId)
                 .Where(_ => _.MediaType == mediaType)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (tmdbEntry == null)
                 tmdbEntry = db.TMDB_Entries.Add(new TMDB_Entry
                 {
-                    Id = tmdbId,
+                    TMDB_Id = tmdbId,
                     MediaType = mediaType,
                 }).Entity;
 

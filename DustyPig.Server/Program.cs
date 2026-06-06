@@ -18,9 +18,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add service defaults & Aspire client integrations.
 // Disable seq when adding migrations
 builder.AddServiceDefaults();
-builder.AddSeqEndpoint("seq");
-builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
-
+//builder.AddSeqEndpoint("seq");
+//builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
+builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3", s =>
+{
+    s.ConnectionString = "Host=localhost; Port=5432; Username=postgres; Password=41E5FC27FB9740E3B7E235323FFAFCE3; Database=dustypig-v3";
+});
 
 //Firebase services
 builder
