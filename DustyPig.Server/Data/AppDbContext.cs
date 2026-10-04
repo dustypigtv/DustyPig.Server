@@ -67,6 +67,160 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasIndex(e => e.SearchTitle)
             .HasMethod("GIN")
             .IsTsVectorExpressionIndex("english");
+
+        //Speed up genre queries
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Action)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Action)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Adventure)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Adventure)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Animation)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Animation)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Anime)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Anime)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Awards_Show)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Awards_Show)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Children)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Children)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Comedy)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Comedy)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Crime)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Crime)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Documentary)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Documentary)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Drama)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Drama)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Family)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Family)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Fantasy)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Fantasy)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Food)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Food)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Game_Show)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Game_Show)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_History)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_History)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Home_and_Garden)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Home_and_Garden)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Horror)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Horror)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Indie)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Indie)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Martial_Arts)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Martial_Arts)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Mini_Series)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Mini_Series)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Music)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Action)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Musical)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Musical)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Mystery)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Mystery)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_News)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_News)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Podcast)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Podcast)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Political)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Political)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Reality)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Reality)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Romance)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Romance)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Science_Fiction)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Science_Fiction)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Soap)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Soap)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Sports)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Sports)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Suspense)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Suspense)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Talk_Show)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Talk_Show)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Thriller)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Thriller)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Travel)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Travel)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_TV_Movie)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_TV_Movie)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_War)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_War)}\" = TRUE");
+        
+        modelBuilder.Entity<MediaEntry>()
+            .HasIndex(e => e.Genre_Western)
+            .HasFilter($"\"{nameof(MediaEntry.Genre_Western)}\" = TRUE");
+
     }
 
 
