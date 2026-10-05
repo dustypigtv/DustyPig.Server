@@ -96,7 +96,7 @@ public class MediaController : _MediaControllerBase
                    DustyPig.API.v3.Clients.MediaClient.ID_POPULAR,
                    DustyPig.API.v3.Clients.MediaClient.ID_POPULAR_TITLE
                ),
-               PopularAsync(_dbContextFactory.CreateDbContext(), 0, MAX_DB_LIST_SIZE)
+               PopularForHomeScreenAsync(_dbContextFactory.CreateDbContext(), 0, itemsPerSection)
            );
 
 
@@ -1382,6 +1382,393 @@ public class MediaController : _MediaControllerBase
             .ApplySortOrder(SortOrder.Popularity_Descending)
             .Skip(skip)
             .Take(take)
+            .ToListAsync();
+    }
+
+    Task<List<MediaEntry>> PopularForHomeScreenAsync(AppDbContext dbInstance, int skip, int take)
+    {
+        var q01 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+            .AsNoTracking()
+            .Where(m => m.Popularity.HasValue)
+            .Where(m => m.Popularity > 0)
+            .Where(m => m.Genre_Action == true)
+            .ApplySortOrder(SortOrder.Popularity_Descending)
+            .Skip(skip)
+            .Take(take);
+
+        var q02 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Adventure == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q03 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Animation == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q04 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Anime == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q05 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Awards_Show == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q06 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Children == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q07 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Comedy == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q08 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Crime == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q09 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Documentary == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q10 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Drama == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q11 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Family == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q12 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Fantasy == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q13 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Food == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q14 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Game_Show == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q15 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_History == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q16 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Home_and_Garden == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q17 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Horror == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q18 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Indie == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q19 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Martial_Arts == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q20 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Mini_Series == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q21 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Music == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q22 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Musical == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q23 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Mystery == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q24 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_News == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q25 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Podcast == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q26 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Political == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q27 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Reality == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q28 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Romance == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q29 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Science_Fiction == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q30 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Soap == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q31 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Sports == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q32 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Suspense == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q33 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Talk_Show == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q34 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Thriller == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q35 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Travel == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        var q36 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_TV_Movie == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+
+        var q37 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_War == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+
+        var q38 = dbInstance.TopLevelWatchableMediaByProfileQuery(UserProfile)
+           .AsNoTracking()
+           .Where(m => m.Popularity.HasValue)
+           .Where(m => m.Popularity > 0)
+           .Where(m => m.Genre_Western == true)
+           .ApplySortOrder(SortOrder.Popularity_Descending)
+           .Skip(skip)
+           .Take(take);
+
+        return q01
+            .Union(q02)
+            .Union(q03)
+            .Union(q04)
+            .Union(q05)
+            .Union(q06)
+            .Union(q07)
+            .Union(q08)
+            .Union(q09)
+            .Union(q10)
+            .Union(q11)
+            .Union(q12)
+            .Union(q13)
+            .Union(q14)
+            .Union(q15)
+            .Union(q16)
+            .Union(q17)
+            .Union(q18)
+            .Union(q19)
+            .Union(q20)
+            .Union(q21)
+            .Union(q22)
+            .Union(q23)
+            .Union(q24)
+            .Union(q25)
+            .Union(q26)
+            .Union(q27)
+            .Union(q28)
+            .Union(q29)
+            .Union(q30)
+            .Union(q31)
+            .Union(q32)
+            .Union(q33)
+            .Union(q34)
+            .Union(q35)
+            .Union(q36)
+            .Union(q37)
+            .Union(q38)
             .ToListAsync();
     }
 
