@@ -6,19 +6,26 @@ using DustyPig.Server.Services.TMDB_Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
+#if DEBUG
+builder.Logging.AddConsole();
+#endif
 
 // Add service defaults & Aspire client integrations.
 // Disable seq when adding migrations
 builder.AddServiceDefaults();
+#if !DEBUG
 builder.AddSeqEndpoint("seq");
+#endif
 builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 
 
@@ -88,13 +95,13 @@ builder.Services.AddTransient<FirebaseAuthService>();
 
 
 //Add hosted services
+#if !DEBUG
 builder.Services.AddHostedService<TMDB_Updater>();
 builder.Services.AddHostedService<FirebaseNotificationsManager>();
 builder.Services.AddHostedService<MediaChangedTriggerManager>();
 builder.Services.AddHostedService<DBCleaner>();
 builder.Services.AddHostedService<ArtworkUpdater>();
-
-
+#endif
 
 
 

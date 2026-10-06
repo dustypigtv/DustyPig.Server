@@ -1,4 +1,5 @@
-﻿using DustyPig.API.v3;
+﻿using Amazon.Runtime.Internal.Transform;
+using DustyPig.API.v3;
 using DustyPig.API.v3.Models;
 using DustyPig.API.v3.MPAA;
 using DustyPig.Server.Controllers.v3.Filters;
@@ -15,6 +16,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Intrinsics.Arm;
 using System.Threading;
 using System.Threading.Tasks;
 using Enum = System.Enum;
@@ -1170,104 +1172,96 @@ public class MediaController : _MediaControllerBase
 
     // *** Helpers ***
 
-    Task<List<MediaEntry>> ContinueWatchingAsync(AppDbContext dbInstance, int skip, int take)
+    async Task<List<MediaEntry>> ContinueWatchingAsync(AppDbContext dbInstance, int skip, int take)
     {
-        var seriesQ =
-            from maxXid in
+        var seriesQ = 
+            from progress in
             (
-                from me in dbInstance.MediaEntries
-                join pmp in dbInstance.ProfileMediaProgresses
-                    on new { MediaEntryId = me.LinkedToId.Value, ProfileId = UserProfile.Id }
-                    equals new { pmp.MediaEntryId, pmp.ProfileId }
+                from meSeries in dbInstance.MediaEntries
+                join meEpisodes in dbInstance.MediaEntries on meSeries.Id equals meEpisodes.LinkedToId.Value
+                join pmp in dbInstance.ProfileMediaProgresses on meSeries.Id equals pmp.MediaEntryId
+                join lib in dbInstance.Libraries on meSeries.LibraryId equals lib.Id
+
+                join fls in dbInstance.FriendLibraryShares
+                        .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
+                        .Select(t => (int?)t.LibraryId)
+                    on lib.Id equals fls into fls_lj
+                from fls in fls_lj.DefaultIfEmpty()
+
+
+                join pls in dbInstance.ProfileLibraryShares
+                        .Where(_ => _.ProfileId == UserProfile.Id)
+                    on lib.Id equals pls.LibraryId into pls_lj
+                from pls in pls_lj.DefaultIfEmpty()
+
+
+                join ovrride in dbInstance.TitleOverrides
+                        .Where(_ => _.ProfileId == UserProfile.Id)
+                        .Where(_ => new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(_.State))
+                    on meSeries.Id equals ovrride.MediaEntryId into ovrride_lj
+                from ovrride in ovrride_lj.DefaultIfEmpty()
 
                 where
-                    me.LinkedToId.HasValue
-                    && me.Xid.HasValue
 
-                group me by me.LinkedToId into g
+                    // Query filters
+                    meSeries.EntryType == MediaTypes.Series
+                    && meEpisodes.EntryType == MediaTypes.Episode
+                    && meEpisodes.LinkedToId.HasValue
+                    && meEpisodes.Xid.HasValue
+                    && pmp.ProfileId == UserProfile.Id
+                    && pmp.Xid.HasValue
+                    && lib.IsTV
+
+
+                    //Allow to play filters
+                    &&
+                    (
+                        meSeries.EntryType == MediaTypes.Series
+                        &&
+                        (
+                            (
+                                UserProfile.IsMain
+                                &&
+                                (
+                                    lib.AccountId == UserAccount.Id
+                                    ||
+                                    (
+                                        fls.HasValue
+                                        && ovrride.State != OverrideState.Block
+                                    )
+                                )
+                            )
+                            ||
+                            (
+                                pls != null
+                                && UserProfile.MaxTVRating >= (meSeries.TVRating ?? TVRatings.NotRated)
+                                && ovrride.State != OverrideState.Block
+                            )
+                            || ovrride.State == OverrideState.Allow
+                        )
+                    )
+
+                group new { meSeries, meEpisodes, pmp } by meSeries.Id into g
 
                 select new
                 {
-                    SeriesId = g.Key.Value,
-                    LastXid = g.Max(x => x.Xid)
+                    SeriesId = g.Key,
+                    ProgressXid = g.Max(_ => _.pmp.Xid.Value),
+                    LastXid = g.Max(_ => _.meEpisodes.Xid.Value),
+                    ProgressTimestamp = g.Max(_ => _.pmp.Timestamp),
+                    LastAdded = g.Max(_ => _.meEpisodes.Added)
                 }
             )
 
-            join meEp in dbInstance.MediaEntries
-                on new { maxXid.SeriesId, Xid = maxXid.LastXid }
-                equals new { SeriesId = meEp.LinkedToId.Value, meEp.Xid }
+        join series in dbInstance.MediaEntries
+            on progress.SeriesId equals series.Id
 
-            join meSeries in dbInstance.MediaEntries on meEp.LinkedToId.Value equals meSeries.Id
+        select new
+        {
+            MediaEntry = series,
+            Timestamp = progress.ProgressTimestamp > progress.LastAdded ? progress.ProgressTimestamp : progress.LastAdded
+        };
 
-            join lib in dbInstance.Libraries on meSeries.LibraryId equals lib.Id
-
-            join pmp in dbInstance.ProfileMediaProgresses
-                on new { SeriesId = meSeries.Id, ProfileId = UserProfile.Id }
-                equals new { SeriesId = pmp.MediaEntryId, pmp.ProfileId }
-
-            join fls in dbInstance.FriendLibraryShares
-                .Where(t => t.Friendship.Account1Id == UserAccount.Id || t.Friendship.Account2Id == UserAccount.Id)
-                .Select(t => (int?)t.LibraryId)
-                on lib.Id equals fls into fls_lj
-            from fls in fls_lj.DefaultIfEmpty()
-
-            join pls in dbInstance.ProfileLibraryShares
-                on new { LibraryId = lib.Id, ProfileId = UserProfile.Id }
-                equals new { pls.LibraryId, pls.ProfileId }
-                into pls_lj
-            from pls in pls_lj.DefaultIfEmpty()
-
-
-            join ovrride in dbInstance.TitleOverrides
-                on new { MediaEntryId = meSeries.Id, ProfileId = UserProfile.Id, Valid = true }
-                equals new { ovrride.MediaEntryId, ovrride.ProfileId, Valid = new OverrideState[] { OverrideState.Allow, OverrideState.Block }.Contains(ovrride.State) }
-                into ovrride_lj
-            from ovrride in ovrride_lj.DefaultIfEmpty()
-
-            where
-
-                //Allow to play filters
-                meSeries.EntryType == MediaTypes.Series
-                &&
-                (
-                    (
-                        UserProfile.IsMain
-                        &&
-                        (
-                            lib.AccountId == UserAccount.Id
-                            ||
-                            (
-                                fls.HasValue
-                                && ovrride.State != OverrideState.Block
-                            )
-                        )
-                    )
-                    ||
-                    (
-                        pls != null
-                        && UserProfile.MaxTVRating >= (meSeries.TVRating ?? TVRatings.NotRated)
-                        && ovrride.State != OverrideState.Block
-                    )
-                    || ovrride.State == OverrideState.Allow
-                )
-
-                //Non equal join conditions
-                &&
-                (
-                    pmp.Xid < maxXid.LastXid
-                    ||
-                    (
-                        pmp.Xid == maxXid.LastXid
-                        && pmp.Played < (meEp.CreditsStartTime ?? meEp.Length - 30)
-                    )
-                )
-
-
-            select new
-            {
-                MediaEntry = meSeries,
-                Timestamp = pmp.Timestamp > meEp.Added ? pmp.Timestamp : meEp.Added
-            };
 
 
 
@@ -1338,7 +1332,7 @@ public class MediaController : _MediaControllerBase
             };
 
 
-        return seriesQ
+        return await seriesQ
             .Union(movieQ)
             .Distinct()
             .OrderByDescending(item => item.Timestamp)
