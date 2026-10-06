@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using DustyPig.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DustyPig.Server.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006180730_Better_Genre_Indices")]
+    partial class Better_Genre_Indices
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -517,7 +520,10 @@ namespace DustyPig.Server.Data.Migrations
                         .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex("Popularity"), new[] { NullSortOrder.NullsLast });
+                    b.HasIndex("SearchTitle")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "english");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchTitle"), "GIN");
 
                     b.HasIndex("TMDB_EntryId");
 
@@ -530,233 +536,118 @@ namespace DustyPig.Server.Data.Migrations
                     b.HasIndex("LibraryId", "EntryType", "TMDB_Id", "Hash")
                         .IsUnique();
 
+                    b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Genre_Adventure")
+                        .IsDescending()
+                        .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Adventure\" = TRUE");
+
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Action")
                         .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Action\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Action"), new[] { NullSortOrder.NullsLast });
-
-                    b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Adventure")
-                        .IsDescending()
-                        .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Adventure\" = TRUE");
-
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Adventure"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Animation")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Animation\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Animation"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Anime")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Anime\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Anime"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Awards_Show")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Awards_Show\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Awards_Show"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Children")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Children\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Children"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Comedy")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Comedy\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Comedy"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Crime")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Crime\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Crime"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Documentary")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Documentary\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Documentary"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Drama")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Drama\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Drama"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Family")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Family\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Family"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Fantasy")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Fantasy\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Fantasy"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Food")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Food\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Food"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Game_Show")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Game_Show\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Game_Show"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_History")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_History\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_History"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Home_and_Garden")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Home_and_Garden\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Home_and_Garden"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Horror")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Horror\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Horror"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Indie")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Indie\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Indie"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Martial_Arts")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Martial_Arts\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Martial_Arts"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Mini_Series")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Mini_Series\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Mini_Series"), new[] { NullSortOrder.NullsLast });
-
-                    b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Music")
-                        .IsDescending()
-                        .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Music\" = TRUE");
-
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Music"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Musical")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Musical\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Musical"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Mystery")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Mystery\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Mystery"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_News")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_News\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_News"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Podcast")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Podcast\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Podcast"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Political")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Political\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Political"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Reality")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Reality\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Reality"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Romance")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Romance\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Romance"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Science_Fiction")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Science_Fiction\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Science_Fiction"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Soap")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Soap\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Soap"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Sports")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Sports\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Sports"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Suspense")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Suspense\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Suspense"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_TV_Movie")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_TV_Movie\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_TV_Movie"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Talk_Show")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Talk_Show\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Talk_Show"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Thriller")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Thriller\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Thriller"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Travel")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Travel\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Travel"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_War")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_War\" = TRUE");
 
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_War"), new[] { NullSortOrder.NullsLast });
-
                     b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Western")
-                        .IsDescending()
                         .HasFilter("\"Popularity\" IS NOT NULL AND \"Genre_Western\" = TRUE");
-
-                    NpgsqlIndexBuilderExtensions.HasNullSortOrder(b.HasIndex(new[] { "Popularity" }, "IX_MediaEntries_Popularity_Genre_Western"), new[] { NullSortOrder.NullsLast });
 
                     b.ToTable("MediaEntries");
                 });

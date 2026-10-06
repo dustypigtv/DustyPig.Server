@@ -20,11 +20,9 @@ namespace DustyPig.Server.Data.Models
     [Index(nameof(MovieRating))]
     [Index(nameof(TVRating))]
     [Index(nameof(LinkedToId))]
-    [Index(nameof(Popularity))]
     [Index(nameof(TMDB_EntryId))]
     [Index(nameof(EntryType))]
-    [Index(nameof(Added))]
-    
+    [Index(nameof(Added))]    
     public class MediaEntry
     {
         public const int MAX_SEARCH_TITLE_SIZE = 1000;

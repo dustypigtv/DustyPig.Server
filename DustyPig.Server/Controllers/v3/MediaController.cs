@@ -268,55 +268,25 @@ public class MediaController : _MediaControllerBase
             var normQuery = request.Query.NormalizedQueryString();
             if (string.IsNullOrWhiteSpace(normQuery))
                 return ret;
+            
+            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
+            foreach (var term in normQuery.Tokenize().Distinct())
+                q = q.Where(me => me.SearchTitle.Contains(term));
 
-            var q = DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
-                .Where(_ => EF.Functions.ToTsVector("english", _.SearchTitle).Matches(normQuery))
-                .Select(_ => new
-                {
-                    Val = _,
-                    Rank = EF.Functions.ToTsVector("english", _.SearchTitle).RankCoverDensity(EF.Functions.PhraseToTsQuery(normQuery))
-                });
-
-
-            var mediaEntries = await q
+            var mediaEntriesBak = await q
                 .AsNoTracking()
-                .OrderBy(_ => _.Val.Title.ToLower() == normQuery ? 0 : 1)
-                .ThenByDescending(_ => _.Rank)
-                .ThenByDescending(_ => _.Val.Popularity == null ? 0 : _.Val.Popularity)
-                .ThenBy(_ => _.Val.SortTitle)
-                .ThenBy(_ => _.Val.Title)
-                .Take(DEFAULT_LIST_SIZE)
+                .Where(_ => _.Popularity.HasValue)
+                .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
+                .ThenByDescending(_ => _.Popularity)
+                .ThenBy(_ => _.SortTitle)
+                .ThenBy(_ => _.Title)
+                .Take(MAX_DB_LIST_SIZE)
                 .ToListAsync(cancellationToken);
 
-            if (mediaEntries.Count > 0)
+            if (mediaEntriesBak.Count > 0)
             {
-                ret.Available.AddRange(mediaEntries.Select(_ => _.Val.ToBasicMedia()));
-            }
-            else
-            {
-                //FTS works better, but often needs full words before it returns results.
-                //For example, "star wa" returns nothing, but "star war"
-                //is stemmed "star wars" and will return resuts.
-                //So use the non-fts as a backup
-
-                var qBak = DB.TopLevelWatchableMediaByProfileQuery(UserProfile);
-                foreach (var term in normQuery.Tokenize().Distinct())
-                    qBak = qBak.Where(me => me.SearchTitle.Contains(term));
-
-                var mediaEntriesBak = await qBak
-                    .AsNoTracking()
-                    .OrderBy(_ => _.Title.ToLower() == normQuery ? 0 : 1)
-                    .ThenByDescending(_ => _.Popularity == null ? 0 : _.Popularity)
-                    .ThenBy(_ => _.SortTitle)
-                    .ThenBy(_ => _.Title)
-                    .Take(MAX_DB_LIST_SIZE)
-                    .ToListAsync(cancellationToken);
-
-                if (mediaEntriesBak.Count > 0)
-                {
-                    mediaEntriesBak.SortSearchResults(normQuery);
-                    ret.Available.AddRange(mediaEntriesBak.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
-                }
+                mediaEntriesBak.SortSearchResults(normQuery);
+                ret.Available.AddRange(mediaEntriesBak.Take(DEFAULT_LIST_SIZE).Select(item => item.ToBasicMedia()));
             }
 
 
