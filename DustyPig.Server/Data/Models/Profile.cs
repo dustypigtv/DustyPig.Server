@@ -28,6 +28,16 @@ namespace DustyPig.Server.Data.Models
         public TitleRequestPermissions TitleRequestPermission { get; set; }
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
+        public string OriginalAvatarUrl { get; set; }
+
+        public double AvatarScale { get; set; }
+
+        public int AvatarCenterX { get; set; }
+
+        public int AvatarCenterY { get; set; }
+
+
+        [MaxLength(Constants.MAX_URL_LENGTH)]
         public string AvatarUrl { get; set; }
 
         [DefaultValue(0)]

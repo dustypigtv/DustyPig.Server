@@ -908,6 +908,15 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("AccountId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("AvatarCenterX")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AvatarCenterY")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("AvatarScale")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -931,6 +940,10 @@ namespace DustyPig.Server.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OriginalAvatarUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<int?>("PinNumber")
                         .HasColumnType("integer");
