@@ -10,7 +10,6 @@ using DustyPig.Server.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SixLabors.ImageSharp;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
