@@ -10,9 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -151,7 +149,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
 
         string artId = $"{playlist.Id}." + string.Join('.', mediaEntries.Select(_ => _.Id.ToString()));
-        string calcArt = Constants.DEFAULT_PLAYLIST_URL_ROOT + artId;
+        string calcArt = Constants.USER_PLAYLIST_URL_ROOT + artId;
         if (backdrop)
             calcArt += ".backdrop";
         calcArt += ".jpg";
@@ -214,28 +212,28 @@ internal class ArtworkUpdater : IHostedService, IDisposable
                 int outputWidth = (backdrop ? BACKDROP_WIDTH : POSTER_WIDTH) * 2;
                 int outputHeight = (backdrop ? BACKDROP_HEIGHT : POSTER_HEIGHT) * 2;
 
-                using Image<Rgba32> img1 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tl]));
-                using Image<Rgba32> img2 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_tr]));
-                using Image<Rgba32> img3 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_bl]));
-                using Image<Rgba32> img4 = Image.Load<Rgba32>(new ReadOnlySpan<byte>(dataLst[idx_br]));
-                using Image<Rgba32> outputImage = new(outputWidth, outputHeight);
+                using var img1 = SKBitmap.Decode(dataLst[idx_tl]);
+                using var img2 = SKBitmap.Decode(dataLst[idx_tr]);
+                using var img3 = SKBitmap.Decode(dataLst[idx_bl]);
+                using var img4 = SKBitmap.Decode(dataLst[idx_br]);
+
+                var imageInfo = new SKImageInfo(outputWidth, outputHeight);
+                using var mosaicBitmap = new SKBitmap(imageInfo);
+                using var canvas = new SKCanvas(mosaicBitmap);
+                canvas.Clear(SKColors.Transparent);
 
                 int w = backdrop ? BACKDROP_WIDTH : POSTER_WIDTH;
                 int h = backdrop ? BACKDROP_HEIGHT : POSTER_HEIGHT;
+                var sampling = new SKSamplingOptions(SKCubicResampler.Mitchell);
 
-                img1.Mutate(o => o.Resize(w, h));
-                img2.Mutate(o => o.Resize(w, h));
-                img3.Mutate(o => o.Resize(w, h));
-                img4.Mutate(o => o.Resize(w, h));
+                canvas.DrawBitmap(img1, new SKRect(0, 0, w, h), sampling);
+                canvas.DrawBitmap(img2, new SKRect(w, 0, w, h), sampling);
+                canvas.DrawBitmap(img3, new SKRect(0, h, w, h), sampling);
+                canvas.DrawBitmap(img4, new SKRect(w, h, w, h), sampling);
 
-                outputImage.Mutate(o => o
-                    .DrawImage(img1, new Point(0, 0), 1f)
-                    .DrawImage(img2, new Point(w, 0), 1f)
-                    .DrawImage(img3, new Point(0, h), 1f)
-                    .DrawImage(img4, new Point(w, h), 1f)
-                );
-
-                outputImage.SaveAsJpeg(ms);
+                using var image = SKImage.FromBitmap(mosaicBitmap);
+                using var data = image.Encode(SKEncodedImageFormat.Jpeg, 100);
+                data.SaveTo(ms);
             }
             catch (Exception ex)
             {
@@ -247,7 +245,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
             try
             {
-                string uploadKey = $"{Constants.DEFAULT_PLAYLIST_PATH}/{artId}";
+                string uploadKey = $"{Constants.USER_PLAYLIST_PATH}/{artId}";
                 if (backdrop)
                     uploadKey += ".backdrop";
                 uploadKey += ".jpg";
@@ -306,7 +304,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
                     //Convert the key to url
                     string filename = s3Obj.Key.Split('/', StringSplitOptions.RemoveEmptyEntries).Last();
-                    string url = key == Constants.DEFAULT_PLAYLIST_PATH ?
+                    string url = key == Constants.USER_PLAYLIST_PATH ?
                         Constants.USER_PLAYLIST_URL_ROOT + filename :
                         Constants.USER_PROFILE_URL_ROOT + filename;
 

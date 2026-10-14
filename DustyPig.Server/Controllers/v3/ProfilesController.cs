@@ -349,8 +349,8 @@ public class ProfilesController : _BaseProfileController
 
         var ext = isPng ? "png" : "jpg";
         string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
-        string keyPath = $"{Constants.DEFAULT_PROFILE_PATH}/{fileName}";
-        string urlPath = $"{Constants.DEFAULT_PROFILE_URL_ROOT}{fileName}";
+        string keyPath = $"{Constants.USER_PROFILE_PATH}/{fileName}";
+        string urlPath = $"{Constants.USER_PROFILE_URL_ROOT}{fileName}";
 
         await _s3Service.UploadImageAsync(stream, keyPath, default);
 
