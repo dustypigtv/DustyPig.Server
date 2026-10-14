@@ -68,7 +68,7 @@ public class AccountController : _BaseController
                 Name = Misc.Coalesce(info.DisplayName, newUserRecord.Email[..newUserRecord.Email.IndexOf("@")]),
                 TitleRequestPermission = TitleRequestPermissions.Enabled
             }).Entity;
-            profile.UpdateAvatar(Misc.EnsureProfilePic(info.AvatarUrl));
+            profile.UpdateAvatarFromDefault();
 
             await DB.SaveChangesAsync();
 

@@ -204,9 +204,12 @@ public class ProfilesController : _BaseProfileController
     /// <summary>
     /// Requires profile
     /// </summary>
-    /// <remarks>Only the main profile on the account or the profile owner can update a profile.
-    /// If the profile owner is not the main profile, then they can only update: Name, PinNumber and Avatar. 
-    /// If the profile being updated is not the main profile, it cannot be locked</remarks>
+    /// <remarks>
+    /// Only the main profile on the account or the profile owner can update a profile.
+    /// If the profile owner is not the main profile, then they can only update: Name and PinNumber. 
+    /// If the profile being updated is not the main profile, it cannot be locked.
+    /// Updates to the Avatar have been removed from this endpoint
+    /// </remarks>
     [HttpPost]
     [ProhibitTestUser]
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
@@ -223,9 +226,9 @@ public class ProfilesController : _BaseProfileController
 
         var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
 
-        var newAvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
-        if (profile.AvatarUrl != newAvatarUrl)
-            profile.UpdateAvatar(newAvatarUrl);
+        //var newAvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
+        //if (profile.AvatarUrl != newAvatarUrl)
+        //    profile.UpdateAvatar(newAvatarUrl);
 
         if (info.Pin == null)
         {
@@ -291,74 +294,7 @@ public class ProfilesController : _BaseProfileController
     }
 
 
-    /// <summary>
-    /// Requires profile
-    /// </summary>
-    /// <remarks>Reset's the profiles avatar</remarks>
-    [HttpGet("{id}")]
-    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-    public async Task<Result<string>> ResetAvatar(int id)
-    {
-        if (id != UserProfile.Id)
-            if (UserProfile.IsMain)
-                if (!UserAccount.Profiles.Any(item => item.Id == id))
-                    return CommonResponses.ValueNotFound(nameof(id));
-
-        var dbProfile = await DB
-            .Profiles
-            .Where(p => p.Id == id)
-            .FirstAsync();
-
-        dbProfile.UpdateAvatar(Misc.EnsureProfilePic(null));
-        await DB.SaveChangesAsync();
-
-        return Result<string>.BuildSuccess(dbProfile.CacheBusterAvatar());
-    }
-
-
-    /// <summary>
-    /// Requires profile
-    /// </summary>
-    /// <remarks>Only the main profile on the account or the profile owner can update a profile.
-    /// The base64 encoded image size must be less than 5 MB
-    /// </remarks>
-    [HttpPost]
-    [ProhibitTestUser]
-    [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 5mb for json
-    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-    public async Task<Result<string>> SetProfileAvatar(UpdateProfileAvatar data)
-    {
-        try { data.Validate(); }
-        catch (ModelValidationException ex) { return ex; }
-
-        if (data.Id != UserProfile.Id)
-            if (UserProfile.IsMain)
-                if (!UserAccount.Profiles.Any(item => item.Id == data.Id))
-                    return CommonResponses.ValueNotFound(nameof(data.Id));
-
-        var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
-
-        var bytes = Convert.FromBase64String(data.Base64Image);
-        var stream = new MemoryStream(bytes);
-
-        bool isPng = UpdateProfileAvatar.IsPng(bytes);
-
-        var ext = isPng ? "png" : "jpg";
-        string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
-        string keyPath = $"{Constants.USER_PROFILE_PATH}/{fileName}";
-        string urlPath = $"{Constants.USER_PROFILE_URL_ROOT}{fileName}";
-
-        await _s3Service.UploadImageAsync(stream, keyPath, default);
-
-        //Swap
-        profile.UpdateAvatar(urlPath);
-        DB.Profiles.Update(profile);
-
-        await DB.SaveChangesAsync();
-
-        return Result<string>.BuildSuccess(profile.CacheBusterAvatar());
-    }
-
+    
 
     /// <summary>
     /// Requires main profile
@@ -389,7 +325,7 @@ public class ProfilesController : _BaseProfileController
             PinNumber = info.Pin,
             TitleRequestPermission = info.TitleRequestPermissions
         };
-        profile.UpdateAvatar(Misc.EnsureProfilePic(info.AvatarUrl));
+        profile.UpdateAvatarFromDefault();
 
         if (info.LibraryIds != null && info.LibraryIds.Count > 0)
         {
@@ -542,6 +478,83 @@ public class ProfilesController : _BaseProfileController
     [RequireMainProfile]
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
     public Task<Result> UnLinkFromLibrary(ProfileLibraryLink lnk) => DB.UnLinkLibraryAndProfile(UserAccount, lnk.ProfileId, lnk.LibraryId);
+
+
+
+
+
+
+    /// <summary>
+    /// Requires profile
+    /// </summary>
+    /// <remarks>Reset's the profiles avatar</remarks>
+    [HttpGet("{id}")]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+    public async Task<Result<string>> ResetAvatar(int id)
+    {
+        if (id != UserProfile.Id)
+            if (UserProfile.IsMain)
+                if (!UserAccount.Profiles.Any(item => item.Id == id))
+                    return CommonResponses.ValueNotFound(nameof(id));
+
+        var dbProfile = await DB
+            .Profiles
+            .Where(p => p.Id == id)
+            .FirstAsync();
+
+        dbProfile.UpdateAvatarFromDefault();
+        await DB.SaveChangesAsync();
+
+        return Result<string>.BuildSuccess(dbProfile.CacheBusterAvatar());
+    }
+
+
+    /// <summary>
+    /// Requires profile
+    /// </summary>
+    /// <remarks>Only the main profile on the account or the profile owner can update a profile.
+    /// The base64 encoded image size must be less than 5 MB
+    /// </remarks>
+    [HttpPost]
+    [ProhibitTestUser]
+    [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 5mb for json
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+    public async Task<Result<string>> SetProfileAvatar(UpdateProfileAvatar data)
+    {
+        try { data.Validate(); }
+        catch (ModelValidationException ex) { return ex; }
+
+        if (data.Id != UserProfile.Id)
+            if (UserProfile.IsMain)
+                if (!UserAccount.Profiles.Any(item => item.Id == data.Id))
+                    return CommonResponses.ValueNotFound(nameof(data.Id));
+
+        var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
+
+        var bytes = Convert.FromBase64String(data.Base64Image);
+        var stream = new MemoryStream(bytes);
+
+        bool isPng = UpdateProfileAvatar.IsPng(bytes);
+
+        var ext = isPng ? "png" : "jpg";
+        string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
+        string keyPath = $"{Constants.USER_PROFILE_PATH}/{fileName}";
+        string urlPath = $"{Constants.USER_PROFILE_URL_ROOT}{fileName}";
+
+        await _s3Service.UploadImageAsync(stream, keyPath, default);
+
+        //Swap
+        profile.UpdateAvatar(urlPath);
+        DB.Profiles.Update(profile);
+
+        await DB.SaveChangesAsync();
+
+        return Result<string>.BuildSuccess(profile.CacheBusterAvatar());
+    }
+
+
+
+
 
 
     protected override void Dispose(bool disposing)

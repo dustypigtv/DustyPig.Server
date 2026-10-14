@@ -8,17 +8,7 @@ public static class Misc
 {
     public static string Coalesce(params string[] values) => values.FirstOrDefault(item => !string.IsNullOrEmpty(item));
 
-    public static string EnsureProfilePic(string s)
-    {
-        if (string.IsNullOrWhiteSpace(s))
-        {
-            var lst = Constants.DefaultProfileImages();
-            s = lst[new Random().Next(0, lst.Count)];
-        }
-        return s;
-    }
-
-
+    
     public static Version ServerVersion => typeof(Program).Assembly.GetName().Version;
 
     public static string CacheBuster(string url, long version)

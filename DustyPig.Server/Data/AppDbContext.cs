@@ -267,7 +267,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 Name = displayName.HasValue() ? displayName.Trim() : email[..email.IndexOf("@")].Trim().ToLower(),
                 TitleRequestPermission = TitleRequestPermissions.Enabled
             }).Entity;
-            mainProfile.UpdateAvatar(Misc.EnsureProfilePic(null));
+            mainProfile.UpdateAvatarFromDefault();
 
             await SaveChangesAsync(cancellationToken);
         }

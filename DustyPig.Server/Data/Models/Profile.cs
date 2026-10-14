@@ -81,5 +81,15 @@ namespace DustyPig.Server.Data.Models
             AvatarUrl = url;
             AvatarVersion = DateTime.UtcNow.Ticks;
         }
+
+        public void UpdateAvatarFromDefault()
+        {
+            var lst = Constants.DefaultProfileImages();
+            UpdateAvatar(lst[Random.Shared.Next(0, lst.Count)]);
+            OriginalAvatarUrl = AvatarUrl;
+            AvatarScale = 1.0;
+            AvatarCenterX = Constants.DEFAULT_PROFILE_IMAGE_CENTER_XY;
+            AvatarCenterY = Constants.DEFAULT_PROFILE_IMAGE_CENTER_XY;
+        }
     }
 }
