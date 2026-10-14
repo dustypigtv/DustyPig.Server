@@ -914,6 +914,9 @@ namespace DustyPig.Server.Data.Migrations
                     b.Property<int>("AvatarCenterY")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("AvatarNeedsCrop")
+                        .HasColumnType("boolean");
+
                     b.Property<double>("AvatarScale")
                         .HasColumnType("double precision");
 

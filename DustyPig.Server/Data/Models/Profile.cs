@@ -36,6 +36,7 @@ namespace DustyPig.Server.Data.Models
 
         public int AvatarCenterY { get; set; }
 
+        public bool AvatarNeedsCrop { get; set; }
 
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string AvatarUrl { get; set; }
@@ -90,6 +91,7 @@ namespace DustyPig.Server.Data.Models
             AvatarScale = 1.0;
             AvatarCenterX = Constants.DEFAULT_PROFILE_IMAGE_CENTER_XY;
             AvatarCenterY = Constants.DEFAULT_PROFILE_IMAGE_CENTER_XY;
+            AvatarNeedsCrop = false;
         }
     }
 }
