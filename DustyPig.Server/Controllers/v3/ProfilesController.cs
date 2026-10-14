@@ -225,10 +225,7 @@ public class ProfilesController : _BaseProfileController
 
         var newAvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
         if (profile.AvatarUrl != newAvatarUrl)
-        {
-            profile.AvatarUrl = newAvatarUrl;
-            profile.AvatarVersion++;
-        }
+            profile.UpdateAvatar(newAvatarUrl);
 
         if (info.Pin == null)
         {
@@ -312,8 +309,7 @@ public class ProfilesController : _BaseProfileController
             .Where(p => p.Id == id)
             .FirstAsync();
 
-        dbProfile.AvatarUrl = Misc.EnsureProfilePic(null);
-        dbProfile.AvatarVersion++;
+        dbProfile.UpdateAvatar(Misc.EnsureProfilePic(null));
         await DB.SaveChangesAsync();
 
         return Result<string>.BuildSuccess(dbProfile.CacheBusterAvatar());
@@ -355,8 +351,7 @@ public class ProfilesController : _BaseProfileController
         await _s3Service.UploadImageAsync(stream, keyPath, default);
 
         //Swap
-        profile.AvatarUrl = urlPath;
-        profile.AvatarVersion++;
+        profile.UpdateAvatar(urlPath);
         DB.Profiles.Update(profile);
 
         await DB.SaveChangesAsync();
@@ -387,7 +382,6 @@ public class ProfilesController : _BaseProfileController
         var profile = new Profile
         {
             AccountId = UserAccount.Id,
-            AvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl),
             MaxMovieRating = info.MaxMovieRating,
             MaxTVRating = info.MaxTVRating,
             Locked = info.Locked,
@@ -395,6 +389,7 @@ public class ProfilesController : _BaseProfileController
             PinNumber = info.Pin,
             TitleRequestPermission = info.TitleRequestPermissions
         };
+        profile.UpdateAvatar(Misc.EnsureProfilePic(info.AvatarUrl));
 
         if (info.LibraryIds != null && info.LibraryIds.Count > 0)
         {

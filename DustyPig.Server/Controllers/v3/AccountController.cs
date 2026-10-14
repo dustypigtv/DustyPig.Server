@@ -64,11 +64,11 @@ public class AccountController : _BaseController
                 Account = account,
                 MaxMovieRating = MovieRatings.Unrated,
                 MaxTVRating = TVRatings.NotRated,
-                AvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl),
                 IsMain = true,
                 Name = Misc.Coalesce(info.DisplayName, newUserRecord.Email[..newUserRecord.Email.IndexOf("@")]),
                 TitleRequestPermission = TitleRequestPermissions.Enabled
             }).Entity;
+            profile.UpdateAvatar(Misc.EnsureProfilePic(info.AvatarUrl));
 
             await DB.SaveChangesAsync();
 

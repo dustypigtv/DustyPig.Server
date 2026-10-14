@@ -37,8 +37,6 @@ namespace DustyPig.Server.Data.Models
 
         public List<ProfileLibraryShare> ProfileLibraryShares { get; set; }
 
-        //public List<GetRequest> GetRequests { get; set; }
-
         public List<Notification> Notifications { get; set; }
 
         public List<Playlist> Playlists { get; set; }
@@ -67,5 +65,11 @@ namespace DustyPig.Server.Data.Models
         }
 
         public string CacheBusterAvatar() => Misc.CacheBuster(AvatarUrl, AvatarVersion);
+
+        public void UpdateAvatar(string url)
+        {
+            AvatarUrl = url;
+            AvatarVersion = DateTime.UtcNow.Ticks;
+        }
     }
 }

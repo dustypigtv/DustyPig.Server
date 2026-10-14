@@ -263,11 +263,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 AccountId = account.Id,
                 MaxMovieRating = MovieRatings.Unrated,
                 MaxTVRating = TVRatings.NotRated,
-                AvatarUrl = Misc.EnsureProfilePic(null),
                 IsMain = true,
                 Name = displayName.HasValue() ? displayName.Trim() : email[..email.IndexOf("@")].Trim().ToLower(),
                 TitleRequestPermission = TitleRequestPermissions.Enabled
             }).Entity;
+            mainProfile.UpdateAvatar(Misc.EnsureProfilePic(null));
 
             await SaveChangesAsync(cancellationToken);
         }
