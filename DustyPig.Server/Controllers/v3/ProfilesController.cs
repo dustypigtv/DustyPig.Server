@@ -504,8 +504,8 @@ public class ProfilesController : _BaseProfileController
     /// Requires profile
     /// </summary>
     [HttpPost]
-    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-    public async Task<Result<string>> GetAvatarUploadUrl(AvatarUploadInfo data)
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<PresignedUploadUrl>))]
+    public async Task<Result<PresignedUploadUrl>> GetAvatarUploadUrl(AvatarUploadInfo data)
     {
         try { data.Validate(); }
         catch (ModelValidationException ex) { return ex; }
@@ -514,8 +514,16 @@ public class ProfilesController : _BaseProfileController
         if (!allowed)
             return CommonResponses.ValueNotFound(nameof(data.ProfileId));
 
-        var ret =await _s3Service.GetPresignedUploadUrl(data, ".orig");
-        return Result<string>.BuildSuccess(ret);
+        string ext = data.ContentType switch
+        {
+            "image/bmp" => ".bmp",
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => throw new Exception($"Unknown {nameof(AvatarUploadInfo.ContentType)}")
+        };
+
+        return await _s3Service.GetPresignedUploadUrl(data, ".orig" + ext);
     }
 
 
@@ -523,18 +531,22 @@ public class ProfilesController : _BaseProfileController
     /// Requires profile
     /// </summary>
     [HttpPost]
-    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-    public async Task<Result<string>> GetCroppedAvatarUploadUrl(AvatarUploadInfo data)
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<PresignedUploadUrl>))]
+    public async Task<Result<PresignedUploadUrl>> GetCroppedAvatarUploadUrl(AvatarUploadInfo data)
     {
         try { data.Validate(); }
         catch (ModelValidationException ex) { return ex; }
+
+        //Only allow jpeg for cropped
+        if (data.ContentType != "image/jpeg")
+            return new ModelValidationException($"For cropped images, only 'image/jpeg' is allowed for {nameof(AvatarUploadInfo.ContentType)}");
+           
 
         bool allowed = data.ProfileId == UserProfile.Id || (UserProfile.IsMain && UserAccount.Profiles.Any(_ => _.Id == data.ProfileId));
         if (!allowed)
             return CommonResponses.ValueNotFound(nameof(data.ProfileId));
 
-        var ret = await _s3Service.GetPresignedUploadUrl(data, ".jpg");
-        return Result<string>.BuildSuccess(ret);
+        return await _s3Service.GetPresignedUploadUrl(data, ".jpg");
     }
 
 

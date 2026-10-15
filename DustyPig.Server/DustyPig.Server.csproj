@@ -23,7 +23,7 @@
 		<PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.6.1" />
 		<PackageReference Include="Aspire.Seq" Version="13.6.1" />
 		<PackageReference Include="AWSSDK.S3" Version="4.0.104.4" />
-		<PackageReference Include="DustyPig.API" Version="3.7.1.317" />
+		<PackageReference Include="DustyPig.API" Version="3.7.1.318" />
 		<PackageReference Include="DustyPig.Firebase.Auth" Version="3.1.1.26" />
 		<PackageReference Include="DustyPig.SimpleDownloader" Version="4.0.0.22" />
 		<PackageReference Include="DustyPig.Timers" Version="2.0.0.8" />
@@ -38,8 +38,8 @@
 		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-		<PackageReference Include="OpenTelemetry.Api" Version="1.19.1" />
-		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
+		<PackageReference Include="OpenTelemetry.Api" Version="1.20.0" />
+		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.0" />
 		<PackageReference Include="SkiaSharp" Version="4.153.1" />
 		<PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />

@@ -38,7 +38,7 @@ public class S3Service : IDisposable
     }
 
 
-    public Task<string> GetPresignedUploadUrl(AvatarUploadInfo data, string extWithDot)
+    public async Task<PresignedUploadUrl> GetPresignedUploadUrl(AvatarUploadInfo data, string extWithDot)
     {
         var req = new GetPreSignedUrlRequest
         {
@@ -50,7 +50,12 @@ public class S3Service : IDisposable
         };
         req.Headers.CacheControl = "max-age=10000000";
         req.Headers.ContentLength = data.Size;
-        return _client.GetPreSignedURLAsync(req);
+
+        return new PresignedUploadUrl
+        {
+            PublicUrl = $"{Constants.USER_PROFILE_URL_ROOT}{data.ProfileId}{extWithDot}",
+            UploadUrl = await _client.GetPreSignedURLAsync(req)
+        };
     }
 
     public async Task UploadImageAsync(Stream imageStream, string key, CancellationToken cancellationToken)
