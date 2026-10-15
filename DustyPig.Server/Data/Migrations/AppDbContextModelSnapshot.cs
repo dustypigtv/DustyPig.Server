@@ -18,7 +18,7 @@ namespace DustyPig.Server.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.3")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -907,18 +907,6 @@ namespace DustyPig.Server.Data.Migrations
 
                     b.Property<int>("AccountId")
                         .HasColumnType("integer");
-
-                    b.Property<int>("AvatarCenterX")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AvatarCenterY")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("AvatarNeedsCrop")
-                        .HasColumnType("boolean");
-
-                    b.Property<double>("AvatarScale")
-                        .HasColumnType("double precision");
 
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(1000)

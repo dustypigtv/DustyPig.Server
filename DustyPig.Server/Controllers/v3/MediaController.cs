@@ -303,24 +303,33 @@ public class MediaController : _MediaControllerBase
             if (request.SearchPeople || searchOtherTitles)
             {
                 var response = await _tmdbClient.Endpoints.Search.MultiAsync(normQuery, cancellationToken: cancellationToken);
-                if (response.Success && response.Data.Results.Count > 0)
+                if (response.Success && response.Data != null && response.Data.Results.GetArrayLength() > 0)
                 {
                     if (searchOtherTitles)
                     {
-                        ret.OtherTitles.AddRange
-                            (
-                                response.Data.Results
-                                    .Where(item => item.MediaType != TMDB.Models.Common.CommonMediaTypes.Person)
-                                    .Where(item => !string.IsNullOrWhiteSpace(item.PosterPath))
-                                    .Select(item => item.ToBasicTMDBInfo())
-                                    .Take(DEFAULT_LIST_SIZE)
-                            );
+                        try
+                        {
+                            //To keep movies and tv in TMDB order, don't use the parsed components - use the results and parse in order
+                            foreach (var item in response.Data.Results.EnumerateArray())
+                            {
+                                if (item.GetProperty("adult").GetBoolean())
+                                    continue;
+                                var id = item.GetProperty("id").GetInt32();
+                                var media_type = item.GetProperty("media_type").GetString();
+                                if (media_type == "movie")
+                                    ret.OtherTitles.Add(response.Data.Movies.First(_ => _.Id == id).ToBasicTMDBInfo());
+                                else if (media_type == "tv")
+                                    ret.OtherTitles.Add(response.Data.TvSeries.First(_ => _.Id == id).ToBasicTMDBInfo());
+                                if (ret.OtherTitles.Count == DEFAULT_LIST_SIZE)
+                                    break;
+                            }
+                        }
+                        catch { }
                     }
 
                     if (request.SearchPeople)
                     {
-                        var apiPeopleIds = response.Data.Results
-                            .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
+                        var apiPeopleIds = response.Data.People
                             .Select(item => item.Id)
                             .Distinct()
                             .Take(DEFAULT_LIST_SIZE)
@@ -339,8 +348,7 @@ public class MediaController : _MediaControllerBase
                             //Keep the sort order of the api request
                             ret.AvailablePeople.AddRange
                                 (
-                                    response.Data.Results
-                                        .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
+                                    response.Data.People
                                         .Where(item => dbPeopleIds.Contains(item.Id))
                                         .Select(item => item.ToTMDBPerson())
                                         .Take(DEFAULT_LIST_SIZE)
@@ -352,8 +360,7 @@ public class MediaController : _MediaControllerBase
                         {
                             ret.OtherPeople.AddRange
                                 (
-                                    response.Data.Results
-                                        .Where(item => item.MediaType == TMDB.Models.Common.CommonMediaTypes.Person)
+                                    response.Data.People
                                         .Select(item => item.ToTMDBPerson())
                                         .Take(DEFAULT_LIST_SIZE)
                                 );

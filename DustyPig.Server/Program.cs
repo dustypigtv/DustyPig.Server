@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using System.Reflection.Metadata;
 using System.Text.Json.Serialization;
 
 
@@ -47,6 +48,9 @@ builder.Services.AddRouting();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+builder.Services
+    .AddHttpClient(DustyPig.Server.Extensions.ConfigurationExtensions.HTTP_CLIENT_NAME)
+    .AddStandardResilienceHandler();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

@@ -37,6 +37,22 @@ public class S3Service : IDisposable
         _logger = logger;
     }
 
+
+    public Task<string> GetPresignedUploadUrl(AvatarUploadInfo data, string extWithDot)
+    {
+        var req = new GetPreSignedUrlRequest
+        {
+            BucketName = Constants.DEFAULT_HOST,
+            Key = $"{Constants.USER_PROFILE_PATH}/{data.ProfileId}{extWithDot}",
+            Verb = HttpVerb.PUT,
+            Expires = DateTime.UtcNow.AddMinutes(30),
+            ContentType = data.ContentType
+        };
+        req.Headers.CacheControl = "max-age=10000000";
+        req.Headers.ContentLength = data.Size;
+        return _client.GetPreSignedURLAsync(req);
+    }
+
     public async Task UploadImageAsync(Stream imageStream, string key, CancellationToken cancellationToken)
     {
         try

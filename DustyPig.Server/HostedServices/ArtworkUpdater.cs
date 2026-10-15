@@ -23,7 +23,6 @@ namespace DustyPig.Server.HostedServices;
 
 internal class ArtworkUpdater : IHostedService, IDisposable
 {
-    //ImageMagick makes each quadrant the specified size, so set to 1/2
     const int POSTER_WIDTH = Constants.GUIDELINE_MAX_JPG_POSTER_WIDTH / 2;
     const int POSTER_HEIGHT = Constants.GUIDELINE_MAX_JPG_POSTER_HEIGHT / 2;
     const int BACKDROP_WIDTH = Constants.GUIDELINE_MAX_JPG_BACKDROP_WIDTH / 2;
@@ -162,7 +161,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
         if (shouldBuild)
         {
             using var scope = _serviceProvider.CreateScope();
-            using var httpClient = scope.ServiceProvider.GetRequiredService<HttpClient>();
+            using var httpClient = scope.ServiceProvider.GetHttpClient();
 
 
             var dataLst = new List<byte[]>();
@@ -267,8 +266,6 @@ internal class ArtworkUpdater : IHostedService, IDisposable
         }
 
     }
-
-
 
 
     private async Task CleanupTimerTick(CancellationToken cancellationToken)

@@ -8,6 +8,7 @@ using DustyPig.Server.Extensions;
 using DustyPig.Server.Services.TMDB_Service;
 using DustyPig.Server.Utilities;
 using DustyPig.TMDB.Models.Common;
+using DustyPig.TMDB.Models.People;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -259,7 +260,7 @@ public class TMDBController : _BaseProfileController
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<API.v3.Models.TMDB_Person>))]
     public async Task<Result<API.v3.Models.TMDB_Person>> GetPerson(int id)
     {
-        var response = await _tmdbService.Endpoints.People.GetDetailsAsync(id, TMDB.Models.People.AppendToResponse.CombinedCredits);
+        var response = await _tmdbService.Endpoints.People.GetDetailsAsync(id, TMDB.Enums.PersonAppendToResponse.CombinedCredits);
         if (!response.Success)
             return response.Error.Message;
 
@@ -275,101 +276,144 @@ public class TMDBController : _BaseProfileController
             TMDB_ID = id
         };
 
-        CommonMediaTypes[] allowed = [CommonMediaTypes.Movie, CommonMediaTypes.TvSeries];
+        string[] allowed = ["movie", "tv"];
 
+        //Keep in TMDB (cast, then crew) order
         var castList = new List<TmdbTitleDTO>();
-        if (response.Data.CombinedCredits != null)
+        if(response.Data != null && response.Data.CombinedCredits != null && response.Data.CombinedCredits.Cast.GetArrayLength() > 0)
         {
-            var castQ = response.Data.CombinedCredits.Cast
-                .Where(c => !c.Adult)
-                .Where(c => allowed.Contains(c.MediaType));
-
-            foreach (var item in castQ)
+            foreach(var jitem in response.Data.CombinedCredits.Cast.EnumerateArray())
             {
-                var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
+                if (jitem.GetProperty("adult").GetBoolean())
+                    continue;
+
+                string smt = jitem.GetProperty("media_type").GetString() + string.Empty;
+                if (!allowed.Contains(smt))
+                    continue;
+
+                int itemId = jitem.GetProperty("id").GetInt32();
+                var mt = smt == "movie" ? MediaTypes.Movie : MediaTypes.Series;
 
                 bool exists = castList
-                    .Where(_ => _.Id == item.Id)
+                    .Where(_ => _.Id == itemId)
                     .Where(_ => _.MediaType == mt)
                     .Any();
-                if (!exists)
-                {
-                    castList.Add(new TmdbTitleDTO
-                    {
-                        Id = item.Id,
-                        MediaType = mt
-                    });
 
+                if (exists)
+                    continue;
+
+                castList.Add(new TmdbTitleDTO
+                {
+                    Id = itemId,
+                    MediaType = mt
+                });
+
+                if (mt == MediaTypes.Movie)
+                {
+                    var item = response.Data.CombinedCredits.MovieCast.First(_ => _.Id == itemId);
                     ret.OtherTitles.Add(new BasicTMDB
                     {
                         ArtworkUrl = TMDBService.GetPosterPath(item.PosterPath),
                         BackdropUrl = TMDBService.GetBackdropPath(item.BackdropPath),
-                        MediaType = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
+                        MediaType = TMDB_MediaTypes.Movie,
                         Title = item.Title,
+                        TMDB_ID = item.Id
+                    });
+                }
+                else
+                {
+                    var item = response.Data.CombinedCredits.TvCast.First(_ => _.Id == itemId);
+                    ret.OtherTitles.Add(new BasicTMDB
+                    {
+                        ArtworkUrl = TMDBService.GetPosterPath(item.PosterPath),
+                        BackdropUrl = TMDBService.GetBackdropPath(item.BackdropPath),
+                        MediaType = TMDB_MediaTypes.Series,
+                        Title = item.Name,
                         TMDB_ID = item.Id
                     });
                 }
             }
 
-            var crewQ = response.Data.CombinedCredits.Crew
-                .Where(c => !c.Adult)
-                .Where(c => allowed.Contains(c.MediaType));
-            foreach (var item in crewQ)
-            {
-                if (TMDBService.CrewJobs.ICContains(item.Job))
-                {
-                    var mt = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? MediaTypes.Movie : MediaTypes.Series;
-                    bool exists = castList
-                        .Where(_ => _.Id == item.Id)
-                        .Where(_ => _.MediaType == mt)
-                        .Any();
-                    if (!exists)
-                    {
-                        castList.Add(new TmdbTitleDTO
-                        {
-                            Id = item.Id,
-                            MediaType = mt
-                        });
 
-                        ret.OtherTitles.Add(new BasicTMDB
-                        {
-                            ArtworkUrl = TMDBService.GetPosterPath(item.PosterPath),
-                            BackdropUrl = TMDBService.GetBackdropPath(item.BackdropPath),
-                            MediaType = item.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
-                            Title = item.Title,
-                            TMDB_ID = item.Id
-                        });
-                    }
+            foreach (var jitem in response.Data.CombinedCredits.Crew.EnumerateArray())
+            {
+                if (jitem.GetProperty("adult").GetBoolean())
+                    continue;
+
+                string smt = jitem.GetProperty("media_type").GetString() + string.Empty;
+                if (!allowed.Contains(smt))
+                    continue;
+
+                int itemId = jitem.GetProperty("id").GetInt32();
+                var mt = smt == "movie" ? MediaTypes.Movie : MediaTypes.Series;
+
+                bool exists = castList
+                    .Where(_ => _.Id == itemId)
+                    .Where(_ => _.MediaType == mt)
+                    .Any();
+
+                if (exists)
+                    continue;
+
+                castList.Add(new TmdbTitleDTO
+                {
+                    Id = itemId,
+                    MediaType = mt
+                });
+
+                if (mt == MediaTypes.Movie)
+                {
+                    var item = response.Data.CombinedCredits.MovieCrew.First(_ => _.Id == itemId);
+                    ret.OtherTitles.Add(new BasicTMDB
+                    {
+                        ArtworkUrl = TMDBService.GetPosterPath(item.PosterPath),
+                        BackdropUrl = TMDBService.GetBackdropPath(item.BackdropPath),
+                        MediaType = TMDB_MediaTypes.Movie,
+                        Title = item.Title,
+                        TMDB_ID = item.Id
+                    });
+                }
+                else
+                {
+                    var item = response.Data.CombinedCredits.TvCrew.First(_ => _.Id == itemId);
+                    ret.OtherTitles.Add(new BasicTMDB
+                    {
+                        ArtworkUrl = TMDBService.GetPosterPath(item.PosterPath),
+                        BackdropUrl = TMDBService.GetBackdropPath(item.BackdropPath),
+                        MediaType = TMDB_MediaTypes.Series,
+                        Title = item.Name,
+                        TMDB_ID = item.Id
+                    });
                 }
             }
         }
 
-
-        //Put in tmdb order
-        foreach (var mediaType in castList.Select(item => item.MediaType).Distinct())
+        List<MediaEntry> entries = [];
+        if (castList.Count > 0)
         {
-            var subLst = castList
-                .Where(item => item.MediaType == mediaType)
-                .Select(item => item.Id)
+            var ids = castList
+                .Select(_ => _.Id)
                 .Distinct()
                 .ToList();
 
-            var entries = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
+            entries = await DB.TopLevelWatchableMediaByProfileQuery(UserProfile)
                 .AsNoTracking()
-                .Where(item => item.TMDB_Id.HasValue)
-                .Where(item => subLst.Contains(item.TMDB_Id.Value))
-                .Where(item => item.EntryType == mediaType)
+                .Where(_ => _.EntryType == MediaTypes.Movie || _.EntryType == MediaTypes.Series)
+                .Where(_ => _.TMDB_Id.HasValue)
+                .Where(_ => ids.Contains(_.TMDB_Id.Value))
                 .ToListAsync();
+        }
 
-            foreach (var tmdbId in subLst)
-            {
-                var entry = entries.FirstOrDefault(m => m.TMDB_Id == tmdbId);
-                if (entry != null)
-                {
-                    var bm = entry.ToBasicMedia();
-                    ret.Available.Add(bm);
-                }
-            }
+        foreach(var item in castList)
+        {
+            var entry = entries
+                .Where(_ => _.EntryType == item.MediaType)
+                .Where(_ => _.TMDB_Id.HasValue)
+                .Where(_ => _.TMDB_Id.Value == item.Id)
+                .FirstOrDefault();
+
+            if(entry != null)
+                ret.Available.Add(entry.ToBasicMedia());
         }
 
         return ret;

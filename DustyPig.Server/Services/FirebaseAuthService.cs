@@ -14,6 +14,6 @@ public class FirebaseAuthService
     private const string CONFIG_KEY = "FIREBASE-AUTH-KEY";
 
     public FirebaseAuthService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<FirebaseAuthService> logger) :
-        base(httpClientFactory.CreateClient(), configuration.GetRequiredValue(CONFIG_KEY), logger)
+        base(httpClientFactory.GetResilientClient(), configuration.GetRequiredValue(CONFIG_KEY), logger)
     { }
 }

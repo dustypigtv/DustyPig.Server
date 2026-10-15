@@ -6,6 +6,7 @@ using DustyPig.Server.Data.Models;
 using DustyPig.Server.Extensions;
 using DustyPig.Server.Services;
 using DustyPig.Server.Utilities;
+using DustyPig.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace DustyPig.Server.Controllers.v3;
@@ -51,12 +53,14 @@ public class ProfilesListController : _BaseAccountController
 public class ProfilesController : _BaseProfileController
 {
     private readonly S3Service _s3Service;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     private bool _disposed;
 
-    public ProfilesController(AppDbContext db, S3Service s3Service) : base(db)
+    public ProfilesController(AppDbContext db, S3Service s3Service, IHttpClientFactory httpClientFactory) : base(db)
     {
         _s3Service = s3Service;
+        _httpClientFactory = httpClientFactory;
     }
 
     /// <summary>
@@ -218,10 +222,9 @@ public class ProfilesController : _BaseProfileController
         try { info.Validate(); }
         catch (ModelValidationException ex) { return ex; }
 
-        if (info.Id != UserProfile.Id)
-            if (UserProfile.IsMain)
-                if (!UserAccount.Profiles.Any(item => item.Id == info.Id))
-                    return CommonResponses.ValueNotFound(nameof(info.Id));
+        bool allowed = info.Id == UserProfile.Id || (UserProfile.IsMain && UserAccount.Profiles.Any(_ => _.Id == info.Id));
+        if(!allowed)
+            return CommonResponses.ValueNotFound(nameof(info.Id));
 
 
         var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
@@ -311,7 +314,7 @@ public class ProfilesController : _BaseProfileController
         bool nameExists = UserAccount.Profiles
             .Where(item => item.Name.ICEquals(info.Name))
             .Any();
-
+        
         if (nameExists)
             return "There is already another profile with the specified name on this account";
 
@@ -484,6 +487,57 @@ public class ProfilesController : _BaseProfileController
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+    // ** NEW AVATAR LOGIC **
+
+    /// <summary>
+    /// Requires profile
+    /// </summary>
+    [HttpPost]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+    public async Task<Result<string>> GetAvatarUploadUrl(AvatarUploadInfo data)
+    {
+        try { data.Validate(); }
+        catch (ModelValidationException ex) { return ex; }
+
+        bool allowed = data.ProfileId == UserProfile.Id || (UserProfile.IsMain && UserAccount.Profiles.Any(_ => _.Id == data.ProfileId));
+        if (!allowed)
+            return CommonResponses.ValueNotFound(nameof(data.ProfileId));
+
+        var ret =await _s3Service.GetPresignedUploadUrl(data, ".orig");
+        return Result<string>.BuildSuccess(ret);
+    }
+
+
+    /// <summary>
+    /// Requires profile
+    /// </summary>
+    [HttpPost]
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
+    public async Task<Result<string>> GetCroppedAvatarUploadUrl(AvatarUploadInfo data)
+    {
+        try { data.Validate(); }
+        catch (ModelValidationException ex) { return ex; }
+
+        bool allowed = data.ProfileId == UserProfile.Id || (UserProfile.IsMain && UserAccount.Profiles.Any(_ => _.Id == data.ProfileId));
+        if (!allowed)
+            return CommonResponses.ValueNotFound(nameof(data.ProfileId));
+
+        var ret = await _s3Service.GetPresignedUploadUrl(data, ".jpg");
+        return Result<string>.BuildSuccess(ret);
+    }
+
+
     /// <summary>
     /// Requires profile
     /// </summary>
@@ -492,10 +546,9 @@ public class ProfilesController : _BaseProfileController
     [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
     public async Task<Result<string>> ResetAvatar(int id)
     {
-        if (id != UserProfile.Id)
-            if (UserProfile.IsMain)
-                if (!UserAccount.Profiles.Any(item => item.Id == id))
-                    return CommonResponses.ValueNotFound(nameof(id));
+        bool allowed = id == UserProfile.Id || (UserProfile.IsMain && UserAccount.Profiles.Any(_ => _.Id == id));
+        if (!allowed)
+            return CommonResponses.ValueNotFound(nameof(id));
 
         var dbProfile = await DB
             .Profiles
@@ -505,54 +558,42 @@ public class ProfilesController : _BaseProfileController
         dbProfile.UpdateAvatarFromDefault();
         await DB.SaveChangesAsync();
 
-        return Result<string>.BuildSuccess(dbProfile.CacheBusterAvatar());
+        return Result<string>.BuildSuccess(dbProfile.AvatarUrl);
     }
 
 
+
     /// <summary>
-    /// Requires profile
+    /// Requires profile.
     /// </summary>
-    /// <remarks>Only the main profile on the account or the profile owner can update a profile.
-    /// The base64 encoded image size must be less than 5 MB
+    /// <remarks>
+    /// Only the main profile or the profile owner can change the avatar settings.
+    /// Call this after uploading a new avatar file and setting the crop circle in the client app.
     /// </remarks>
     [HttpPost]
     [ProhibitTestUser]
-    [RequestSizeLimit(5242980)] //Set to 5MB, with an extra 5mb for json
-    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result<string>))]
-    public async Task<Result<string>> SetProfileAvatar(UpdateProfileAvatar data)
+    [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(Result))]
+    public async Task<Result> UpdateAvatarInfo(UpdateAvatarInfo data)
     {
         try { data.Validate(); }
         catch (ModelValidationException ex) { return ex; }
 
-        if (data.Id != UserProfile.Id)
-            if (UserProfile.IsMain)
-                if (!UserAccount.Profiles.Any(item => item.Id == data.Id))
-                    return CommonResponses.ValueNotFound(nameof(data.Id));
+        bool allowed = data.ProfileId == UserProfile.Id || (UserProfile.IsMain && UserAccount.Profiles.Any(_ => _.Id == data.ProfileId));
+        if (!allowed)
+            return CommonResponses.ValueNotFound(nameof(data.ProfileId));
 
-        var profile = UserAccount.Profiles.Single(item => item.Id == data.Id);
+        var dbProfile = await DB
+            .Profiles
+            .Where(p => p.Id == data.ProfileId)
+            .FirstAsync();
 
-        var bytes = Convert.FromBase64String(data.Base64Image);
-        var stream = new MemoryStream(bytes);
-
-        bool isPng = UpdateProfileAvatar.IsPng(bytes);
-
-        var ext = isPng ? "png" : "jpg";
-        string fileName = $"{data.Id}.{Guid.NewGuid().ToString("N")}.{ext}";
-        string keyPath = $"{Constants.USER_PROFILE_PATH}/{fileName}";
-        string urlPath = $"{Constants.USER_PROFILE_URL_ROOT}{fileName}";
-
-        await _s3Service.UploadImageAsync(stream, keyPath, default);
-
-        //Swap
-        profile.UpdateAvatar(urlPath);
-        DB.Profiles.Update(profile);
-
+        dbProfile.OriginalAvatarUrl = data.OriginalImage;
+        dbProfile.AvatarUrl = data.CroppedImage;
+        dbProfile.AvatarVersion = DateTime.UtcNow.Ticks;
         await DB.SaveChangesAsync();
-
-        return Result<string>.BuildSuccess(profile.CacheBusterAvatar());
+        
+        return Result.BuildSuccess();
     }
-
-
 
 
 

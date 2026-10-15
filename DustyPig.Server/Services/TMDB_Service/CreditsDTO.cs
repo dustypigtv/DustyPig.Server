@@ -32,7 +32,7 @@ public class CreditsDTO
         return ret;
     }
 
-    public static CreditsDTO FromAPI(TMDB.Models.TvSeries.Credits credits)
+    public static CreditsDTO FromAPI(TMDB.Models.Common.TvCredits credits)
     {
         var ret = new CreditsDTO();
         if (credits != null)

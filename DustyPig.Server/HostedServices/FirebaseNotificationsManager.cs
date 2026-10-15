@@ -189,7 +189,7 @@ public sealed class FirebaseNotificationsManager : IHostedService, IDisposable
 
                     var msg = new Message
                     {
-                        Token = fcmToken.Token,
+                        Fid = fcmToken.Token,
                         Data = msgData,
                         Notification = new FirebaseAdmin.Messaging.Notification
                         {

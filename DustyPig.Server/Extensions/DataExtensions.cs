@@ -359,21 +359,31 @@ internal static class DataExtensions
     };
 
 
-    public static BasicTMDB ToBasicTMDBInfo(this TMDB.Models.Search.MultiObject self) => new BasicTMDB
+    public static BasicTMDB ToBasicTMDBInfo(this TMDB.Models.Common.Movie movie) => new BasicTMDB
     {
-        TMDB_ID = self.Id,
-        ArtworkUrl = TMDBService.GetPosterPath(self.PosterPath),
-        BackdropUrl = TMDBService.GetBackdropPath(self.BackdropPath),
-        MediaType = self.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? TMDB_MediaTypes.Movie : TMDB_MediaTypes.Series,
-        Title = self.MediaType == TMDB.Models.Common.CommonMediaTypes.Movie ? self.Title : self.Name
+        TMDB_ID = movie.Id,
+        ArtworkUrl = TMDBService.GetPosterPath(movie.PosterPath),
+        BackdropUrl = TMDBService.GetBackdropPath(movie.BackdropPath),
+        MediaType = TMDB_MediaTypes.Movie,
+        Title = movie.Title
     };
 
-    public static API.v3.Models.BasicPerson ToTMDBPerson(this TMDB.Models.Search.MultiObject self) => new BasicPerson
+    public static BasicTMDB ToBasicTMDBInfo(this TMDB.Models.Common.TvSeries series) => new BasicTMDB
     {
-        TMDB_Id = self.Id,
-        Name = self.Name,
-        Initials = self.Name.GetInitials(),
-        AvatarUrl = TMDBService.GetAvatarPath(self.ProfilePath)
+        TMDB_ID = series.Id,
+        ArtworkUrl = TMDBService.GetPosterPath(series.PosterPath),
+        BackdropUrl = TMDBService.GetBackdropPath(series.BackdropPath),
+        MediaType = TMDB_MediaTypes.Series,
+        Title = series.Name
+    };
+
+
+    public static API.v3.Models.BasicPerson ToTMDBPerson(this TMDB.Models.Search.Person person) => new BasicPerson
+    {
+        TMDB_Id = person.Id,
+        Name = person.Name,
+        Initials = person.Name.GetInitials(),
+        AvatarUrl = TMDBService.GetAvatarPath(person.ProfilePath)
     };
 
 

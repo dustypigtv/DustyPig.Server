@@ -36,10 +36,10 @@ public class TMDBService : TMDB.Client
 
     private readonly ILogger<TMDBService> _logger;
 
-    public TMDBService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<TMDBService> logger, ILogger<TMDB.Client> clientLogger) : base(httpClientFactory.CreateClient(), clientLogger)
+    public TMDBService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<TMDBService> logger, ILogger<TMDB.Client> clientLogger) : base(httpClientFactory.GetResilientClient(), clientLogger)
     {
         _logger = logger;
-        SetAuth(AuthTypes.APIKey, configuration.GetRequiredValue(CONFIG_KEY));
+        SetAuth(TMDB.Enums.AuthTypes.APIKey, configuration.GetRequiredValue(CONFIG_KEY));
 
         AutoThrowIfError = true;
 
@@ -51,10 +51,10 @@ public class TMDBService : TMDB.Client
 
 
     public Task<Response<TMDB.Models.Movies.Details>> GetMovieAsync(int id, CancellationToken cancellationToken = default) =>
-        Endpoints.Movies.GetDetailsAsync(id, TMDB.Models.Movies.AppendToResponse.Credits | TMDB.Models.Movies.AppendToResponse.ReleaseDates, cancellationToken: cancellationToken);
+        Endpoints.Movies.GetDetailsAsync(id, TMDB.Enums.MovieAppendToResponse.Credits | TMDB.Enums.MovieAppendToResponse.ReleaseDates, cancellationToken: cancellationToken);
 
     public Task<Response<TMDB.Models.TvSeries.Details>> GetSeriesAsync(int id, CancellationToken cancellationToken = default) =>
-        Endpoints.TvSeries.GetDetailsAsync(id, TMDB.Models.TvSeries.AppendToResponse.Credits | TMDB.Models.TvSeries.AppendToResponse.ContentRatings, cancellationToken: cancellationToken);
+        Endpoints.TvSeries.GetDetailsAsync(id, TMDB.Enums.TvSeriesAppendToResponse.Credits | TMDB.Enums.TvSeriesAppendToResponse.ContentRatings, cancellationToken: cancellationToken);
 
 
     public static CreditRoles? GetCreditRole(string job)
@@ -208,5 +208,5 @@ public class TMDBService : TMDB.Client
         return null;
     }
 
-    public static Genres GetGenres(List<TMDB.Models.Common.CommonName> lst) => string.Join(',', (lst ?? []).Select(_ => _.Name)).ToGenres();
+    public static Genres GetGenres(List<TMDB.Models.Common.NameObject> lst) => string.Join(',', (lst ?? []).Select(_ => _.Name)).ToGenres();
 }

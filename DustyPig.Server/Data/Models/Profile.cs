@@ -30,14 +30,6 @@ namespace DustyPig.Server.Data.Models
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string OriginalAvatarUrl { get; set; }
 
-        public double AvatarScale { get; set; }
-
-        public int AvatarCenterX { get; set; }
-
-        public int AvatarCenterY { get; set; }
-
-        public bool AvatarNeedsCrop { get; set; }
-
         [MaxLength(Constants.MAX_URL_LENGTH)]
         public string AvatarUrl { get; set; }
 
@@ -88,10 +80,6 @@ namespace DustyPig.Server.Data.Models
             var lst = Constants.DefaultProfileImages();
             UpdateAvatar(lst[Random.Shared.Next(0, lst.Count)]);
             OriginalAvatarUrl = AvatarUrl;
-            AvatarScale = 1.0;
-            AvatarCenterX = Constants.DEFAULT_PROFILE_IMAGE_CENTER_XY;
-            AvatarCenterY = Constants.DEFAULT_PROFILE_IMAGE_CENTER_XY;
-            AvatarNeedsCrop = false;
         }
     }
 }
