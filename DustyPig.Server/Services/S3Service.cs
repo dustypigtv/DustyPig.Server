@@ -48,7 +48,7 @@ public class S3Service : IDisposable
             Expires = DateTime.UtcNow.AddMinutes(30),
             ContentType = data.ContentType
         };
-        req.Headers.CacheControl = "max-age=10000000";
+        req.Headers.CacheControl = Constants.DEFAULT_IMAGE_CACHE_CONTROL;
         req.Headers.ContentLength = data.Size;
 
         return new PresignedUploadUrl
@@ -72,7 +72,7 @@ public class S3Service : IDisposable
                 DisablePayloadSigning = true,
                 DisableDefaultChecksumValidation = true,
             };
-            req.Headers.CacheControl = "max-age=10000000";
+            req.Headers.CacheControl = Constants.DEFAULT_IMAGE_CACHE_CONTROL;
 
             await _transferUtility.UploadAsync(req, cancellationToken);
         }
