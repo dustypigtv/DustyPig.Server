@@ -69,6 +69,8 @@ namespace DustyPig.Server.Data.Models
 
         public string CacheBusterAvatar() => Misc.CacheBuster(AvatarUrl, AvatarVersion);
 
+        public string CacheBusterOriginalAvatar() => Misc.CacheBuster(OriginalAvatarUrl, AvatarVersion);
+
         public void UpdateAvatar(string url)
         {
             AvatarUrl = url;

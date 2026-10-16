@@ -85,6 +85,7 @@ public class ProfilesController : _BaseProfileController
         var ret = new DetailedProfile
         {
             AvatarUrl = profile.CacheBusterAvatar(),
+            OriginalAvatarUrl = profile.CacheBusterOriginalAvatar(),
             Id = id,
             IsMain = profile.IsMain,
             Locked = profile.Locked,
@@ -389,6 +390,7 @@ public class ProfilesController : _BaseProfileController
         var ret = new DetailedProfile
         {
             AvatarUrl = profile.CacheBusterAvatar(),
+            OriginalAvatarUrl = profile.CacheBusterOriginalAvatar(),
             Id = profile.Id,
             IsMain = profile.IsMain,
             Locked = profile.Locked,
