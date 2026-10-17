@@ -572,7 +572,7 @@ public class ProfilesController : _BaseProfileController
         dbProfile.UpdateAvatarFromDefault();
         await DB.SaveChangesAsync();
 
-        return Result<string>.BuildSuccess(dbProfile.AvatarUrl);
+        return Result<string>.BuildSuccess(dbProfile.CacheBusterAvatar());
     }
 
 
