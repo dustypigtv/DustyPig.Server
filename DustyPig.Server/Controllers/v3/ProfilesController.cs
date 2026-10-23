@@ -277,10 +277,10 @@ public class ProfilesController : _BaseProfileController
 
             if (info.LibraryIds != null && info.LibraryIds.Count > 0)
             {
-                var profLibShares = DB.ProfileLibraryShares
+                var profLibShares = await DB.ProfileLibraryShares
                     .AsNoTracking()
                     .Where(item => item.ProfileId == info.Id)
-                    .ToList();
+                    .ToListAsync();
 
                 foreach (var pls in profLibShares)
                     if (!info.LibraryIds.Contains(pls.LibraryId))
@@ -289,11 +289,12 @@ public class ProfilesController : _BaseProfileController
                 var libs = await DB.GetLibraryIdsAccessableByAccount(UserAccount.Id);
                 foreach (var libId in info.LibraryIds)
                     if (libs.Contains(libId))
-                        DB.ProfileLibraryShares.Add(new ProfileLibraryShare
-                        {
-                            Profile = profile,
-                            LibraryId = libId
-                        });
+                        if(!profLibShares.Any(_ => _.LibraryId == libId))
+                            DB.ProfileLibraryShares.Add(new ProfileLibraryShare
+                            {
+                                Profile = profile,
+                                LibraryId = libId
+                            });
             }
         }
 
