@@ -228,7 +228,14 @@ public class ProfilesController : _BaseProfileController
             return CommonResponses.ValueNotFound(nameof(info.Id));
 
 
-        var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
+        //var profile = UserAccount.Profiles.Single(item => item.Id == info.Id);
+        var profile = await DB.Profiles
+            .Where(_ => _.AccountId == UserAccount.Id)
+            .Where(_ => _.Id == info.Id)
+            .FirstOrDefaultAsync();
+
+        if (profile == null)
+            return CommonResponses.ValueNotFound(nameof(info.Id));
 
         //var newAvatarUrl = Misc.EnsureProfilePic(info.AvatarUrl);
         //if (profile.AvatarUrl != newAvatarUrl)
