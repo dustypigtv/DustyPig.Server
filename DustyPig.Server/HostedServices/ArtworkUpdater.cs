@@ -127,6 +127,7 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
             playlist.ArtworkUpdateNeeded = false;
             await db.SaveChangesAsync(cancellationToken);
+            MediaChangedTriggerManager.QueuePlaylist(playlist.ProfileId);
         }
         catch (Exception ex)
         {
