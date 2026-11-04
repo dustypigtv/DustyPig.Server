@@ -226,9 +226,9 @@ internal class ArtworkUpdater : IHostedService, IDisposable
                 var sampling = new SKSamplingOptions(SKCubicResampler.Mitchell);
 
                 canvas.DrawBitmap(img1, new SKRect(0, 0, w, h), sampling);
-                canvas.DrawBitmap(img2, new SKRect(w, 0, w, h), sampling);
-                canvas.DrawBitmap(img3, new SKRect(0, h, w, h), sampling);
-                canvas.DrawBitmap(img4, new SKRect(w, h, w, h), sampling);
+                canvas.DrawBitmap(img2, new SKRect(w, 0, w * 2, h), sampling);
+                canvas.DrawBitmap(img3, new SKRect(0, h, w, h * 2), sampling);
+                canvas.DrawBitmap(img4, new SKRect(w, h, w * 2, h * 2), sampling);
 
                 using var image = SKImage.FromBitmap(mosaicBitmap);
                 using var data = image.Encode(SKEncodedImageFormat.Jpeg, 100);
@@ -260,9 +260,15 @@ internal class ArtworkUpdater : IHostedService, IDisposable
 
 
             if (backdrop)
+            {
                 playlist.BackdropUrl = calcArt;
+                playlist.BackdropVersion = DateTime.UtcNow.Ticks;
+            }
             else
+            {
                 playlist.ArtworkUrl = calcArt;
+                playlist.ArtworkVersion = DateTime.UtcNow.Ticks;
+            }
         }
 
     }

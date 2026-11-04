@@ -1,5 +1,6 @@
 ﻿
 using DustyPig.API.v3.Models;
+using DustyPig.Server.Utilities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -56,5 +57,10 @@ namespace DustyPig.Server.Data.Models
         public bool ArtworkUpdateNeeded { get; set; }
 
         public List<PlaylistItem> PlaylistItems { get; set; }
+
+
+        public string CacheBusterArtwork() => Misc.CacheBuster(ArtworkUrl, ArtworkVersion);
+
+        public string CacheBusterBackdrop() => Misc.CacheBuster(BackdropUrl, BackdropVersion);
     }
 }

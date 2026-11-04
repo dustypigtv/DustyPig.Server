@@ -46,8 +46,8 @@ public class PlaylistsController : _MediaControllerBase
             {
                 Id = pl.Id,
                 Name = pl.Name,
-                ArtworkUrl = pl.ArtworkUrl,
-                BackdropUrl = pl.BackdropUrl
+                ArtworkUrl = pl.CacheBusterArtwork(),
+                BackdropUrl = pl.CacheBusterBackdrop()
             };
 
             ret.Add(bpl);
@@ -155,8 +155,8 @@ public class PlaylistsController : _MediaControllerBase
             Name = playlist.Name,
             CurrentItemId = playlist.CurrentItemId,
             CurrentProgress = playlist.CurrentProgress,
-            ArtworkUrl = playlist.ArtworkUrl,
-            BackdropUrl = playlist.BackdropUrl,
+            ArtworkUrl = playlist.CacheBusterArtwork(),
+            BackdropUrl = playlist.CacheBusterBackdrop(),
             Items = []
         };
 
@@ -267,7 +267,8 @@ public class PlaylistsController : _MediaControllerBase
             Name = info.Name,
             ProfileId = UserProfile.Id,
             ArtworkUrl = Constants.DEFAULT_PLAYLIST_IMAGE,
-            BackdropUrl = Constants.DEFAULT_PLAYLIST_BACKDROP
+            BackdropUrl = Constants.DEFAULT_PLAYLIST_BACKDROP,
+            ArtworkUpdateNeeded = true
         };
 
         DB.Playlists.Add(playlist);
