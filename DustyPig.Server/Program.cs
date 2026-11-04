@@ -24,9 +24,6 @@ builder.Logging.AddConsole();
 // Add service defaults & Aspire client integrations.
 // Disable seq when adding migrations
 builder.AddServiceDefaults();
-#if !DEBUG
-builder.AddSeqEndpoint("seq");
-#endif
 builder.AddNpgsqlDbContext_MyVersion<AppDbContext>("dustypig-v3");
 
 
