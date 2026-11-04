@@ -338,8 +338,8 @@ internal static class DataExtensions
             Id = self.Id,
             MediaType = MediaTypes.Playlist,
             Title = self.Name,
-            ArtworkUrl = self.ArtworkUrl,
-            BackdropUrl = self.BackdropUrl,
+            ArtworkUrl = self.CacheBusterArtwork(),
+            BackdropUrl = self.CacheBusterBackdrop(),
         };
 
 
